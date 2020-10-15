@@ -11,7 +11,7 @@ UI server through flask definitions.
 import logging
 
 from fingerprinter.config import FINGERPRINTER_DEBUG
-from fingerprinter.entrypoints.api import app
+from fingerprinter.entrypoints.ui import app
 from fingerprinter.entrypoints.flask_config import ProductionConfig, DevelopmentConfig
 
 if FINGERPRINTER_DEBUG:

@@ -12,6 +12,6 @@ Module for configuring and exposing the connexion api server using the Flask fra
 import connexion
 
 connexion_app = connexion.FlaskApp(__name__, specification_dir='openapi')
-connexion_app.add_api('fingerprinter.yaml')
+connexion_app.add_api('fingerprinter.yml')
 
 app = connexion_app.app
