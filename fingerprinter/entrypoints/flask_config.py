@@ -8,6 +8,9 @@
 """
 Flask app configuration.
 """
+import os
+
+FLASK_SECRET_KEY = os.environ.get('SECRET_KEY', 'secret key')
 
 
 class FlaskConfig:
