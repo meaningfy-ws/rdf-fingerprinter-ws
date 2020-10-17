@@ -1,0 +1,5 @@
+requests==2.24.0  # https://requests.readthedocs.io/en/master/
+connexion[swagger-ui]==2.7.0  # https://github.com/zalando/connexion
+
+Flask==1.1.2  # https://flask.palletsprojects.com/en/1.1.x/e
+eds4jinja2==0.1.23  # https://github.com/meaningfy-ws/eds4jinja2

@@ -1,0 +1,87 @@
+openapi: 3.0.1
+
+info:
+  title: Fingerprinting Service
+  description: |
+    This API provides the possibility to fingerprint an RDF file or SPARQL endpoint.
+
+  contact:
+    name: Eugeniu Costetchi
+    url: http://costezki.ro
+    email: costezki.eugen@gmail.com
+  license:
+    name: GNU General Public License Version 3 (GPLv3)
+    url: https://www.gnu.org/licenses/gpl-3.0.en.html
+  version: 1.0.1
+
+servers:
+  - url: 'http://localhost:4020/'
+    description: Default server
+
+components:
+  parameters:
+    extensionParam:
+      in: query
+      name: report_extension
+      required: false
+      schema:
+        type: string
+      description: The type of the report that will be returned
+
+  schemas:
+    FileFingerprinter:
+      type: object
+      description: Fingerprint a file
+      properties:
+        data_file:
+          type: string
+          format: binary
+          description: The file to be fingerprinted
+      required:
+        - data_file
+
+    EndpointFingerprinter:
+      type: object
+      description: Fingerprint a SPARQL endpoint
+      properties:
+        sparql_endpoint_url:
+          type: string
+          description: The endpoint to validate
+      required:
+        - sparql_endpoint_url
+
+paths:
+  /fingerprint-file:
+    post:
+      operationId: fingerprinter.entrypoints.api.handlers.fingerprint_file
+      description: Fingerprint an RDF file.
+      parameters:
+        - $ref: '#/components/parameters/extensionParam'
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/FileFingerprinter'
+      responses:
+        200:
+          description: OK.
+        5XX:
+          description: Unexpected Error.
+  /fingerprint-sparql-endpoint:
+    post:
+      operationId: fingerprinter.entrypoints.api.handlers.fingerprint_sparql_endpoint
+      description: Fingerprint a SPARQL endpoint.
+      parameters:
+        - $ref: '#/components/parameters/extensionParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EndpointFingerprinter'
+      responses:
+        200:
+          description: OK.
+        5XX:
+          description: Unexpected Error.
