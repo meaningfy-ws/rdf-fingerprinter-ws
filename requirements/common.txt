@@ -2,7 +2,8 @@ requests==2.24.0  # https://requests.readthedocs.io/en/master/
 requests-toolbelt==0.9.1  # https://github.com/requests/toolbelt
 rdflib==5.0.0  # https://rdflib.readthedocs.io/en/stable/
 SPARQLWrapper==1.8.5  # SPARQLWrapper==1.8.5  #https://rdflib.dev/sparqlwrapper/
-connexion[swagger-ui]==2.7.0  # https://github.com/zalando/connexion
 
+connexion[swagger-ui]==2.7.0  # https://github.com/zalando/connexion
 Flask==1.1.2  # https://flask.palletsprojects.com/en/1.1.x/e
-eds4jinja2==0.1.23  # https://github.com/meaningfy-ws/eds4jinja2
+
+git+https://github.com/meaningfy-ws/rdf-fingerprinter

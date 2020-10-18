@@ -42,7 +42,7 @@ class FakeSPARQLAdapter(AbstractSPARQLAdapter):
         return {'name': dataset_name}
 
     def upload_file(self, dataset_name: str, file_path: str):
-        self.actions.append(('UPLOAD', dataset_name, file_path))
+        self.actions.append(('UPLOAD', (dataset_name, file_path)))
 
 
 @pytest.fixture(scope='function')
