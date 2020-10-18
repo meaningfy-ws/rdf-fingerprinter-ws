@@ -18,8 +18,8 @@ def test_upload_file_to_dataset(tmpdir):
 
     upload_file_to_dataset('dataset', str(file), adapter)
 
-    assert adapter._actions[0] == ('GET', 'dataset')
-    assert adapter._actions[1] == ('UPLOAD', 'dataset', str(file))
+    assert adapter.actions[0] == ('GET', 'dataset')
+    assert adapter.actions[1] == ('UPLOAD', 'dataset', str(file))
 
 
 def test_fingerprint_sparql_endpoint(tmpdir):
