@@ -6,7 +6,7 @@
 # Email: coslet.mihai@gmail.com
 import pytest
 
-from fingerprinter.adapters.sparql_adapter import SPARQLWrapperAdapter
+from fingerprinter.adapters.sparql_adapter import FusekiSPARQLAdapter
 
 
 class FakeRequests:
@@ -14,6 +14,10 @@ class FakeRequests:
         self.text = None
         self.status_code = None
         self.url = None
+
+    def get(self, url, **kwargs):
+        self.url = url
+        return self
 
     def post(self, url, data=None, json=None, **kwargs):
         self.url = url
@@ -30,5 +34,5 @@ def fake_requests():
 
 def helper_sparql_wrapper(triplestore_service_url: str = "http://localhost:3030cc",
                           http_client=FakeRequests()):
-    return SPARQLWrapperAdapter(triplestore_service_url=triplestore_service_url,
-                                http_client=http_client)
+    return FusekiSPARQLAdapter(triplestore_service_url=triplestore_service_url,
+                               http_client=http_client)

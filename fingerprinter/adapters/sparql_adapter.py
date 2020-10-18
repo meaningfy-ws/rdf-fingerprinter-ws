@@ -8,6 +8,7 @@
 """
 Adapter for the SPARQL wrapper library
 """
+from abc import ABC, abstractmethod
 from json import JSONDecodeError
 from urllib.parse import urljoin
 
@@ -24,7 +25,45 @@ class FusekiException(Exception):
     """
 
 
-class SPARQLWrapperAdapter:
+class AbstractSPARQLAdapter(ABC):
+    """
+    Abstract adapter for performing operations on a tripple store server
+    """
+
+    @abstractmethod
+    def create_dataset(self, dataset_name: str):
+        """
+            Create the dataset for the __ store
+        :param dataset_name: The dataset identifier. This should be short alphanumeric string uniquely
+        identifying the dataset
+        """
+
+    @abstractmethod
+    def delete_dataset(self, dataset_name: str):
+        """
+            Delete the dataset from the __ store
+        :param dataset_name: The dataset identifier. This should be short alphanumeric string uniquely
+        identifying the dataset
+        """
+
+    @abstractmethod
+    def get_dataset(self, dataset_name: str) -> dict:
+        """
+            Get dataset general info
+        :param dataset_name: The dataset identifier. This should be short alphanumeric string uniquely
+        :return: dataset info
+        """
+
+    @abstractmethod
+    def upload_file(self, dataset_name: str, file_path: str):
+        """
+            Upload a data file to the dataset
+        :param dataset_name: The dataset identifier. This should be short alphanumeric string uniquely
+        :param file_path: path to the data file to be uploaded
+        """
+
+
+class FusekiSPARQLAdapter(AbstractSPARQLAdapter):
     def __init__(self, triplestore_service_url: str, http_client):
         self.triplestore_service_url = triplestore_service_url
         self.http_client = http_client
@@ -63,11 +102,30 @@ class SPARQLWrapperAdapter:
         if response.status_code == 404:
             raise FusekiException('The dataset to be deleted doesn\'t exist.')
 
-    def upload_file(self, dataset_name: str, file: str) -> dict:
+    def get_dataset(self, dataset_name: str) -> dict:
+        """
+            Get dataset general info
+        :param dataset_name: The dataset identifier. This should be short alphanumeric string uniquely
+        :return: dataset info
+        """
+        response = self.http_client.get(urljoin(self.triplestore_service_url, f"/$/datasets/{dataset_name}"),
+                                        auth=HTTPBasicAuth(config.FUSEKI_USERNAME,
+                                                           config.FUSEKI_PASSWORD))
+        if response.status_code == 404:
+            raise FusekiException(f'The dataset <{dataset_name}> doesn\'t exist.')
+        if response.status_code != 200:
+            raise FusekiException(f'Error connecting to fuseki: {response.text}')
+
+        try:
+            return response.json()
+        except JSONDecodeError:
+            return response.text
+
+    def upload_file(self, dataset_name: str, file_path: str) -> dict:
         """
             Upload the file to the Fuseki dataset
         :param dataset_name: The dataset identifier. This should be short alphanumeric string uniquely
-        :param file:
+        :param file_path: path to the data file to be uploaded
         :return a dict of the structure:
         {
           "count": 36286,
@@ -80,7 +138,7 @@ class SPARQLWrapperAdapter:
         # for larger requests, it has to be streamed, which requests doesn't support by default.
         # requests_toolbelt solution - https://toolbelt.readthedocs.io/en/latest/uploading-data.html
         multipart_encoder = MultipartEncoder(
-            fields={'file': (file, open(file, 'rb'), get_file_format(file))}
+            fields={'file': (file_path, open(file_path, 'rb'), get_file_format(file_path))}
         )
 
         response = self.http_client.post(urljoin(self.triplestore_service_url, f"/{dataset_name}/data"),
