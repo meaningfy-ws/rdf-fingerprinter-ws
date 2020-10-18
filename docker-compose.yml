@@ -29,6 +29,22 @@ services:
     networks:
       - mydefault
 
+  fuseki:
+    container_name: fuseki
+    build:
+      context: .
+      dockerfile: docker/fuseki/Dockerfile
+    volumes:
+      - ${PWD}/${FUSEKI_DATA_FOLDER}/fuseki:/fuseki
+    env_file: docker/.env
+    environment:
+      - ADMIN_PASSWORD=${FUSEKI_ADMIN_PASSWORD}
+      - JVM_ARGS=${FUSEKI_JVM_ARGS}
+    ports:
+      - ${FUSEKI_PORT}:${FUSEKI_PORT}
+    networks:
+      - mydefault
+
 networks:
   mydefault:
     name: globalnet
