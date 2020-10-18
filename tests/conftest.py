@@ -6,7 +6,7 @@
 # Email: coslet.mihai@gmail.com
 import pytest
 
-from fingerprinter.adapters.sparql_adapter import FusekiSPARQLAdapter
+from fingerprinter.adapters.sparql_adapter import FusekiSPARQLAdapter, AbstractSPARQLAdapter
 
 
 class FakeRequests:
@@ -25,6 +25,24 @@ class FakeRequests:
 
     def json(self):
         return self.text
+
+
+class FakeSPARQLAdapter(AbstractSPARQLAdapter):
+    def __init__(self):
+        self._actions = list()
+
+    def create_dataset(self, dataset_name: str):
+        self._actions.append(('CREATE', dataset_name))
+
+    def delete_dataset(self, dataset_name: str):
+        self._actions.append(('DELETE', dataset_name))
+
+    def get_dataset(self, dataset_name: str) -> dict:
+        self._actions.append(('GET', dataset_name))
+        return {'name': dataset_name}
+
+    def upload_file(self, dataset_name: str, file_path: str):
+        self._actions.append(('UPLOAD', dataset_name, file_path))
 
 
 @pytest.fixture(scope='function')

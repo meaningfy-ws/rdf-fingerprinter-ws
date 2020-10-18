@@ -13,29 +13,12 @@ from pathlib import Path
 from fingerprinter.adapters.sparql_adapter import AbstractSPARQLAdapter
 
 
-class FingerprinterError(Exception):
-    pass
+def upload_file_to_dataset(dataset: str, file_path: str, sparql_adapter: AbstractSPARQLAdapter):
+    sparql_adapter.get_dataset(dataset)
+    return sparql_adapter.upload_file(dataset, file_path)
 
 
-def create_dataset(dataset: str, sparql_adapter: AbstractSPARQLAdapter, triplestore_service_url: str, http_client):
-    adapter = sparql_adapter(triplestore_service_url, http_client)
-    adapter.create_dataset(dataset)
-
-
-def delete_dataset(dataset: str, sparql_adapter: AbstractSPARQLAdapter, triplestore_service_url: str, http_client):
-    adapter = sparql_adapter(triplestore_service_url, http_client)
-    adapter.delete_dataset(dataset)
-
-
-def upload_file_to_dataset(dataset: str, file_path: str, sparql_adapter: AbstractSPARQLAdapter,
-                           triplestore_service_url: str,
-                           http_client):
-    adapter = sparql_adapter(triplestore_service_url, http_client)
-    adapter.get_dataset(dataset)
-    return adapter.upload_file(dataset, file_path)
-
-
-def fingerprint_sparql_endpoint(sparql_endpoint: str, output_location: str, graph: str = None):
+def fingerprint_sparql_endpoint(sparql_endpoint: str, output_location: str, graph: str = ''):
     """
 
     :param sparql_endpoint:

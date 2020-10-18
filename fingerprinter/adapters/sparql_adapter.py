@@ -27,7 +27,7 @@ class FusekiException(Exception):
 
 class AbstractSPARQLAdapter(ABC):
     """
-    Abstract adapter for performing operations on a tripple store server
+    Abstract adapter for performing operations on a triple store server
     """
 
     @abstractmethod

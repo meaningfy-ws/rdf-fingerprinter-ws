@@ -6,7 +6,20 @@
 # Email: coslet.mihai@gmail.com
 from pathlib import Path
 
-from fingerprinter.services.handlers import fingerprint_sparql_endpoint, fingerprint_file
+from fingerprinter.services.handlers import fingerprint_sparql_endpoint, fingerprint_file, upload_file_to_dataset
+from tests.conftest import FakeSPARQLAdapter
+
+
+def test_upload_file_to_dataset(tmpdir):
+    file = tmpdir.join('file.ttl')
+    file.write('this is some data')
+
+    adapter = FakeSPARQLAdapter()
+
+    upload_file_to_dataset('dataset', str(file), adapter)
+
+    assert adapter._actions[0] == ('GET', 'dataset')
+    assert adapter._actions[1] == ('UPLOAD', 'dataset', str(file))
 
 
 def test_fingerprint_sparql_endpoint(tmpdir):
