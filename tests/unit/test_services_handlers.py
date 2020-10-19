@@ -7,8 +7,7 @@
 from pathlib import Path
 from unittest.mock import patch
 
-from fingerprinter.services.handlers import fingerprint_sparql_endpoint, fingerprint_file, \
-    upload_file_to_dataset
+from fingerprinter.services.handlers import fingerprint_file, upload_file_to_dataset
 
 
 def test_upload_file_to_dataset(tmpdir, fake_sparql_adapter):
@@ -20,18 +19,6 @@ def test_upload_file_to_dataset(tmpdir, fake_sparql_adapter):
     assert fake_sparql_adapter.actions[0] == ('CREATE', 'dataset')
     assert fake_sparql_adapter.actions[1] == ('UPLOAD', ('dataset', str(file)))
     assert fake_sparql_adapter.actions[2] == ('DELETE', 'dataset')
-
-
-@patch('fingerprinter.services.handlers.generate_endpoint_fingerprint_report')
-def test_fingerprint_sparql_endpoint(mock_generate_endpoint_fingerprint_report, tmpdir):
-    output_location = tmpdir.mkdir('output')
-    report_path = Path(str(output_location)) / 'fingerprint.html'
-    report_path.write_text('report')
-    endpoint = ''
-
-    fingerprint_sparql_endpoint(endpoint, output_location)
-
-    assert report_path.read_text() == 'report'
 
 
 @patch('fingerprinter.services.handlers.generate_endpoint_fingerprint_report')
