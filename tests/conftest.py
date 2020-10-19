@@ -50,7 +50,14 @@ def fake_requests():
     return FakeRequests()
 
 
-def helper_sparql_wrapper(triplestore_service_url: str = "http://localhost:3030cc",
+# used for testing the adapter
+def helper_sparql_wrapper(triplestore_service_url: str = "http://localhost:3030",
                           http_client=FakeRequests()):
     return FusekiSPARQLAdapter(triplestore_service_url=triplestore_service_url,
                                http_client=http_client)
+
+
+# used for testing the services where the adapter is used
+@pytest.fixture(scope='function')
+def fake_sparql_adapter():
+    return FakeSPARQLAdapter()

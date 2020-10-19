@@ -9,17 +9,28 @@
 Service layer of the fingerprinter web services.
 """
 import uuid
+from contextlib import contextmanager
 
-import requests
 from fingerprint.service_layer.handlers import generate_endpoint_fingerprint_report
 
 from fingerprinter import config
-from fingerprinter.adapters.sparql_adapter import AbstractSPARQLAdapter, FusekiSPARQLAdapter
+from fingerprinter.adapters.sparql_adapter import AbstractSPARQLAdapter
 
 
-def create_dataset_and_upload_file_to_dataset(dataset: str, file_path: str, sparql_adapter: AbstractSPARQLAdapter):
-    sparql_adapter.create_dataset(dataset)
-    return sparql_adapter.upload_file(dataset, file_path)
+@contextmanager
+def upload_file_to_dataset(dataset: str, file_path: str, sparql_adapter: AbstractSPARQLAdapter):
+    """
+        A context manager that creates a dataset, uploads a file into it, and finally deletes the dataset
+    :param dataset: dataset name
+    :param file_path: location of the file to be uploaded
+    :param sparql_adapter: adapter used to perform triplestore operations
+    """
+    try:
+        sparql_adapter.create_dataset(dataset)
+        sparql_adapter.upload_file(dataset, file_path)
+        yield
+    finally:
+        sparql_adapter.delete_dataset(dataset)
 
 
 def fingerprint_sparql_endpoint(sparql_endpoint: str, output_location: str, graph: str = '') -> str:
@@ -35,22 +46,20 @@ def fingerprint_sparql_endpoint(sparql_endpoint: str, output_location: str, grap
     return str(generate_endpoint_fingerprint_report(sparql_endpoint, output_location, graph))
 
 
-def fingerprint_file(file_path: str, output_location: str, graph: str = '') -> str:
+def fingerprint_file(file_path: str, output_location: str, sparql_adapter: AbstractSPARQLAdapter,
+                     graph: str = '') -> str:
     """
         Fingerprint a file using the fingerprinter available at https://github.com/meaningfy-ws/rdf-fingerprinter.
     :param file_path: file to be fingerprinted
     :param output_location: location for the report to be built in
+    :param sparql_adapter: adapter used to perform triplestore operations
     :param graph: (optional) restrict the fingerprinting calculation to this graph
     :return:
     """
-    adapter = FusekiSPARQLAdapter(triplestore_service_url=config.FUSEKI_SERVICE, http_client=requests)
     dataset_name = str(uuid.uuid4())
 
-    create_dataset_and_upload_file_to_dataset(dataset_name, file_path, adapter)
-
-    sparql_endpoint = f'{config.FUSEKI_SERVICE}/{dataset_name}/query'
-    report_path = fingerprint_sparql_endpoint(sparql_endpoint, output_location, graph)
-
-    adapter.delete_dataset(dataset_name)
+    with upload_file_to_dataset(dataset_name, file_path, sparql_adapter):
+        sparql_endpoint = f'{config.FUSEKI_SERVICE}/{dataset_name}/query'
+        report_path = fingerprint_sparql_endpoint(sparql_endpoint, output_location, graph)
 
     return report_path
