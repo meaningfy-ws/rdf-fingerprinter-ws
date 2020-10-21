@@ -29,26 +29,39 @@ components:
       description: The type of the report that will be returned
 
   schemas:
+    BaseFingerprinter:
+      type: object
+      description: Some description
+      properties:
+        graph:
+          type: string
+          description: some description
     FileFingerprinter:
       type: object
       description: Fingerprint a file
-      properties:
-        data_file:
-          type: string
-          format: binary
-          description: The file to be fingerprinted
-      required:
-        - data_file
+      allOf:
+        - $ref: '#components/schemas/BaseFingerprinter'
+        - type: object
+          properties:
+            data_file:
+              type: string
+              format: binary
+              description: The file to be fingerprinted
+          required:
+            - data_file
 
     EndpointFingerprinter:
       type: object
       description: Fingerprint a SPARQL endpoint
-      properties:
-        sparql_endpoint_url:
-          type: string
-          description: The endpoint to validate
-      required:
-        - sparql_endpoint_url
+      allOf:
+        - $ref: '#components/schemas/BaseFingerprinter'
+        - type: object
+          properties:
+            sparql_endpoint_url:
+              type: string
+              description: The endpoint to validate
+          required:
+            - sparql_endpoint_url
 
 paths:
   /fingerprint-file:
