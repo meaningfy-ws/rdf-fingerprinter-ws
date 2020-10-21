@@ -30,6 +30,6 @@ def get_file_format(file: str, types: dict = None) -> str:
 
     file_format = guess_format(str(file), types)
     if file_format is None:
-        raise ValueError('Format of "{}" is not supported.'.format(file))
+        raise ValueError(f'Format of "{file}" is not supported.')
 
     return file_format

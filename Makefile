@@ -20,17 +20,17 @@ test:
 	@ echo "$(BUILD_PRINT)Running the tests"
 	@ pytest
 
-build:
-	@ echo -e '$(BUILD_PRINT)Building the api and ui containers'
-	@ docker-compose --env-file docker/.env build fingerprinter-api fingerprinter-ui
+build-services:
+	@ echo -e '$(BUILD_PRINT)Building the containers'
+	@ docker-compose --file docker/docker-compose.yml --env-file docker/.env build
 
-start:
-	@ echo -e '$(BUILD_PRINT)(dev) Starting the api and ui containers'
-	@ docker-compose --env-file docker/.env up -d fingerprinter-api fingerprinter-ui
+start-services:
+	@ echo -e '$(BUILD_PRINT)(dev) Starting the containers'
+	@ docker-compose --file docker/docker-compose.yml --env-file docker/.env up -d
 
-stop:
-	@ echo -e '$(BUILD_PRINT)(dev) Stopping the api and ui containers'
-	@ docker-compose --env-file docker/.env stop fingerprinter-api fingerprinter-ui
+stop-services:
+	@ echo -e '$(BUILD_PRINT)(dev) Stopping the containers'
+	@ docker-compose --file docker/docker-compose.yml --env-file docker/.env stop
 
 #-----------------------------------------------------------------------------
 # Gherkin feature and acceptance test generation commands

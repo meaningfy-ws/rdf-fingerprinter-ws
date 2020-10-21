@@ -4,26 +4,26 @@ services:
   fingerprinter-api:
     container_name: fingerprinter-api
     build:
-      context: .
-      dockerfile: docker/api/Dockerfile
+      context: ..
+      dockerfile: ./docker/api/Dockerfile
     volumes:
-      - .:/usr/src/app
+      - ..:/usr/src/app
     ports:
-      - ${FINGERPRINTER_API_PORT}:${FINGERPRINTER_API_PORT}
-    env_file: docker/.env
+      - ${RDF_FINGERPRINTER_API_PORT}:${RDF_FINGERPRINTER_API_PORT}
+    env_file: .env
     networks:
       - mydefault
 
   fingerprinter-ui:
     container_name: fingerprinter-ui
     build:
-      context: .
-      dockerfile: docker/ui/Dockerfile
+      context: ..
+      dockerfile: ./docker/ui/Dockerfile
     volumes:
-      - .:/usr/src/app
+      - ..:/usr/src/app
     ports:
-      - ${FINGERPRINTER_UI_PORT}:${FINGERPRINTER_UI_PORT}
-    env_file: docker/.env
+      - ${RDF_FINGERPRINTER_UI_PORT}:${RDF_FINGERPRINTER_UI_PORT}
+    env_file: .env
     depends_on:
       - "fingerprinter-api"
     networks:
@@ -31,12 +31,10 @@ services:
 
   fuseki:
     container_name: fuseki
-    build:
-      context: .
-      dockerfile: docker/fuseki/Dockerfile
+    image: meaningfy/fuseki:latest
     volumes:
       - ${PWD}/${FUSEKI_DATA_FOLDER}/fuseki:/fuseki
-    env_file: docker/.env
+    env_file: .env
     environment:
       - ADMIN_PASSWORD=${FUSEKI_ADMIN_PASSWORD}
       - JVM_ARGS=${FUSEKI_JVM_ARGS}

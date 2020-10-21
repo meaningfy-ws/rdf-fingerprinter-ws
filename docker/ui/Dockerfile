@@ -10,4 +10,4 @@ COPY . /usr/src/app
 RUN pip install --upgrade pip
 RUN pip install -r requirements.txt
 
-CMD gunicorn -w 2 --bind 0.0.0.0:${FINGERPRINTER_UI_PORT} --reload --log-level=debug fingerprinter.entrypoints.ui.run:app
+CMD gunicorn -w 2 --bind 0.0.0.0:${RDF_FINGERPRINTER_UI_PORT} --reload --log-level=debug fingerprinter.entrypoints.ui.run:app

@@ -11,7 +11,7 @@ Module for configuring and exposing the ui server using the Flask framework.
 
 from flask import Flask
 
-from fingerprinter.entrypoints.flask_config import FLASK_SECRET_KEY
+from fingerprinter.config import FLASK_SECRET_KEY
 
 app = Flask(__name__)
 
