@@ -58,7 +58,7 @@ def fingerprint_file(body: dict, data_file: FileStorage, report_type: str = DEFA
     API method to handle file fingerprinting.
     :param body: the json body that comes from the request
         graph: a named graph to restrict the fingerprint calculation to
-    :param data_file: the file to be fingerprinted of types defined i n
+    :param data_file: the file to be fingerprinted
     :param report_type: type of file to be returned. Can be `html`. Defaults to `html`:
     :return: the fingerprinting report in the requested format
     :rtype: report file (html), int
