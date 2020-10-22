@@ -5,7 +5,9 @@
 # Author: Mihai Coșleț
 # Email: coslet.mihai@gmail.com 
 
-""" """
+"""
+Form classes for use in views.
+"""
 from flask_wtf import FlaskForm
 from flask_wtf.file import FileField, FileRequired
 from wtforms import StringField

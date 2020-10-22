@@ -9,6 +9,7 @@ import pytest
 from fingerprinter.adapters.sparql_adapter import FusekiSPARQLAdapter, AbstractSPARQLAdapter
 from fingerprinter.config import TestingConfig
 from fingerprinter.entrypoints.api import app as api_app
+from fingerprinter.entrypoints.ui import app as ui_app
 
 
 class FakeRequests:
@@ -69,3 +70,9 @@ def fake_sparql_adapter():
 def api_client():
     api_app.config.from_object(TestingConfig())
     return api_app.test_client()
+
+
+@pytest.fixture
+def ui_client():
+    ui_app.config.from_object(TestingConfig())
+    return ui_app.test_client()
