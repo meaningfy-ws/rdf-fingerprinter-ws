@@ -22,7 +22,7 @@ components:
   parameters:
     extensionParam:
       in: query
-      name: report_extension
+      name: report_type
       required: false
       schema:
         type: string
@@ -31,24 +31,11 @@ components:
   schemas:
     BaseFingerprinter:
       type: object
-      description: Some description
+      description: Base fingerprinter schema to be used by the endpoint and file fingerprinter
       properties:
         graph:
           type: string
-          description: some description
-    FileFingerprinter:
-      type: object
-      description: Fingerprint a file
-      allOf:
-        - $ref: '#components/schemas/BaseFingerprinter'
-        - type: object
-          properties:
-            data_file:
-              type: string
-              format: binary
-              description: The file to be fingerprinted
-          required:
-            - data_file
+          description: A named graph to restrict the fingerprint calculation to
 
     EndpointFingerprinter:
       type: object
@@ -63,24 +50,21 @@ components:
           required:
             - sparql_endpoint_url
 
+    FileFingerprinter:
+      type: object
+      description: Fingerprint a file
+      allOf:
+        - $ref: '#components/schemas/BaseFingerprinter'
+        - type: object
+          properties:
+            data_file:
+              type: string
+              format: binary
+              description: The file to be fingerprinted
+          required:
+            - data_file
+
 paths:
-  /fingerprint-file:
-    post:
-      operationId: fingerprinter.entrypoints.api.handlers.fingerprint_file
-      description: Fingerprint an RDF file.
-      parameters:
-        - $ref: '#/components/parameters/extensionParam'
-      requestBody:
-        required: true
-        content:
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/FileFingerprinter'
-      responses:
-        200:
-          description: OK.
-        5XX:
-          description: Unexpected Error.
   /fingerprint-sparql-endpoint:
     post:
       operationId: fingerprinter.entrypoints.api.handlers.fingerprint_sparql_endpoint
@@ -93,6 +77,23 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/EndpointFingerprinter'
+      responses:
+        200:
+          description: OK.
+        5XX:
+          description: Unexpected Error.
+  /fingerprint-file:
+    post:
+      operationId: fingerprinter.entrypoints.api.handlers.fingerprint_file
+      description: Fingerprint an RDF file.
+      parameters:
+        - $ref: '#/components/parameters/extensionParam'
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/FileFingerprinter'
       responses:
         200:
           description: OK.

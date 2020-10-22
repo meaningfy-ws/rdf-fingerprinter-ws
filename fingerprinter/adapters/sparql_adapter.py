@@ -83,7 +83,8 @@ class FusekiSPARQLAdapter(AbstractSPARQLAdapter):
         }
 
         response = self.http_client.post(urljoin(self.triplestore_service_url, f"/$/datasets"),
-                                         auth=HTTPBasicAuth(config.RDF_FINGERPRINTER_FUSEKI_USERNAME, config.RDF_FINGERPRINTER_FUSEKI_PASSWORD),
+                                         auth=HTTPBasicAuth(config.RDF_FINGERPRINTER_FUSEKI_USERNAME,
+                                                            config.RDF_FINGERPRINTER_FUSEKI_PASSWORD),
                                          data=data)
 
         if response.status_code == 409:

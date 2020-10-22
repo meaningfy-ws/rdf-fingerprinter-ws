@@ -7,6 +7,8 @@
 import pytest
 
 from fingerprinter.adapters.sparql_adapter import FusekiSPARQLAdapter, AbstractSPARQLAdapter
+from fingerprinter.config import TestingConfig
+from fingerprinter.entrypoints.api import app as api_app
 
 
 class FakeRequests:
@@ -61,3 +63,9 @@ def helper_sparql_wrapper(triplestore_service_url: str = "http://localhost:3030"
 @pytest.fixture(scope='function')
 def fake_sparql_adapter():
     return FakeSPARQLAdapter()
+
+
+@pytest.fixture
+def api_client():
+    api_app.config.from_object(TestingConfig())
+    return api_app.test_client()
