@@ -11,10 +11,10 @@ Module for configuring and exposing the ui server using the Flask framework.
 
 from flask import Flask
 
-from fingerprinter.config import FLASK_SECRET_KEY
+from fingerprinter.config import RDF_FINGERPRINTER_FLASK_SECRET_KEY
 
 app = Flask(__name__)
 
-app.config['SECRET_KEY'] = FLASK_SECRET_KEY
+app.config['SECRET_KEY'] = RDF_FINGERPRINTER_FLASK_SECRET_KEY
 
 from . import views
