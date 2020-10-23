@@ -33,6 +33,13 @@ stop-services:
 	@ docker-compose --file docker/docker-compose.yml --env-file docker/.env stop
 
 #-----------------------------------------------------------------------------
+# Fuseki helpers
+#-----------------------------------------------------------------------------
+
+populate-fuseki-for-test:
+	@ python scripts/commands.py
+
+#-----------------------------------------------------------------------------
 # Gherkin feature and acceptance test generation commands
 #-----------------------------------------------------------------------------
 
