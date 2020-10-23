@@ -83,7 +83,8 @@ class FusekiSPARQLAdapter(AbstractSPARQLAdapter):
         }
 
         response = self.http_client.post(urljoin(self.triplestore_service_url, f"/$/datasets"),
-                                         auth=HTTPBasicAuth(config.FUSEKI_USERNAME, config.FUSEKI_PASSWORD),
+                                         auth=HTTPBasicAuth(config.RDF_FINGERPRINTER_FUSEKI_USERNAME,
+                                                            config.RDF_FINGERPRINTER_FUSEKI_PASSWORD),
                                          data=data)
 
         if response.status_code == 409:
@@ -96,8 +97,8 @@ class FusekiSPARQLAdapter(AbstractSPARQLAdapter):
         identifying the dataset
         """
         response = self.http_client.delete(urljoin(self.triplestore_service_url, f"/$/datasets/{dataset_name}"),
-                                           auth=HTTPBasicAuth(config.FUSEKI_USERNAME,
-                                                              config.FUSEKI_PASSWORD))
+                                           auth=HTTPBasicAuth(config.RDF_FINGERPRINTER_FUSEKI_USERNAME,
+                                                              config.RDF_FINGERPRINTER_FUSEKI_PASSWORD))
 
         if response.status_code == 404:
             raise FusekiException('The dataset to be deleted doesn\'t exist.')
@@ -109,8 +110,8 @@ class FusekiSPARQLAdapter(AbstractSPARQLAdapter):
         :return: dataset info
         """
         response = self.http_client.get(urljoin(self.triplestore_service_url, f"/$/datasets/{dataset_name}"),
-                                        auth=HTTPBasicAuth(config.FUSEKI_USERNAME,
-                                                           config.FUSEKI_PASSWORD))
+                                        auth=HTTPBasicAuth(config.RDF_FINGERPRINTER_FUSEKI_USERNAME,
+                                                           config.RDF_FINGERPRINTER_FUSEKI_PASSWORD))
         if response.status_code == 404:
             raise FusekiException(f'The dataset <{dataset_name}> doesn\'t exist.')
         if response.status_code != 200:
@@ -143,8 +144,8 @@ class FusekiSPARQLAdapter(AbstractSPARQLAdapter):
 
         response = self.http_client.post(urljoin(self.triplestore_service_url, f"/{dataset_name}/data"),
                                          data=multipart_encoder,
-                                         auth=HTTPBasicAuth(config.FUSEKI_USERNAME,
-                                                            config.FUSEKI_PASSWORD),
+                                         auth=HTTPBasicAuth(config.RDF_FINGERPRINTER_FUSEKI_USERNAME,
+                                                            config.RDF_FINGERPRINTER_FUSEKI_PASSWORD),
                                          headers={'Content-Type': multipart_encoder.content_type})
 
         if response.status_code != 200:

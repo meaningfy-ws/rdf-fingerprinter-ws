@@ -59,7 +59,7 @@ def fingerprint_file(file_path: str, output_location: str, sparql_adapter: Abstr
     dataset_name = str(uuid.uuid4())
 
     with upload_file_to_dataset(dataset_name, file_path, sparql_adapter):
-        sparql_endpoint = f'{config.FUSEKI_SERVICE}/{dataset_name}/query'
+        sparql_endpoint = f'{config.RDF_FINGERPRINTER_FUSEKI_SERVICE}/{dataset_name}/query'
         report_path = fingerprint_sparql_endpoint(sparql_endpoint, output_location, graph)
 
     return report_path

@@ -33,13 +33,13 @@ services:
     container_name: fuseki
     image: meaningfy/fuseki:latest
     volumes:
-      - ${PWD}/${FUSEKI_DATA_FOLDER}/fuseki:/fuseki
+      - ${PWD}/${RDF_FINGERPRINTER_FUSEKI_DATA_FOLDER}/fuseki:/fuseki
     env_file: .env
     environment:
-      - ADMIN_PASSWORD=${FUSEKI_ADMIN_PASSWORD}
-      - JVM_ARGS=${FUSEKI_JVM_ARGS}
+      - ADMIN_PASSWORD=${RDF_FINGERPRINTER_FUSEKI_ADMIN_PASSWORD}
+      - JVM_ARGS=${RDF_FINGERPRINTER_FUSEKI_JVM_ARGS}
     ports:
-      - ${FUSEKI_PORT}:${FUSEKI_PORT}
+      - ${RDF_FINGERPRINTER_FUSEKI_PORT}:3030
     networks:
       - mydefault
 
