@@ -1,6 +1,7 @@
 # coding=utf-8
 """Fingerprint from UI feature tests."""
 from pathlib import Path
+
 from pytest_bdd import (
     given,
     scenarios,
