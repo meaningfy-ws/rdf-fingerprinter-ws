@@ -25,7 +25,7 @@ jobs:
 
     - name: Upload fuseki data
       run: |
-        make populate-fuseki-for-test
+        make fuseki-create-test-dbs
 
     - name: Install dependencies
       run: |
