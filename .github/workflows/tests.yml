@@ -19,11 +19,11 @@ jobs:
       with:
         python-version: 3.8
 
-    - name: Run adjacent services (Fuseki)
+    - name: Spin up the ui, api and fuseki containers
       run: |
         make build-services && make start-services
 
-    - name: Upload fuseki data
+    - name: Prepare fuseki with dataset for tests
       run: |
         make fuseki-create-test-dbs
 

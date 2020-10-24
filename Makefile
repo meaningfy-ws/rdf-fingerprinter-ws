@@ -36,8 +36,11 @@ stop-services:
 # Fuseki helpers
 #-----------------------------------------------------------------------------
 
-populate-fuseki-for-test:
-	@ python scripts/commands.py
+fuseki-create-test-dbs:
+	@ echo "$(BUILD_PRINT)Building 'test-dataset' dataset at http://localhost:$(if $(RDF_FINGERPRINTER_FUSEKI_PORT),$(RDF_FINGERPRINTER_FUSEKI_PORT),unknown port)/$$/datasets"
+	@ sleep 2
+	@ curl --anyauth --user 'admin:$(RDF_FINGERPRINTER_FUSEKI_ADMIN_PASSWORD)' -d 'dbType=mem&dbName=test-dataset'  'http://localhost:$(RDF_FINGERPRINTER_FUSEKI_PORT)/$$/datasets'
+	@ curl -X POST -H content-type:application/rdf+xml -T ./tests/resources/treaties-source-ap.rdf -G http://localhost:$(RDF_FINGERPRINTER_FUSEKI_PORT)/test-dataset/data
 
 #-----------------------------------------------------------------------------
 # Gherkin feature and acceptance test generation commands
