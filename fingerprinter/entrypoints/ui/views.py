@@ -8,20 +8,62 @@
 """
 UI pages
 """
+import tempfile
+from json import loads
 
+from flask import url_for, render_template, flash, send_from_directory
+from pathlib import Path
+from werkzeug.utils import redirect
+
+from fingerprinter.entrypoints.api.helpers import DEFAULT_REPORT_TYPE
 from fingerprinter.entrypoints.ui import app
+from fingerprinter.entrypoints.ui.api_wrapper import fingerprint_sparql_endpoint as api_fingerprint_sparql_endpoint, \
+    fingerprint_file as api_fingerprint_file
+from fingerprinter.entrypoints.ui.forms import FingerprintSPARQLEndpointForm, FingerprintFileForm
 
 
 @app.route('/', methods=['GET'])
 def index():
-    return '<h1>Hello</h1>', 200
-
-
-@app.route('/fingerprint-file', methods=['GET', 'POST'])
-def fingerprint_file():
-    return '<h1>File</h1>', 200
+    return redirect(url_for('fingerprint_sparql_endpoint'))
 
 
 @app.route('/fingerprint-sparql-endpoint', methods=['GET', 'POST'])
 def fingerprint_sparql_endpoint():
-    return '<h1>Endpoint</h1>', 200
+    form = FingerprintSPARQLEndpointForm()
+
+    if form.validate_on_submit():
+        response, status = api_fingerprint_sparql_endpoint(
+            sparql_endpoint_url=form.sparql_endpoint_url.data,
+            graph=form.graph.data
+        )
+
+        if status != 200:
+            flash(loads(response).get('detail'), 'error')
+        else:
+            with tempfile.TemporaryDirectory() as temp_folder:
+                report = Path(temp_folder) / str(f'report.html')
+                report.write_bytes(response)
+                return send_from_directory(Path(temp_folder), f'report.html', as_attachment=True)
+
+    return render_template('fingerprint/sparql_endpoint_url.html', form=form, title='Fingerprint SPARQL Endpoint')
+
+
+@app.route('/fingerprint-file', methods=['GET', 'POST'])
+def fingerprint_file():
+    form = FingerprintFileForm()
+
+    if form.validate_on_submit():
+        response, status = api_fingerprint_file(
+            data_file=form.data_file.data,
+            graph=form.graph.data
+        )
+
+        if status != 200:
+            flash(loads(response).get('detail'), 'error')
+        else:
+            with tempfile.TemporaryDirectory() as temp_folder:
+                report = Path(temp_folder) / str(f'report.html')
+                report.write_bytes(response)
+                return send_from_directory(Path(temp_folder), f'report.html', as_attachment=True)
+
+    return render_template('fingerprint/file.html', form=form, title='Fingerprint File')

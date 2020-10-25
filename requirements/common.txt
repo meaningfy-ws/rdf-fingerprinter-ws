@@ -5,5 +5,8 @@ SPARQLWrapper==1.8.5  # SPARQLWrapper==1.8.5  #https://rdflib.dev/sparqlwrapper/
 
 connexion[swagger-ui]==2.7.0  # https://github.com/zalando/connexion
 Flask==1.1.2  # https://flask.palletsprojects.com/en/1.1.x/e
+Flask-Wtf==0.14.3  # https://flask-wtf.readthedocs.io/en/stable/
+
+selenium==3.141.0  # https://selenium-python.readthedocs.io/
 
 rdf-fingerprinter  # https://github.com/meaningfy-ws/rdf-fingerprinter

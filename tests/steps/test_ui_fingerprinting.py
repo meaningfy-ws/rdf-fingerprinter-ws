@@ -1,44 +1,53 @@
 # coding=utf-8
 """Fingerprint from UI feature tests."""
+from pathlib import Path
 
 from pytest_bdd import (
     given,
-    scenario,
+    scenarios,
+    parsers,
     then,
     when,
 )
 
+from fingerprinter import config
 
-@scenario('../features/ui_fingerprinting.feature', 'Fingerprint user provided data')
-def test_fingerprint_user_provided_data():
-    """Fingerprint user provided data."""
+CONVERTERS = {
+    'file': str
+}
 
-
-@given('a <fingeprinting_type>')
-def a_fingeprinting_type(fingeprinting_type):
-    """a <fingeprinting_type>."""
-    raise NotImplementedError
+scenarios('../features/ui_fingerprinting.feature', example_converters=CONVERTERS)
 
 
-@when('the user uploads the <data> and requests the fingerprinting report')
-def the_user_uploads_the_data_and_requests_the_fingerprinting_report(data):
-    """the user uploads the data and requests the fingerprinting report."""
-    raise NotImplementedError
+@when(parsers.parse('I fill in the field {control_id} with {text_value}'))
+def i_fill_in_the_field_control_id_with_text_value(scenario_context, browser, control_id, text_value):
+    browser.find_element_by_id(control_id).send_keys(scenario_context[text_value])
 
 
-@then('the file is uploaded and sent to the <api_endpoint> for fingerprinting')
-def the_file_is_uploaded_and_sent_to_the_api_endpoint_for_fingerprinting(api_endpoint):
-    """the file is uploaded and sent to the <api_endpoint> for fingerprinting."""
-    raise NotImplementedError
+@when(parsers.parse('I upload in the field {field_id} with {field}'))
+@when('I upload in the field <field_id> with <field>')
+def i_upload_in_the_field_id_with_file_name(scenario_context, browser, field_id, field):
+    file_button = browser.find_element_by_id(field_id)
+    file_button.send_keys(str(Path(__file__).parents[1] / scenario_context[field]))
 
 
-@then('the report is received from the API call')
-def the_report_is_received_from_the_api_call():
-    """the report is received from the API call."""
-    raise NotImplementedError
+@when(parsers.parse('I navigate to the location {page_location}'))
+def i_navigate_to_the_location_page(scenario_context, browser, page_location):
+    browser.get(config.RDF_FINGERPRINTER_UI_SERVICE + page_location)
 
 
-@then('the user gets the report')
-def the_user_gets_the_report():
-    """the user gets the report."""
-    raise NotImplementedError
+@given(parsers.parse('the {field} with value {value}'))
+@given('the <field> with value <value>')
+def the_field_with_value(scenario_context, field, value):
+    scenario_context[field] = value
+
+
+@when(parsers.parse('I click on the button with id {control_id}'))
+def i_click_on_the_button_with_id_validate_button_id(scenario_context, browser, control_id):
+    button = browser.find_element_by_id(control_id)
+    button.click()
+
+
+@then('something happens')
+def something_happens():
+    """the resulting page contains something_here in the element with id some_id."""
