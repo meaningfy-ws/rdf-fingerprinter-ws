@@ -37,10 +37,10 @@ stop-services:
 #-----------------------------------------------------------------------------
 
 fuseki-create-test-dbs:
-	@ echo "$(BUILD_PRINT)Building 'test-dataset' dataset at http://localhost:$(if $(RDF_FINGERPRINTER_FUSEKI_PORT),$(RDF_FINGERPRINTER_FUSEKI_PORT),unknown port)/$$/datasets"
-	@ sleep 2
-	@ curl --anyauth --user 'admin:$(RDF_FINGERPRINTER_FUSEKI_ADMIN_PASSWORD)' -d 'dbType=mem&dbName=test-dataset'  'http://localhost:$(RDF_FINGERPRINTER_FUSEKI_PORT)/$$/datasets'
-	@ curl -X POST -H content-type:application/rdf+xml --anyauth --user 'admin:$(RDF_FINGERPRINTER_FUSEKI_ADMIN_PASSWORD)' -T ./tests/resources/treaties-source-ap.rdf -G http://localhost:$(RDF_FINGERPRINTER_FUSEKI_PORT)/test-dataset/data
+	@ echo "$(BUILD_PRINT)Building "test-dataset" at http://localhost:$(if $(RDF_FINGERPRINTER_FUSEKI_ADMIN_PASSWORD),$(RDF_DIFFER_FUSEKI_PORT),unknown port)/$$/datasets"
+	@ sleep 7
+	@ curl -v --anyauth --user 'admin:$(RDF_FINGERPRINTER_FUSEKI_ADMIN_PASSWORD)' -d 'dbType=mem&dbName=test-dataset'  'http://localhost:$(RDF_FINGERPRINTER_FUSEKI_PORT)/$$/datasets'
+	@ curl -v -X POST -H content-type:application/rdf+xml --anyauth --user 'admin:$(RDF_FINGERPRINTER_FUSEKI_ADMIN_PASSWORD)' -T ./tests/resources/treaties-source-ap.rdf -G http://localhost:$(RDF_FINGERPRINTER_FUSEKI_PORT)/test-dataset/data
 
 #-----------------------------------------------------------------------------
 # Gherkin feature and acceptance test generation commands
