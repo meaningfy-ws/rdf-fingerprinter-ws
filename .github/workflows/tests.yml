@@ -26,10 +26,6 @@ jobs:
     - name: Prepare fuseki with dataset for tests
       run: |
         make fuseki-create-test-dbs
-    
-    - name: TEST fuseki
-      run: |
-        make fuseki-test
 
     - name: Install dependencies
       run: |
