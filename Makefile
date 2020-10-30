@@ -37,6 +37,7 @@ stop-services:
 #-----------------------------------------------------------------------------
 
 fuseki-create-test-dbs:
+	@ sleep 7
 	@ curl -v --anyauth --user 'admin:$ (RDF_FINGERPRINTER_FUSEKI_ADMIN_PASSWORD)' http://localhost:$(RDF_FINGERPRINTER_FUSEKI_PORT)
 	@ curl -v --anyauth --user 'admin:$(RDF_FINGERPRINTER_FUSEKI_ADMIN_PASSWORD)' -d 'dbType=mem&dbName=test-dataset'  'http://localhost:$(RDF_FINGERPRINTER_FUSEKI_PORT)/$$/datasets'
 
