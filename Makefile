@@ -37,7 +37,7 @@ stop-services:
 #-----------------------------------------------------------------------------
 
 fuseki-create-test-dbs:
-	@ curl -X POST --anyauth --user 'admin:$(RDF_FINGERPRINTER_FUSEKI_ADMIN_PASSWORD)' -d 'dbType=mem&dbName=test-dataset'  'http://localhost:$(RDF_FINGERPRINTER_FUSEKI_PORT)/$$/datasets'
+	@ curl -X POST --anyauth --user 'admin:$(RDF_FINGERPRINTER_FUSEKI_ADMIN_PASSWORD)' -d 'dbType=mem&dbName=test-dataset'  'http://localhost:$(RDF_FINGERPRINTER_FUSEKI_PORT)/$/datasets'
 
 fuseki-test:
 	@ curl -X POST -H content-type:application/rdf+xml --anyauth --user 'admin:$(RDF_FINGERPRINTER_FUSEKI_ADMIN_PASSWORD)' -T ./tests/resources/treaties-source-ap.rdf -G http://localhost:$(RDF_FINGERPRINTER_FUSEKI_PORT)/test-dataset/data
