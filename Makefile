@@ -22,11 +22,11 @@ test:
 
 build-services:
 	@ echo -e '$(BUILD_PRINT)Building the containers'
-	@ docker-compose --file docker/docker-compose.yml --env-file docker/.env build
+	@ docker-compose --file docker/docker-compose.yml --env-file docker/.env build fuseki
 
 start-services:
 	@ echo -e '$(BUILD_PRINT)(dev) Starting the containers'
-	@ docker-compose --file docker/docker-compose.yml --env-file docker/.env up -d
+	@ docker-compose --file docker/docker-compose.yml --env-file docker/.env up -d fuseki
 
 stop-services:
 	@ echo -e '$(BUILD_PRINT)(dev) Stopping the containers'
