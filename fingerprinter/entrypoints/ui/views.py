@@ -9,17 +9,16 @@
 UI pages
 """
 import tempfile
-from json import loads
+from pathlib import Path
 
 from flask import url_for, render_template, flash, send_from_directory
-from pathlib import Path
 from werkzeug.utils import redirect
 
-from fingerprinter.entrypoints.api.helpers import DEFAULT_REPORT_TYPE
 from fingerprinter.entrypoints.ui import app
 from fingerprinter.entrypoints.ui.api_wrapper import fingerprint_sparql_endpoint as api_fingerprint_sparql_endpoint, \
     fingerprint_file as api_fingerprint_file
 from fingerprinter.entrypoints.ui.forms import FingerprintSPARQLEndpointForm, FingerprintFileForm
+from fingerprinter.entrypoints.ui.helpers import get_error_message_from_response
 
 
 @app.route('/', methods=['GET'])
@@ -38,7 +37,7 @@ def fingerprint_sparql_endpoint():
         )
 
         if status != 200:
-            flash(loads(response).get('detail'), 'error')
+            flash(get_error_message_from_response(response), 'error')
         else:
             with tempfile.TemporaryDirectory() as temp_folder:
                 report = Path(temp_folder) / str(f'report.html')
@@ -59,7 +58,7 @@ def fingerprint_file():
         )
 
         if status != 200:
-            flash(loads(response).get('detail'), 'error')
+            flash(get_error_message_from_response(response), 'error')
         else:
             with tempfile.TemporaryDirectory() as temp_folder:
                 report = Path(temp_folder) / str(f'report.html')

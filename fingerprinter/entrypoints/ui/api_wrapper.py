@@ -29,7 +29,7 @@ def fingerprint_sparql_endpoint(sparql_endpoint_url: str, graph: str) -> tuple:
     if graph:
         data['graph'] = graph
 
-    response = requests.post(config.RDF_FINGERPRINTER_API_SERVICE + '/fingerprint-sparql-endpoint', data=data)
+    response = requests.post(config.RDF_FINGERPRINTER_API_SERVICE + '/fingerprint-sparql-endpoint', json=data)
 
     return response.content, response.status_code
 
