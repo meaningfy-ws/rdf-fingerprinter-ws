@@ -22,6 +22,6 @@ Feature: Fingerprint from UI
     # to be updated
     Then something happens
 
-    Examples: Files with different sizes (small, medium, big)
+    Examples: Files to test the fingerprinter
       | field     | field_id  | value                              |
       | DATA_FILE | data_file | resources/continents-source-ap.rdf |
