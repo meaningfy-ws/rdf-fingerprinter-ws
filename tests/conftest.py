@@ -97,6 +97,7 @@ def browser():
     _browser = WebDriver(executable_path=path_to_driver,
                          chrome_options=chrome_options,
                          service_args=chrome_driver_args)
+    _browser.maximize_window()
     yield _browser
     _browser.close()
     _browser.quit()

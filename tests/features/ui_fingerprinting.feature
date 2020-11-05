@@ -25,5 +25,3 @@ Feature: Fingerprint from UI
     Examples: Files with different sizes (small, medium, big)
       | field     | field_id  | value                              |
       | DATA_FILE | data_file | resources/continents-source-ap.rdf |
-      | DATA_FILE | data_file | resources/treaties-source-ap.rdf   |
-      | DATA_FILE | data_file | resources/courts-source-ap.rdf     |
