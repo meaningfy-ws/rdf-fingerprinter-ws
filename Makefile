@@ -20,6 +20,12 @@ test:
 	@ echo "$(BUILD_PRINT)Running the tests"
 	@ pytest
 
+#-----------------------------------------------------------------------------
+# Service commands
+#-----------------------------------------------------------------------------
+build-volumes:
+	@ docker volume create rdf-fingerprinter-template
+
 build-services:
 	@ echo -e '$(BUILD_PRINT)Building the containers'
 	@ docker-compose --file docker/docker-compose.yml --env-file docker/.env build
@@ -36,11 +42,24 @@ stop-services:
 # Fuseki helpers
 #-----------------------------------------------------------------------------
 
-fuseki-create-test-dbs:
+fuseki-create-test-dbs: | build-volumes
 	@ echo "$(BUILD_PRINT)Building "test-dataset" at http://localhost:$(if $(RDF_FINGERPRINTER_FUSEKI_ADMIN_PASSWORD),$(RDF_DIFFER_FUSEKI_PORT),unknown port)/$$/datasets"
 	@ sleep 7
 	@ curl -v --anyauth --user 'admin:$(RDF_FINGERPRINTER_FUSEKI_ADMIN_PASSWORD)' -d 'dbType=mem&dbName=test-dataset'  'http://localhost:$(RDF_FINGERPRINTER_FUSEKI_PORT)/$$/datasets'
 	@ curl -v -X POST -H content-type:application/rdf+xml --anyauth --user 'admin:$(RDF_FINGERPRINTER_FUSEKI_ADMIN_PASSWORD)' -T ./tests/resources/treaties-source-ap.rdf -G http://localhost:$(RDF_FINGERPRINTER_FUSEKI_PORT)/test-dataset/data
+
+#-----------------------------------------------------------------------------
+# Template commands
+#-----------------------------------------------------------------------------
+
+set-report-template:
+	@ echo "$(BUILD_PRINT)Copying custom template"
+	@ docker rm temp | true
+	@ docker volume rm rdf-fingerprinter-template | true
+	@ docker volume create rdf-fingerprinter-template
+	@ docker container create --name temp -v rdf-fingerprinter-template:/data busybox
+	@ docker cp $(location). temp:/data
+	@ docker rm temp
 
 #-----------------------------------------------------------------------------
 # Gherkin feature and acceptance test generation commands

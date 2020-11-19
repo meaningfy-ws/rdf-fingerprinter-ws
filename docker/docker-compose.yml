@@ -8,6 +8,7 @@ services:
       dockerfile: ./docker/api/Dockerfile
     volumes:
       - ..:/usr/src/app
+      - rdf-fingerprinter-template:${RDF_FINGERPRINTER_TEMPLATE_LOCATION}
     ports:
       - ${RDF_FINGERPRINTER_API_PORT}:${RDF_FINGERPRINTER_API_PORT}
     env_file: .env
@@ -42,6 +43,10 @@ services:
       - ${RDF_FINGERPRINTER_FUSEKI_PORT}:3030
     networks:
       - mydefault
+
+volumes:
+  rdf-fingerprinter-template:
+    external: true
 
 networks:
   mydefault:
