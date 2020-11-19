@@ -15,11 +15,8 @@ newgrp docker
 
 To build 
 ```bash
+make build-volumes
 make build-services
-```
-and run the containers:
-```bash
-make start-services
 ```
 
 Install test/dev dependencies:
@@ -35,6 +32,27 @@ make fuseki-create-test-dbs
 make test
 ```
 
+## Configure fingerprint report template 
+The default fingerprint report template resides in the [rdf-fingerprint project](https://github.com/meaningfy-ws/rdf-fingerprinter/tree/d05429f679fa52730f481809a471b466972386a2/fingerprint_report_templates/fingerprint_report). 
+
+To configure your own template you can copy the default report template and adjust it to your needs. Read more about the required structure of the template on the [eds4jinja2](https://github.com/meaningfy-ws/eds4jinja2) documentation page.
+ 
+### Use the custom template
+After you have your custom template, run the `make` command, indicating the location of your template through the `location` variable.
+```bash
+make location=<location to template> set-report-template
+```
+---
+**NOTE**
+
+Make sure that the location specified ends with a trailing slash `/`, otherwise the command will not work.
+
+Example:
+```bash
+make location=~/template/location/ set-report-template
+```
+---
+After this, restart the `rdf-fingerprinter-api` container for the effects to take place.
 
 # Usage
 
@@ -56,21 +74,21 @@ service | URL | info
 
 > Go to this link [localhost:4020/ui](http://localhost:4020/ui) to access the online definition of the API.
 
-![fingerprinter-api](resources/images/fingerprinter-api.png)
+![fingerprinter-api](docs/images/fingerprinter-api.png)
 
 ## Fingerprinter UI
 
 > To fingerprint a file access [http://localhost:8020/fingerprint-file](http://localhost:8020/fingerprint-file)
 
-![file-ui](resources/images/file-ui.png)
+![file-ui](docs/images/file-ui.png)
 
 
 > To fingerprint a file access [http://localhost:8020/fingerprint-sparql-endpoint](http://localhost:8020/fingerprint-sparql-endpoint)
 
-![sparql-endpoint-ui](resources/images/sparql-endpoint-ui.png)
+![sparql-endpoint-ui](docs/images/sparql-endpoint-ui.png)
 
 ### Report example
-![sparql-endpoint-ui](resources/images/report-example.png)
+![sparql-endpoint-ui](docs/images/report-example.png)
 
 
 ## Stop services

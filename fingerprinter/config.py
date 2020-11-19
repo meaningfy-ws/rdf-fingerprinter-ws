@@ -10,6 +10,7 @@ Project wide configuration file.
 """
 
 import os
+from pathlib import Path
 
 RDF_FINGERPRINTER_DEBUG = os.environ.get('RDF_FINGERPRINTER_DEBUG')
 
@@ -23,6 +24,13 @@ RDF_FINGERPRINTER_API_LOCATION = os.environ.get('RDF_FINGERPRINTER_API_LOCATION'
 RDF_FINGERPRINTER_API_PORT = os.environ.get('RDF_FINGERPRINTER_API_PORT', 4020)
 RDF_FINGERPRINTER_API_SERVICE = str(RDF_FINGERPRINTER_API_LOCATION) + ":" + str(RDF_FINGERPRINTER_API_PORT)
 RDF_FINGERPRINTER_API_SECRET_KEY = os.environ.get('RDF_FINGERPRINTER_API_SECRET_KEY', 'secret key api')
+
+if os.environ.get('RDF_FINGERPRINTER_TEMPLATE_LOCATION') \
+        and Path(os.environ.get('RDF_FINGERPRINTER_TEMPLATE_LOCATION')).exists() \
+        and any(Path(os.environ.get('RDF_FINGERPRINTER_TEMPLATE_LOCATION')).iterdir()):
+    RDF_FINGERPRINTER_TEMPLATE_LOCATION = os.environ.get('RDF_FINGERPRINTER_TEMPLATE_LOCATION')
+else:
+    RDF_FINGERPRINTER_TEMPLATE_LOCATION = None
 
 # TODO: discuss about the default values for host names
 RDF_FINGERPRINTER_UI_LOCATION = os.environ.get('RDF_FINGERPRINTER_UI_LOCATION', 'http://localhost')

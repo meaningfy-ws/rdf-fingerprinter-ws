@@ -43,7 +43,9 @@ def fingerprint_sparql_endpoint(sparql_endpoint: str, output_location: str, grap
     :return: the report location
     """
 
-    return str(generate_endpoint_fingerprint_report(sparql_endpoint, output_location, graph))
+    return str(generate_endpoint_fingerprint_report(
+        sparql_endpoint_url=sparql_endpoint, output_location=output_location, graph=graph,
+        external_template_location=config.RDF_FINGERPRINTER_TEMPLATE_LOCATION))
 
 
 def fingerprint_file(file_path: str, output_location: str, sparql_adapter: AbstractSPARQLAdapter,
