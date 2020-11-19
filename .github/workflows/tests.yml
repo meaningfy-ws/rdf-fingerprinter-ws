@@ -21,7 +21,7 @@ jobs:
 
     - name: Spin up the ui, api and fuseki containers
       run: |
-        make build-services && make start-services
+        make build-volumes && make build-services && make start-services
 
     - name: Prepare fuseki with dataset for tests
       run: |
