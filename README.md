@@ -1,6 +1,10 @@
 #  RDF Fingerprinter
 This service provides the possibility to fingerprint an RDF file or SPARQL endpoint.
 
+Contents
+--------
+* [API Reference](srcdocs/modules)
+
 # Installation
 
 Make sure that you are running `Docker` and have the correct permissions set. If not, run the following lines to install it. 
@@ -74,21 +78,21 @@ service | URL | info
 
 > Go to this link [localhost:4020/ui](http://localhost:4020/ui) to access the online definition of the API.
 
-![fingerprinter-api](docs/images/fingerprinter-api.png)
+![fingerprinter-api](./images/fingerprinter-api.png)
 
 ## Fingerprinter UI
 
 > To fingerprint a file access [http://localhost:8020/fingerprint-file](http://localhost:8020/fingerprint-file)
 
-![file-ui](docs/images/file-ui.png)
+![file-ui](./images/file-ui.png)
 
 
 > To fingerprint a file access [http://localhost:8020/fingerprint-sparql-endpoint](http://localhost:8020/fingerprint-sparql-endpoint)
 
-![sparql-endpoint-ui](docs/images/sparql-endpoint-ui.png)
+![sparql-endpoint-ui](./images/sparql-endpoint-ui.png)
 
 ### Report example
-![sparql-endpoint-ui](docs/images/report-example.png)
+![sparql-endpoint-ui](./images/report-example.png)
 
 
 ## Stop services

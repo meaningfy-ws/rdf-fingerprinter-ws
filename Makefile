@@ -8,7 +8,7 @@ BUILD_PRINT = \e[1;34mSTEP: \e[0m
 
 install-dev:
 	@ echo "$(BUILD_PRINT)Installing the local requirements"
-	@ pip install --upgrade pip
+# 	@ pip install --upgrade pip
 	@ pip install -r requirements/dev.txt
 
 install-prod:
