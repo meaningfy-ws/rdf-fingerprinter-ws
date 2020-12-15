@@ -53,7 +53,7 @@ def fingerprint_sparql_endpoint(body: dict, report_type: str = DEFAULT_REPORT_TY
             logger.debug('finish fingerprinting sparql endpoint')
             return send_file(report_path, as_attachment=True, attachment_filename='report.html')  # 200
     except Exception as e:
-        logger.exception(e)
+        logger.exception(str(e))
         raise InternalServerError(str(e))  # 500
 
 
@@ -92,5 +92,5 @@ def fingerprint_file(body: dict, data_file: FileStorage, report_type: str = DEFA
             logger.debug('finish fingerprinting file')
             return send_file(report_path, as_attachment=True, attachment_filename='report.html')  # 200
     except Exception as e:
-        logger.exception(e)
+        logger.exception(str(e))
         raise InternalServerError(str(e))  # 500
