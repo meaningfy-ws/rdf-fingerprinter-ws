@@ -34,7 +34,7 @@ def fingerprint_sparql_endpoint(body: dict, report_type: str = DEFAULT_REPORT_TY
     API method to handle SPARQL endpoint fingerprinting and return report.
     :param body: the json body that comes from the request
         sparql_endpoint_url: SPARQL url to fingerprint
-        graph: a named graph to restrict the fingerprint calculation to
+        graphs: a list of named graphs to restrict the fingerprint calculation to
     :param report_type: type of file to be returned. Can be `html`. Defaults to `html`
     :return: the fingerprinting report in the requested format
     :rtype: report file (html), int
@@ -49,7 +49,7 @@ def fingerprint_sparql_endpoint(body: dict, report_type: str = DEFAULT_REPORT_TY
     try:
         with tempfile.TemporaryDirectory() as temp_folder:
             report_path = service_fingerprint_sparql_endpoint(body['sparql_endpoint_url'], temp_folder,
-                                                              body.get('graph'))
+                                                              body.get('graphs'))
             logger.debug('finish fingerprinting sparql endpoint')
             return send_file(report_path, as_attachment=True, attachment_filename='report.html')  # 200
     except Exception as e:
@@ -61,7 +61,7 @@ def fingerprint_file(body: dict, data_file: FileStorage, report_type: str = DEFA
     """
     API method to handle file fingerprinting.
     :param body: the json body that comes from the request
-        graph: a named graph to restrict the fingerprint calculation to
+        graphs: a list of named graphs to restrict the fingerprint calculation to
     :param data_file: the file to be fingerprinted
     :param report_type: type of file to be returned. Can be `html`. Defaults to `html`:
     :return: the fingerprinting report in the requested format
@@ -86,7 +86,8 @@ def fingerprint_file(body: dict, data_file: FileStorage, report_type: str = DEFA
             data_file.save(saved_data_file)
 
             sparql_adapter = FusekiSPARQLAdapter(config.RDF_FINGERPRINTER_FUSEKI_SERVICE, requests)
-            report_path = service_fingerprint_file(str(saved_data_file), temp_folder, sparql_adapter, body.get('graph'))
+            report_path = service_fingerprint_file(str(saved_data_file), temp_folder, sparql_adapter,
+                                                   body.get('graphs'))
 
             logger.debug('finish fingerprinting file')
             return send_file(report_path, as_attachment=True, attachment_filename='report.html')  # 200

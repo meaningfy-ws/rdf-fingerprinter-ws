@@ -9,7 +9,7 @@
 
         {{ form.csrf_token }}
         {{ macros.render_text_input_field(form.sparql_endpoint_url) }}
-        {{ macros.render_text_input_field(form.graph) }}
+        {{ macros.render_text_area_field(form.graphs) }}
 
         <div class="row" style="margin-top: 4em;">
             <div class="col s12 right-align">
