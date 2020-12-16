@@ -78,7 +78,7 @@ service | URL | info
 
 > Go to this link [localhost:4020/ui](http://localhost:4020/ui) to access the online definition of the API.
 
-![fingerprinter-api](images/fingerprinter-api.png)
+![fingerprinter-api](/docs/images/fingerprinter-api.png)
 
 ## Fingerprinter UI
 
