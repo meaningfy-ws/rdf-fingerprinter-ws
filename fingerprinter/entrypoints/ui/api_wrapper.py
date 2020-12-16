@@ -8,6 +8,7 @@
 """
 Service to consume validator API.
 """
+from typing import List
 
 import requests
 from werkzeug.datastructures import FileStorage
@@ -15,30 +16,30 @@ from werkzeug.datastructures import FileStorage
 from fingerprinter import config
 
 
-def fingerprint_sparql_endpoint(sparql_endpoint_url: str, graph: str) -> tuple:
+def fingerprint_sparql_endpoint(sparql_endpoint_url: str, graphs: List) -> tuple:
     """
     Method to connect to the fingerprinter api to fingerprint a SPARQL endpoint.
     :param sparql_endpoint_url: The endpoint to fingerprint
-    :param graph: a named graph to restrict the fingerprint calculation to
+    :param graphs: a list of named graphs to restrict the fingerprint calculation to
     :return: file, int
     """
     data = {
         'sparql_endpoint_url': sparql_endpoint_url,
     }
 
-    if graph:
-        data['graph'] = graph
+    if graphs:
+        data['graphs'] = graphs
 
     response = requests.post(config.RDF_FINGERPRINTER_API_SERVICE + '/fingerprint-sparql-endpoint', json=data)
 
     return response.content, response.status_code
 
 
-def fingerprint_file(data_file: FileStorage, graph: str) -> tuple:
+def fingerprint_file(data_file: FileStorage, graphs: List) -> tuple:
     """
     Method to connect to the fingerprinter api to fingerprint an RDF file.
     :param data_file: the file to be fingerprinted
-    :param graph: a named graph to restrict the fingerprint calculation to
+    :param graphs: a named list of graphs to restrict the fingerprint calculation to
     :return: file, int
     """
     files = {
@@ -46,8 +47,8 @@ def fingerprint_file(data_file: FileStorage, graph: str) -> tuple:
     }
 
     data = dict()
-    if graph:
-        data['graph'] = graph
+    if graphs:
+        data['graphs'] = graphs
 
     response = requests.post(config.RDF_FINGERPRINTER_API_SERVICE + '/fingerprint-file', data=data, files=files)
 

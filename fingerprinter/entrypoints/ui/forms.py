@@ -10,12 +10,12 @@ Form classes for use in views.
 """
 from flask_wtf import FlaskForm
 from flask_wtf.file import FileField, FileRequired
-from wtforms import StringField
+from wtforms import StringField, TextAreaField
 from wtforms.validators import DataRequired
 
 
 class BaseFingerprintForm(FlaskForm):
-    graph = StringField('Graph', description='A named graph to restrict the fingerprint calculation to')
+    graphs = TextAreaField('Graphs', description='Separate them through spaces. example: graph1 graph2')
 
 
 class FingerprintSPARQLEndpointForm(BaseFingerprintForm):
