@@ -78,21 +78,21 @@ service | URL | info
 
 > Go to this link [localhost:4020/ui](http://localhost:4020/ui) to access the online definition of the API.
 
-![fingerprinter-api](/docs/images/fingerprinter-api.png)
+![fingerprinter-api](./docs/images/fingerprinter-api.png)
 
 ## Fingerprinter UI
 
 > To fingerprint a file access [http://localhost:8020/fingerprint-file](http://localhost:8020/fingerprint-file)
 
-![file-ui](images/file-ui.png)
+![file-ui](./docs/images/file-ui.png)
 
 
 > To fingerprint a file access [http://localhost:8020/fingerprint-sparql-endpoint](http://localhost:8020/fingerprint-sparql-endpoint)
 
-![sparql-endpoint-ui](images/sparql-endpoint-ui.png)
+![sparql-endpoint-ui](./docs/images/sparql-endpoint-ui.png)
 
 ### Report example
-![sparql-endpoint-ui](images/report-example.png)
+![sparql-endpoint-ui](./docs/images/report-example.png)
 
 
 ## Stop services
