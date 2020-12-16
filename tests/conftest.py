@@ -92,10 +92,7 @@ def browser():
     chrome_options.add_argument("--headless")
     chrome_options.add_argument("--no-sandbox")
     chrome_driver_args = ["--whitelisted-ips=", "--log-path=chromedriver.log"]
-    # location to the chromedriver
-    path_to_driver = str(Path(__file__).parent / 'resources/chromedriver')
-    _browser = WebDriver(executable_path=path_to_driver,
-                         chrome_options=chrome_options,
+    _browser = WebDriver(chrome_options=chrome_options,
                          service_args=chrome_driver_args)
     _browser.maximize_window()
     yield _browser
