@@ -10,4 +10,4 @@ COPY . /usr/src/app
 RUN pip install --upgrade pip
 RUN pip install -r requirements.txt
 
-CMD gunicorn --timeout ${RDF_FINGERPRINTER_GUNICORN_TIMEOUT} --workers ${RDF_FINGERPRINTER_GUNICORN_API_WORKERS} --bind 0.0.0.0:${RDF_FINGERPRINTER_API_PORT} --reload --log-level=debug fingerprinter.entrypoints.api.run:app
+CMD gunicorn --timeout ${RDF_FINGERPRINTER_GUNICORN_TIMEOUT-1200} --workers ${RDF_FINGERPRINTER_GUNICORN_API_WORKERS-2} --bind 0.0.0.0:${RDF_FINGERPRINTER_API_PORT} --reload --log-level=debug fingerprinter.entrypoints.api.run:app
