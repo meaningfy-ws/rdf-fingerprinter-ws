@@ -112,10 +112,33 @@
             border-bottom: 1px solid #888f9e47 !important;
         }
 
+        #printButton{
+            float: right;
+            margin-top: 0.5em;
+        }
+
         @media print {
+            #toc {
+                visibility: hidden;
+            }
+
+            #print-container {
+                width: 100% !important;
+                position: absolute;
+                left: 0;
+                top: 0;
+            }
+
             footer {
                 display: none;
             }
+            #printButton {
+                visibility: hidden;
+            }
+            .dataTables_length, .dataTables_filter, .dt-buttons {
+                visibility: hidden !important;
+            }
+            @page {size: landscape !important}
         }
     </style>
 
@@ -128,6 +151,7 @@
         <div id="toc"></div>
     </div>
     <div id="print-container" class="ten wide column content">
+            <button class="ui button" id="printButton">Print report</button>
         <h1 class="ui header center aligned reportTitle" id="skip-toc">{{ conf.title }}</h1>
 
         <div>
@@ -217,5 +241,12 @@
                 ]
             }
         });
+
+          $(function () {
+            $("#printButton").click(function () {
+                $("table.display").DataTable().page.len(-1).draw()
+                window.print()
+            })
+        })
     });
 </script>

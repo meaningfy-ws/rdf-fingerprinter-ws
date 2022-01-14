@@ -2,7 +2,7 @@
 {% import "macros/renderers.html" as renderers %}
 
 
-{% macro build_default_endpoint_fingerprint(inverted_prefixes=None) -%}
+{% macro build_default_endpoint_fingerprint(namespaces=None) -%}
     {% call(graph) selectors.select_graphs() %}
         <h2>{{ 'Named graph ' + graph|safe + " fingerprints" if graph else "Default graph fingerprints" }}</h2>
         <section>
@@ -13,7 +13,7 @@
                     {{ renderers.render_class_fingerprint(content=class_fingerprint,
                                                             class_uri=class_uri,
                                                             graph_uri=graph,
-                                                            inverted_prefixes=inverted_prefixes) }}
+                                                            namespaces=namespaces) }}
                 {% endcall %}
             {% endcall %}
         </section>
