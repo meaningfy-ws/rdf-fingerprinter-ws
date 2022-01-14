@@ -1,0 +1,15 @@
+{% extends "layout.html" %}
+{% import "macros/builders.html" as builders %}
+
+{% block content %}
+    {# Read the and invert the namespace/prefix definitions for substitution #}
+    {% set prefixes, error = from_file(conf.template_path+'/prefixes.json').fetch_tree() %}
+    {% set inverted_prefixes = invert_dict(prefixes) %}
+
+
+    <h1>Class application profiles</h1>
+    <section>
+        {{ builders.build_default_endpoint_fingerprint(inverted_prefixes=inverted_prefixes) }}
+    </section>
+
+{% endblock %}
