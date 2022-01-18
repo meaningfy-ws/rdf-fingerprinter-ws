@@ -15,11 +15,10 @@ from typing import List
 
 from fingerprint.service_layer.handlers import generate_endpoint_fingerprint_report
 
-from fingerprinter import config
 from fingerprinter.adapters.sparql_adapter import AbstractSPARQLAdapter
-from fingerprinter.config import RDF_FINGERPRINTER_LOGGER
+from fingerprinter.config import config
 
-logger = logging.getLogger(RDF_FINGERPRINTER_LOGGER)
+logger = logging
 
 
 @contextmanager

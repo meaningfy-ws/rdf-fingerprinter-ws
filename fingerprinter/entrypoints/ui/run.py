@@ -10,10 +10,10 @@ UI server through flask definitions.
 """
 import logging
 
-from fingerprinter.config import RDF_FINGERPRINTER_DEBUG, ProductionConfig, DevelopmentConfig
+from fingerprinter.config import config, ProductionConfig, DevelopmentConfig
 from fingerprinter.entrypoints.ui import app
 
-if RDF_FINGERPRINTER_DEBUG:
+if config.RDF_FINGERPRINTER_DEBUG:
     app.config.from_object(DevelopmentConfig())
 else:
     app.config.from_object(ProductionConfig())

@@ -15,14 +15,14 @@ from pathlib import Path
 from flask import url_for, render_template, flash, send_from_directory
 from werkzeug.utils import redirect
 
-from fingerprinter.config import RDF_FINGERPRINTER_LOGGER
+from fingerprinter.config import config
 from fingerprinter.entrypoints.ui import app
 from fingerprinter.entrypoints.ui.api_wrapper import fingerprint_sparql_endpoint as api_fingerprint_sparql_endpoint, \
     fingerprint_file as api_fingerprint_file
 from fingerprinter.entrypoints.ui.forms import FingerprintSPARQLEndpointForm, FingerprintFileForm
 from fingerprinter.entrypoints.ui.helpers import get_error_message_from_response
 
-logger = logging.getLogger(RDF_FINGERPRINTER_LOGGER)
+logger = logging.getLogger(config.RDF_FINGERPRINTER_LOGGER)
 
 
 @app.route('/', methods=['GET'])

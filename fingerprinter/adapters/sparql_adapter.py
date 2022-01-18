@@ -15,7 +15,7 @@ from urllib.parse import urljoin
 from requests.auth import HTTPBasicAuth
 from requests_toolbelt import MultipartEncoder
 
-from fingerprinter import config
+from fingerprinter.config import config
 from fingerprinter.adapters.helpers import get_file_format
 
 
