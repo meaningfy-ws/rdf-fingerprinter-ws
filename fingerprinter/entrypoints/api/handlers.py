@@ -19,14 +19,13 @@ from werkzeug.datastructures import FileStorage
 from werkzeug.exceptions import UnprocessableEntity, InternalServerError, UnsupportedMediaType
 from werkzeug.utils import secure_filename
 
-from fingerprinter import config
+from fingerprinter.config import config
 from fingerprinter.adapters.sparql_adapter import FusekiSPARQLAdapter
-from fingerprinter.config import RDF_FINGERPRINTER_LOGGER
 from fingerprinter.entrypoints.api.helpers import REPORT_TYPES, DEFAULT_REPORT_TYPE, _guess_file_type, INPUT_MIME_TYPES
 from fingerprinter.services.handlers import fingerprint_sparql_endpoint as service_fingerprint_sparql_endpoint, \
     fingerprint_file as service_fingerprint_file
 
-logger = logging.getLogger(RDF_FINGERPRINTER_LOGGER)
+logger = logging.getLogger(config.RDF_FINGERPRINTER_LOGGER)
 
 
 def fingerprint_sparql_endpoint(body: dict, report_type: str = DEFAULT_REPORT_TYPE) -> tuple:

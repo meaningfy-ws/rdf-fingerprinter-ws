@@ -14,8 +14,6 @@ import os
 from distutils.util import strtobool
 from pathlib import Path
 
-RDF_FINGERPRINTER_LOGGER = 'fingerprinter'
-
 class FingerprinterConfig:
     logger_name = 'gunicorn.error'
     logger = logging
@@ -34,12 +32,13 @@ class FingerprinterConfig:
 
     @property
     def RDF_FINGERPRINTER_TEMPLATE_LOCATION(self) -> str:
-        if os.environ.get('RDF_FINGERPRINTER_TEMPLATE_LOCATION') \
-                and Path(os.environ.get('RDF_FINGERPRINTER_TEMPLATE_LOCATION')).exists() \
-                and any(Path(os.environ.get('RDF_FINGERPRINTER_TEMPLATE_LOCATION')).iterdir()):
-            value = os.environ.get('RDF_FINGERPRINTER_TEMPLATE_LOCATION')
-        else:
-            value = None
+        # if os.environ.get('RDF_FINGERPRINTER_TEMPLATE_LOCATION') \
+        #         and Path(os.environ.get('RDF_FINGERPRINTER_TEMPLATE_LOCATION')).exists() \
+        #         and any(Path(os.environ.get('RDF_FINGERPRINTER_TEMPLATE_LOCATION')).iterdir()):
+        #     value = os.environ.get('RDF_FINGERPRINTER_TEMPLATE_LOCATION')
+        # else:
+        #     value = None
+        value = Path(__file__).parents[1] / 'resources/templates/html'
         self.logger.debug(value)
         return value
 
