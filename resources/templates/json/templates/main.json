@@ -1,0 +1,11 @@
+{% extends "layout.json" %}
+{% import "macros/builders.json" as builders %}
+{#{% import "macros/renderers.html" as renderers %}#}
+
+{% block content %}
+
+
+ {{ builders.build_default_endpoint_fingerprint() }}
+
+
+{% endblock %}

@@ -1,0 +1,11 @@
+{
+  "template": "main.html",
+  "conf": {
+    "title": "Structural fingerprint",
+    "type": "report",
+    "author": "Meaningfy.ws",
+    "ns_file": "prefixes.json",
+    "default_endpoint": "http://publications.europa.eu/webapi/rdf/sparql",
+    "selected_graphs": ["http://publications.europa.eu/resource/authority/human-sex"]
+  }
+}

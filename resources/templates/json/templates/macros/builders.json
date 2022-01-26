@@ -1,0 +1,16 @@
+{% import "macros/selectors.json" as selectors %}
+{% import "macros/renderers.json" as renderers %}
+
+
+{% macro build_default_endpoint_fingerprint() -%}
+    {% call(graph) selectors.select_graphs() %}
+
+            {% call(class) selectors.select_distinct_classes(graph) %}
+                {% call(class_fingerprint) selectors.fingerprint_pattern(graph=graph, class=class, property=None) %}
+                    {{ renderers.render_class_fingerprint(content=class_fingerprint,
+                                                            class=class) }}
+
+                {% endcall %}
+            {% endcall %}
+    {% endcall %}
+{%- endmacro %}
