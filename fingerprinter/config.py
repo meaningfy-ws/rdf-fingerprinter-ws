@@ -30,7 +30,7 @@ if os.environ.get('RDF_FINGERPRINTER_TEMPLATE_LOCATION') \
         and any(Path(os.environ.get('RDF_FINGERPRINTER_TEMPLATE_LOCATION')).iterdir()):
     RDF_FINGERPRINTER_TEMPLATE_LOCATION = os.environ.get('RDF_FINGERPRINTER_TEMPLATE_LOCATION')
 else:
-    RDF_FINGERPRINTER_TEMPLATE_LOCATION = None
+    RDF_FINGERPRINTER_TEMPLATE_LOCATION = Path(__file__).parents[1] / 'resources' / 'fingerprint_report'
 
 # TODO: discuss about the default values for host names
 RDF_FINGERPRINTER_UI_LOCATION = os.environ.get('RDF_FINGERPRINTER_UI_LOCATION', 'http://localhost')

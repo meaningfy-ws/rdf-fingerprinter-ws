@@ -1,0 +1,26 @@
+{
+{% block content %}
+< empty >
+{% endblock %}
+"report details": {
+    "time": "{{ conf.dataset_name }}",
+    "dataset": "{{ conf.dataset_name }}",
+    "graph_uri": {% if conf.selected_graphs %}
+    [
+    {% for gr in conf.selected_graphs | unique | list %}
+        {% if gr %}
+            "{{ gr|e }}"
+        {% else %}
+            "default graph"
+        {% endif %}
+    {{ ", " if not loop.last else "" }}
+    {% endfor %}
+    ]
+{% endif %}
+  }
+}
+
+
+
+
+

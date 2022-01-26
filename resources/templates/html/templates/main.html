@@ -1,0 +1,20 @@
+{% extends "layout.html" %}
+{% import "macros/builders.html" as builders %}
+{% import "macros/renderers.html" as renderers %}
+
+{% block content %}
+    {# Read the prefix definitions for file #}
+    {% set prefixes, error = from_file(conf.template_path+'/prefixes.json').fetch_tree() %}
+    {% set namespaces = namespace_inventory(prefixes) %}
+
+
+
+    <h1>Class application profiles</h1>
+    <section>
+        {{ builders.build_default_endpoint_fingerprint(namespaces=namespaces) }}
+    </section>
+    <h1>Prefixes</h1>
+    <section class="ui basic segment">
+    {{ renderers.render_namespaces(namespaces.namespaces_as_dict()) }}
+    </section>
+{% endblock %}
