@@ -9,24 +9,19 @@
 OpenAPI method handlers.
 """
 import logging
-import tempfile
-from pathlib import Path
-from uuid import uuid4
 
-import requests
 from flask import send_file
 from werkzeug.datastructures import FileStorage
 from werkzeug.exceptions import UnprocessableEntity, InternalServerError, UnsupportedMediaType
-from werkzeug.utils import secure_filename
 
-from fingerprinter.adapters.celery import async_fingerprint_sparql_endpoint
-from fingerprinter.adapters.sparql_adapter import FusekiSPARQLAdapter
-from fingerprinter.config import config
-from fingerprinter.entrypoints.api.helpers import REPORT_TYPES, DEFAULT_REPORT_TYPE, _guess_file_type, INPUT_MIME_TYPES
+from fingerprinter.adapters.celery import async_fingerprint_sparql_endpoint, async_fingerprint_file
+from fingerprinter.entrypoints.api.helpers import REPORT_TYPES, DEFAULT_REPORT_TYPE, _guess_file_type, INPUT_MIME_TYPES, \
+    check_is_url
 from fingerprinter.services.db import create_db_entry
-from fingerprinter.services.report_handling import fingerprint_file as service_fingerprint_file
+from fingerprinter.services.file import save_file
 
-logger = logging.getLogger(config.RDF_FINGERPRINTER_LOGGER)
+# logger = logging.getLogger(config.RDF_FINGERPRINTER_LOGGER)
+logger = logging
 
 
 def fingerprint_sparql_endpoint(body: dict) -> tuple:
@@ -39,51 +34,44 @@ def fingerprint_sparql_endpoint(body: dict) -> tuple:
     :rtype:
     """
     logger.debug('start fingerprinting sparql endpoint')
+    sparql_endpoint_url = body.get('sparql_endpoint_url')
+    check_is_url(sparql_endpoint_url)
+
+    graphs = body.get('graphs', [])
+
     db_location = create_db_entry()
+    task = async_fingerprint_sparql_endpoint.delay(sparql_endpoint_url=sparql_endpoint_url,
+                                                   db_cleanup_location=db_location, graphs=graphs)
 
-    task = async_fingerprint_sparql_endpoint.delay(body.get('sparql_endpoint_url'), db_location, body.get('graphs'))
-
-    logger.debug('finish fingerprinting sparql endpoint')
+    logger.debug(f'task executed with id: {task.id}')
     return {'task_id': task.id}, 200
 
 
-def fingerprint_file(body: dict, data_file: FileStorage, report_type: str = DEFAULT_REPORT_TYPE) -> tuple:
+def fingerprint_file(body: dict, data_file: FileStorage) -> tuple:
     """
     API method to handle file fingerprinting.
     :param body: the json body that comes from the request
         graphs: a list of named graphs to restrict the fingerprint calculation to
     :param data_file: the file to be fingerprinted
-    :param report_type: type of file to be returned. Can be `html`. Defaults to `html`:
     :return: the fingerprinting report in the requested format
     :rtype: report file (html), int
     """
     logger.debug('start fingerprinting file')
+
     if not _guess_file_type(data_file.filename):
         exception_text = f'File type errors: {data_file.filename}. Acceptable types: ' + \
                          ', '.join([f'{key}({value})' for (key, value) in INPUT_MIME_TYPES.items()]) + '.'
         logger.exception(exception_text)
         raise UnsupportedMediaType(exception_text)  # 415
 
-    if report_type not in REPORT_TYPES:
-        exception_text = 'Wrong report_extension format. Accepted formats: ' \
-                         f'{", ".join([report_type for report_type in REPORT_TYPES])}.'
-        logger.exception(exception_text)
-        raise UnprocessableEntity(exception_text)  # 422
+    db_location = create_db_entry()
+    file_to_fingerprint = save_file(data_file, db_location)
 
-    try:
-        with tempfile.TemporaryDirectory() as temp_folder:
-            saved_data_file = Path(temp_folder) / (str(uuid4()) + secure_filename(data_file.filename))
-            data_file.save(saved_data_file)
+    graphs = body.get('graphs', [])
+    task = async_fingerprint_file.delay(file_path=file_to_fingerprint, db_cleanup_location=db_location, graphs=graphs)
 
-            sparql_adapter = FusekiSPARQLAdapter(config.RDF_FINGERPRINTER_FUSEKI_SERVICE, requests)
-            report_path = service_fingerprint_file(str(saved_data_file), temp_folder, sparql_adapter,
-                                                   body.get('graphs'))
-
-            logger.debug('finish fingerprinting file')
-            return send_file(report_path, as_attachment=True, attachment_filename='report.html')  # 200
-    except Exception as e:
-        logger.exception(str(e))
-        raise InternalServerError(str(e))  # 500
+    logger.debug(f'task executed with id: {task.id}')
+    return {'task_id': task.id}, 200
 
 
 def get_fingerprinting_report(report_path: str, report_type: str = DEFAULT_REPORT_TYPE) -> tuple:
