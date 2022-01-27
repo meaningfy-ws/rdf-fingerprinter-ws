@@ -7,7 +7,8 @@
 from pathlib import Path
 from unittest.mock import patch
 
-from fingerprinter.services.handlers import fingerprint_file, upload_file_to_dataset
+from fingerprinter.services.handlers import upload_file_to_dataset
+from fingerprinter.services.report_handling import fingerprint_file
 
 
 def test_upload_file_to_dataset(tmpdir, fake_sparql_adapter):

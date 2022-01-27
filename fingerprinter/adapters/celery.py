@@ -4,26 +4,33 @@ import shutil
 from celery import Celery
 
 from fingerprinter.config import config
+from fingerprinter.services.report_handling import build_report_from_sparql_endpoint
 
 celery_worker = Celery('rdf-fingerprinter-tasks',
                        broker=config.RDF_FINGERPRINTER_REDIS_SERVICE,
                        backend=config.RDF_FINGERPRINTER_REDIS_SERVICE)
 celery_worker.conf.update(result_extended=True)
 
-CELERY_VALIDATE_FILE = 'validate_file'
-CELERY_VALIDATE_URL = 'validate_url'
+CELERY_FINGERPRINT_FILE = 'fingerprint_file'
+CELERY_FINGERPRINT_URL = 'fingerprint_url'
 
 
-@celery_worker.task(name=CELERY_VALIDATE_FILE, bind=True)
-def async_validate_file(self, uid: str, data_file: str, shacl_shapes: list, db_cleanup_location: str,
-                        application_profile: str = ''):
+
+@celery_worker.task(name=CELERY_FINGERPRINT_URL, bind=True)
+def async_fingerprint_sparql_endpoint(self, sparql_endpoint_url: str, db_cleanup_location: str, graphs: list = None):
     """
-    Task that to validate a file
+    Task to fingeprint a SPARQL endpoint
 
     NOTE: the order of the first arg is important for task cancellation, don't change its order
-    :param uid: validation identifier
-    :param data_file: The file to be validated
-    :param shacl_shapes: The content of the SHACL shape files defining the validation constraints
+    :param sparql_endpoint_url: The SPARQL endpoint to be validated
     :param db_cleanup_location: location to cleanup
-    :param application_profile: application profile if provided
+    :param graphs: list of optional graphs to validate
     """
+    logger.info('Starting async_fingerprint_sparql_endpoint')
+
+    report_path = build_report_from_sparql_endpoint(location=db_cleanup_location, sparql_endpoint=sparql_endpoint_url,
+                                                    graphs=graphs, uid=self.request.id)
+
+    shutil.rmtree(db_cleanup_location)
+    logger.info('Report generated at {}'.format(report_path))
+    return report_path

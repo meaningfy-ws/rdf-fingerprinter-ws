@@ -13,7 +13,9 @@ import connexion
 
 from fingerprinter.config import config
 
-connexion_app = connexion.FlaskApp(__name__, specification_dir='openapi')
+connexion_app = connexion.FlaskApp(__name__, specification_dir='openapi',
+                                   options={"swagger_ui": config.SHOW_SWAGGER_UI})
+
 connexion_app.add_api('fingerprinter.yml')
 
 app = connexion_app.app

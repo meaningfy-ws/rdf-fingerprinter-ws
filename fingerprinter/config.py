@@ -14,6 +14,7 @@ import os
 from distutils.util import strtobool
 from pathlib import Path
 
+
 class FingerprinterConfig:
     logger_name = 'gunicorn.error'
     logger = logging
@@ -31,14 +32,16 @@ class FingerprinterConfig:
         return value
 
     @property
-    def RDF_FINGERPRINTER_TEMPLATE_LOCATION(self) -> str:
-        # if os.environ.get('RDF_FINGERPRINTER_TEMPLATE_LOCATION') \
-        #         and Path(os.environ.get('RDF_FINGERPRINTER_TEMPLATE_LOCATION')).exists() \
-        #         and any(Path(os.environ.get('RDF_FINGERPRINTER_TEMPLATE_LOCATION')).iterdir()):
-        #     value = os.environ.get('RDF_FINGERPRINTER_TEMPLATE_LOCATION')
-        # else:
-        #     value = None
-        value = Path(__file__).parents[1] / 'resources/templates/html'
+    def RDF_FINGERPRINTER_HTML_TEMPLATE_LOCATION(self) -> str:
+        value = os.environ.get('RDF_FINGERPRINTER_HTML_TEMPLATE_LOCATION',
+                               Path(__file__).parents[1] / 'resources/templates/html')
+        self.logger.debug(value)
+        return value
+
+    @property
+    def RDF_FINGERPRINTER_JSON_TEMPLATE_LOCATION(self) -> str:
+        value = os.environ.get('RDF_FINGERPRINTER_JSON_TEMPLATE_LOCATION',
+                               Path(__file__).parents[1] / 'resources/templates/json')
         self.logger.debug(value)
         return value
 
@@ -125,6 +128,36 @@ class FingerprinterConfig:
     @property
     def RDF_FINGERPRINTER_JSON_REPORT_NAME(self) -> str:
         value = os.environ.get('RDF_FINGERPRINTER_JSON_REPORT_NAME', 'report.json')
+        self.logger.debug(value)
+        return value
+
+    @property
+    def RDF_FINGERPRINTER_ZIP_REPORT_NAME(self) -> str:
+        value = os.environ.get('RDF_FINGERPRINTER_ZIP_REPORT_NAME', 'report.zip')
+        self.logger.debug(value)
+        return value
+
+    @property
+    def RDF_FINGERPRINTER_FILE_DB(self) -> str:
+        value = os.environ.get('RDF_FINGERPRINTER_FILE_DB', str(Path(__file__).parents[1] / 'db'))
+        self.logger.debug(value)
+        return value
+
+    @property
+    def RDF_FINGERPRINTER_REPORTS_DB(self) -> str:
+        value = os.environ.get('RDF_FINGERPRINTER_REPORTS_DB', str(Path(__file__).parents[1] / 'reports'))
+        self.logger.debug(value)
+        return value
+
+    @property
+    def RDF_FINGERPRINTER_REPORT_TITLE(self) -> str:
+        value = os.environ.get('RDF_FINGERPRINTER_REPORT_TITLE', 'RDF Fingerprinting Report')
+        self.logger.debug(value)
+        return value
+
+    @property
+    def SHOW_SWAGGER_UI(self) -> bool:
+        value = strtobool(os.environ.get('SHOW_SWAGGER_UI', 'true'))
         self.logger.debug(value)
         return value
 
