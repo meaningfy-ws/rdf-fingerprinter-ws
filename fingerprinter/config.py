@@ -161,6 +161,53 @@ class FingerprinterConfig:
         self.logger.debug(value)
         return value
 
+    @property
+    def INPUT_MIME_TYPES(self) -> dict:
+        value = {
+            'rdf': 'application/rdf+xml',
+            'trix': 'application/xml',
+            'nq': 'application/n-quads',
+            'nt': 'application/n-triples',
+            'jsonld': 'application/ld+json',
+            'n3': 'text/n3',
+            'ttl': 'text/turtle',
+        }
+        self.logger.debug(value)
+        return value
+
+    @property
+    def HTML_REPORT_TYPE(self) -> str:
+        value = 'html'
+        self.logger.debug(value)
+        return value
+
+    @property
+    def JSON_REPORT_TYPE(self) -> str:
+        value = 'json'
+        self.logger.debug(value)
+        return value
+
+    @property
+    def REPORT_TYPES(self) -> list:
+        value = [self.HTML_REPORT_TYPE, self.JSON_REPORT_TYPE]
+        self.logger.debug(value)
+        return value
+
+    @property
+    def DEFAULT_REPORT_TYPE(self) -> str:
+        value = self.REPORT_TYPES[0]
+        self.logger.debug(value)
+        return value
+
+    @property
+    def EXTENSION_TO_FILETYPE(self) -> dict:
+        value = {
+            self.HTML_REPORT_TYPE: 'html_report',
+            self.JSON_REPORT_TYPE: 'json_report',
+        }
+        self.logger.debug(value)
+        return value
+
 
 config = FingerprinterConfig()
 

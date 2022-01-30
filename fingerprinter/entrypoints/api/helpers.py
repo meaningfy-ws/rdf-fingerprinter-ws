@@ -12,32 +12,16 @@ import logging
 from urllib.parse import urlparse
 
 from rdflib.util import guess_format
-from werkzeug.exceptions import BadRequest
+from werkzeug.exceptions import BadRequest, UnprocessableEntity
 
 from fingerprinter.config import config
-
-INPUT_MIME_TYPES = {
-    'rdf': 'application/rdf+xml',
-    'trix': 'application/xml',
-    'nq': 'application/n-quads',
-    'nt': 'application/n-triples',
-    'jsonld': 'application/ld+json',
-    'n3': 'text/n3',
-    'ttl': 'text/turtle',
-}
-
-HTML_REPORT_TYPE = 'html'
-JSON_REPORT_TYPE = 'html'
-
-REPORT_TYPES = [HTML_REPORT_TYPE, JSON_REPORT_TYPE]
-DEFAULT_REPORT_TYPE = REPORT_TYPES[0]
 
 logger = logging.getLogger(config.RDF_FINGERPRINTER_LOGGER)
 
 
 def _guess_file_type(file: str, accepted_types: dict = None):
     if accepted_types is None:
-        accepted_types = INPUT_MIME_TYPES
+        accepted_types = config.INPUT_MIME_TYPES
     return guess_format(str(file), accepted_types)
 
 
@@ -63,3 +47,17 @@ def check_is_url(url: str):
         exception_text = 'Wrong url format. Example: http://example.com'
         logger.exception(exception_text)
         raise BadRequest(exception_text)  # 400
+
+
+def check_report_extension(report_name: str) -> str:
+    """
+    Check if requested report is accepted.
+    :param report_name: the name of the report
+    :return: the extension of the report
+    :rtype: str
+    """
+    if report_name not in config.REPORT_TYPES:
+        exception_text = 'Wrong report_type format. Accepted formats: ' \
+                         f'{", ".join([report_type for report_type in config.REPORT_TYPES])}.'
+        logger.exception(exception_text)
+        raise UnprocessableEntity(exception_text)  # 422

@@ -1,4 +1,5 @@
 import logging as logger
+import os
 import shutil
 from pathlib import Path
 from typing import Union
@@ -45,3 +46,32 @@ def save_file(file_to_save: FileStorage, location_to_save: Union[str, Path], fil
     except Exception as e:
         logger.error(str(e))
         raise ValueError(str(e))
+
+
+def dir_exists(path: Union[str, Path]) -> bool:
+    """
+    Method to check the existence of the dir from the indicated path.
+    :param path: str or Path
+        The path to be checked on.
+    :return: bool
+        Whether the dir exists or not.
+    """
+    return Path(path).is_dir()
+
+
+def list_folders_from_path(path: Path) -> list:
+    """
+    Method to list folders from a given path
+    :param path: The path to be checked on.
+    :return: list
+    """
+    return [x for x in os.listdir(path) if os.path.isdir(os.path.join(path, x))]
+
+
+def list_folder_paths_from_path(path: Path) -> list:
+    """
+    Method to list folder paths from a given path
+    :param path: The path to be checked on.
+    :return: list
+    """
+    return [str(path / x) for x in os.listdir(path) if os.path.isdir(os.path.join(path, x))]

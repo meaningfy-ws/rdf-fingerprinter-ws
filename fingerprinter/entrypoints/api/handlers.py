@@ -12,16 +12,16 @@ import logging
 
 from flask import send_file
 from werkzeug.datastructures import FileStorage
-from werkzeug.exceptions import UnprocessableEntity, InternalServerError, UnsupportedMediaType
+from werkzeug.exceptions import UnsupportedMediaType, NotFound
 
 from fingerprinter.adapters.celery import async_fingerprint_sparql_endpoint, async_fingerprint_file
-from fingerprinter.entrypoints.api.helpers import REPORT_TYPES, DEFAULT_REPORT_TYPE, _guess_file_type, INPUT_MIME_TYPES, \
-    check_is_url
+from fingerprinter.config import config
+from fingerprinter.entrypoints.api.helpers import _guess_file_type, check_is_url, check_report_extension
 from fingerprinter.services.db import create_db_entry
 from fingerprinter.services.file import save_file
+from fingerprinter.services.report_handling import get_available_fingerprintings, get_report
 
-# logger = logging.getLogger(config.RDF_FINGERPRINTER_LOGGER)
-logger = logging
+logger = logging.getLogger(config.RDF_FINGERPRINTER_LOGGER)
 
 
 def fingerprint_sparql_endpoint(body: dict) -> tuple:
@@ -60,7 +60,7 @@ def fingerprint_file(body: dict, data_file: FileStorage) -> tuple:
 
     if not _guess_file_type(data_file.filename):
         exception_text = f'File type errors: {data_file.filename}. Acceptable types: ' + \
-                         ', '.join([f'{key}({value})' for (key, value) in INPUT_MIME_TYPES.items()]) + '.'
+                         ', '.join([f'{key}({value})' for (key, value) in config.INPUT_MIME_TYPES.items()]) + '.'
         logger.exception(exception_text)
         raise UnsupportedMediaType(exception_text)  # 415
 
@@ -74,22 +74,29 @@ def fingerprint_file(body: dict, data_file: FileStorage) -> tuple:
     return {'task_id': task.id}, 200
 
 
-def get_fingerprinting_report(report_path: str, report_type: str = DEFAULT_REPORT_TYPE) -> tuple:
+def get_fingerprintings() -> tuple:
+    """
+    API method to return all fingerprinting reports.
+    :return: all fingerprinting reports
+    :rtype: list of fingerprinting reports meta
+    """
+    fingerprintings = get_available_fingerprintings(config.RDF_FINGERPRINTER_REPORTS_DB)
+    return fingerprintings, 200
+
+
+def get_fingerprinting_report(uid: str, report_type: str = config.DEFAULT_REPORT_TYPE) -> tuple:
     """
     API method to return a fingerprinting report.
-    :param report_path: the path to the report file
-    :param report_type: type of file to be returned. Can be `html`. Defaults to `html`
+    :param uid: unique identifier of the validation
+    :param report_type: type of file to be returned. Can be `html` or `json`. Defaults to `html`
     :return: the fingerprinting report in the requested format
-    :rtype: report file (html), int
+    :rtype: report file, int
     """
-    if report_type not in REPORT_TYPES:
-        exception_text = 'Wrong report_extension format. Accepted formats: ' \
-                         f'{", ".join([report_type for report_type in REPORT_TYPES])}.'
-        logger.exception(exception_text)
-        raise UnprocessableEntity(exception_text)  # 422
+    check_report_extension(report_type)
 
     try:
-        return send_file(report_path, as_attachment=True, attachment_filename='report.html')  # 200
-    except Exception as e:
-        logger.exception(str(e))
-        raise InternalServerError(str(e))  # 500
+        location, filename = get_report(uid=uid, extension=report_type,
+                                        reports_location=config.RDF_FINGERPRINTER_REPORTS_DB)
+        return send_file(location, attachment_filename=filename)
+    except FileNotFoundError:
+        raise NotFound('Fingerprinting doesn\'t exist.')

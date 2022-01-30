@@ -11,7 +11,6 @@ Service layer for report generation.
 import logging
 from json import dumps, loads
 from pathlib import Path
-from time import sleep
 from typing import List
 from uuid import uuid4
 from zipfile import ZipFile
@@ -22,7 +21,7 @@ from werkzeug.utils import secure_filename
 
 from fingerprinter.adapters.sparql_adapter import AbstractSPARQLAdapter, FusekiSPARQLAdapter
 from fingerprinter.config import config
-from fingerprinter.services.file import copy_file_to_destination
+from fingerprinter.services.file import copy_file_to_destination, list_folder_paths_from_path, list_folders_from_path
 from fingerprinter.services.handlers import upload_file_to_dataset
 from fingerprinter.services.time import get_timestamp
 
@@ -58,7 +57,7 @@ def copy_report_files(uid: str, html_report: str, json_report: str, zip_report: 
                       html_report_name: str = '', json_report_name: str = '', zip_report_name: str = '') -> Path:
     """
     Method to copy reports from temporary director to the reports location
-    :param uid: uid of the validation
+    :param uid: uid of the fingerprinting
     :param html_report: html report location
     :param json_report: ttl report location
     :param zip_report: zip location containing all reports
@@ -107,11 +106,11 @@ def generate_meta_file(reports_location: Path, file_name: str = '', url: str = '
     meta = {
         "uid": uid or str(uuid4()),
         "validation_on": validation_on,
-        "html_report": html_report,
+        config.EXTENSION_TO_FILETYPE[config.HTML_REPORT_TYPE]: html_report,
         "file": file_name,
         "url": url,
         "graphs": graphs,
-        "json_report": json_report,
+        config.EXTENSION_TO_FILETYPE[config.JSON_REPORT_TYPE]: json_report,
         "zip_report": zip_report,
         "created_at": timestamp
     }
@@ -236,7 +235,47 @@ def build_report_from_file(location: str, file: str, graphs: list = None, uid: s
                                          zip_report=zip_report)
 
     generate_meta_file(reports_location=reports_location, url=sparql_endpoint, uid=fingerprinting_uid,
-                       timestamp=timestamp, validation_on='file', graphs=graphs, html_report=html_report,
-                       json_report=json_report, zip_report=zip_report)
+                       timestamp=timestamp, validation_on='file', graphs=graphs, zip_report=zip_report)
 
     return str(reports_location)
+
+
+def build_fingerprinting_reports_location(fingerprinting_uid: str, db_location: str) -> str:
+    """
+    method to search for report based on the fingerprinting id
+    :param fingerprinting_uid: uid of the fingerprinting
+    :param db_location: which file system location to use to perform the action
+    :return: location of reports
+    """
+    for location in list_folders_from_path(Path(db_location)):
+        content = read_meta_file(Path(db_location) / location)
+        if content.get('uid', None) == fingerprinting_uid:
+            return str(Path(db_location) / location)
+
+    return ''
+
+
+def get_available_fingerprintings(reports_location: str = config.RDF_FINGERPRINTER_REPORTS_DB) -> list:
+    """
+    Get the available fingerprintings
+    :param reports_location: location of the reports
+    :return: list of available fingerprintings
+    """
+    logger.debug('start get available fingerprintings library call')
+    reports = list()
+    for location in list_folder_paths_from_path(Path(reports_location)):
+        reports.append(read_meta_file(str(location)))
+
+    logger.debug(f'found {len(reports)} fingerprintings')
+    return reports
+
+
+def get_report(uid: str, extension: str = config.DEFAULT_REPORT_TYPE,
+               reports_location: str = config.RDF_FINGERPRINTER_REPORTS_DB) -> tuple:
+    report_base_location = build_fingerprinting_reports_location(fingerprinting_uid=uid, db_location=reports_location)
+    logger.exception(report_base_location)
+    meta = read_meta_file(report_base_location)
+    logger.exception(meta)
+    filename = secure_filename(f"{meta['uid']}-{meta['created_at']}.{extension}")
+
+    return Path(report_base_location) / meta[config.EXTENSION_TO_FILETYPE[extension]], filename
