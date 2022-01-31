@@ -24,9 +24,9 @@ def save_file_for_fingerprinting(file_to_fingerprint: FileStorage,
     """
 
     try:
-        saved_file_to_validate = save_file(file_to_fingerprint, location_to_save)
+        saved_file_to_fingerprint = save_file(file_to_fingerprint, location_to_save)
     except TypeError:
-        saved_file_to_validate = None
-        logger.debug('no validation file to save')
+        saved_file_to_fingerprint = None
+        logger.debug('no file to save')
 
-    return saved_file_to_validate
+    return saved_file_to_fingerprint

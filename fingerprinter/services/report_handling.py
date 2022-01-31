@@ -9,6 +9,7 @@
 Service layer for report generation.
 """
 import logging
+import shutil
 from json import dumps, loads
 from pathlib import Path
 from typing import List
@@ -279,3 +280,36 @@ def get_report(uid: str, extension: str = config.DEFAULT_REPORT_TYPE,
     filename = secure_filename(f"{meta['uid']}-{meta['created_at']}.{extension}")
 
     return Path(report_base_location) / meta[config.EXTENSION_TO_FILETYPE[extension]], filename
+
+
+def delete_report(uid: str, reports_location: str = config.RDF_FINGERPRINTER_REPORTS_DB) -> bool:
+    """
+    Remove the report
+    :param uid: uid of the fingerprinting reports to be removed
+    :param reports_location: location of the reports
+    :return: True if the report was removed, False otherwise
+    """
+    logger.debug('start remove report library call')
+    report_location = build_fingerprinting_reports_location(fingerprinting_uid=uid, db_location=reports_location)
+
+    if report_location:
+        shutil.rmtree(report_location)
+        return True
+
+    return False
+
+
+def delete_all_reports(reports_location: str = config.RDF_FINGERPRINTER_REPORTS_DB) -> bool:
+    """
+    Remove all reports
+    :param reports_location: location of the reports
+    :return: True if the reports were removed, False otherwise
+    """
+    logger.debug('start remove all reports library call')
+    try:
+        for location in list_folder_paths_from_path(Path(reports_location)):
+            shutil.rmtree(str(location))
+        return True
+    except Exception:
+        logger.exception('error removing all reports')
+        return False

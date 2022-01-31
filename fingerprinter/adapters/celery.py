@@ -1,6 +1,5 @@
 import logging as logger
 import shutil
-from time import sleep
 
 from celery import Celery
 
@@ -44,7 +43,7 @@ def async_fingerprint_file(self, file_path: str, db_cleanup_location: str, graph
     :param db_cleanup_location: location to cleanup
     :param graphs: list of optional graphs to fingerprint
     """
-    logger.exception('Starting async_fingerprint_file')
+    logger.info('Starting async_fingerprint_file')
 
     report_path = build_report_from_file(location=db_cleanup_location, file=file_path, graphs=graphs,
                                          uid=self.request.id)

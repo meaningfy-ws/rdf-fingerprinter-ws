@@ -35,10 +35,10 @@ components:
       properties:
         sparql_endpoint_url:
           type: string
-          description: The endpoint to validate
+          description: The endpoint to fingerprint
         graphs:
           type: array
-          description: An optional list of named graphs to restrict the scope of the validation
+          description: An optional list of named graphs to restrict the scope of the fingerprinting
           items:
             type: string
       required:
@@ -54,11 +54,24 @@ components:
           description: The file to be fingerprinted
         graphs:
           type: array
-          description: An optional list of named graphs to restrict the scope of the validation
+          description: An optional list of named graphs to restrict the scope of the fingerprinting
           items:
             type: string
       required:
         - data_file
+    TaskStatus:
+      type: object
+      description: A description of a task status response.
+      properties:
+        task_id:
+          type: string
+          description: The task identifier.
+        task_status:
+          type: string
+          description: The task status.
+        task_result:
+          type: string
+          description: The task result.
 
 paths:
   /fingerprint-sparql-endpoint:
@@ -133,3 +146,73 @@ paths:
           description: Fingerprinting report not found.
         5XX:
           description: Unexpected Error.
+    delete:
+      operationId: fingerprinter.entrypoints.api.handlers.delete_fingerprinting
+      description: Delete a fingerprinting report.
+      parameters:
+        - name: uid
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Fingerprinting report successfully deleted.
+        404:
+          description: Fingerprinting doesn't exist.
+        5XX:
+          description: Unexpected Error.
+  /remove-reports:
+    delete:
+      operationId: fingerprinter.entrypoints.api.handlers.delete_all_fingerprintings
+      description: Delete all fingerprinting reports.
+      responses:
+        200:
+          description: Fingerprinting reports successfully deleted.
+        5XX:
+          description: Unexpected Error.
+  /tasks/active:
+    get:
+      operationId: fingerprinter.entrypoints.api.handlers.get_active_tasks
+      description: Get status of a task
+      responses:
+        200:
+          description: Task status description succesfully retreived.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TaskStatus"
+
+  /tasks/{task_id}:
+    get:
+      operationId: fingerprinter.entrypoints.api.handlers.get_task_status
+      description: Get status of a task
+      parameters:
+        - name: task_id
+          in: path
+          required: true
+          description: task id
+          schema:
+            type: string
+      responses:
+        200:
+          description: Task status description succesfully retreived.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TaskStatus"
+    delete:
+      operationId: fingerprinter.entrypoints.api.handlers.stop_running_task
+      description: cancel execution  status of a task
+      parameters:
+        - name: task_id
+          in: path
+          required: true
+          description: task id
+          schema:
+            type: string
+      responses:
+        200:
+          description: Task accepted for revoking.
+        406:
+          description: Task already marked for revoking.
