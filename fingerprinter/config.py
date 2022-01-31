@@ -188,8 +188,14 @@ class FingerprinterConfig:
         return value
 
     @property
+    def ZIP_REPORT_TYPE(self) -> str:
+        value = 'zip'
+        self.logger.debug(value)
+        return value
+
+    @property
     def REPORT_TYPES(self) -> list:
-        value = [self.HTML_REPORT_TYPE, self.JSON_REPORT_TYPE]
+        value = [self.HTML_REPORT_TYPE, self.JSON_REPORT_TYPE, self.ZIP_REPORT_TYPE]
         self.logger.debug(value)
         return value
 
@@ -204,6 +210,7 @@ class FingerprinterConfig:
         value = {
             self.HTML_REPORT_TYPE: 'html_report',
             self.JSON_REPORT_TYPE: 'json_report',
+            self.ZIP_REPORT_TYPE: 'zip_report',
         }
         self.logger.debug(value)
         return value
