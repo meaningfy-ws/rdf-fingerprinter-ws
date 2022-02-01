@@ -5,7 +5,7 @@
 # Author: Mihai Coșleț
 # Email: coslet.mihai@gmail.com
 import pytest
-from pathlib import Path
+import requests
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.webdriver import WebDriver
 
@@ -34,7 +34,9 @@ class FakeRequests:
 
 
 class FakeSPARQLAdapter(AbstractSPARQLAdapter):
-    def __init__(self):
+    def __init__(self, fuseki_service_location: str, requests: requests):
+        self.fuseki_service_location = fuseki_service_location
+        self.requests = requests
         self.actions = list()
 
     def create_dataset(self, dataset_name: str):

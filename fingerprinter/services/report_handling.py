@@ -274,9 +274,7 @@ def get_available_fingerprintings(reports_location: str = config.RDF_FINGERPRINT
 def get_report(uid: str, extension: str = config.DEFAULT_REPORT_TYPE,
                reports_location: str = config.RDF_FINGERPRINTER_REPORTS_DB) -> tuple:
     report_base_location = build_fingerprinting_reports_location(fingerprinting_uid=uid, db_location=reports_location)
-    logger.exception(report_base_location)
     meta = read_meta_file(report_base_location)
-    logger.exception(meta)
     filename = secure_filename(f"{meta['uid']}-{meta['created_at']}.{extension}")
 
     return Path(report_base_location) / meta[config.EXTENSION_TO_FILETYPE[extension]], filename

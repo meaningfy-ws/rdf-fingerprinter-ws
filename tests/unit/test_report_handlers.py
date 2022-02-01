@@ -7,7 +7,8 @@ from pathlib import Path
 
 from fingerprinter.services.report_handling import zip_report_files, copy_report_files, generate_meta_file, \
     read_meta_file, build_fingerprinting_reports_location, get_available_fingerprintings, get_report, delete_report, \
-    build_report_from_sparql_endpoint, fingerprint_sparql_endpoint
+    build_report_from_sparql_endpoint, fingerprint_sparql_endpoint, build_report_from_file
+from tests.conftest import FakeSPARQLAdapter
 
 
 def test_zip_report_files(tmpdir, monkeypatch):
@@ -276,5 +277,26 @@ def test_generate_reports_from_sparql_endpoint(mock_fingerprint_sparql_endpoint,
     assert (Path(reports_location) / 'report.zip').read_text() == 'zip'
 
 
-def test_build_report_from_sparql_endpoint(tmpdir):
-    pass
+@patch('fingerprinter.services.report_handling.fingerprint_sparql_endpoint')
+def test_generate_reports_from_file(mock_fingerprint_sparql_endpoint, tmpdir):
+    sparql_adapter = FakeSPARQLAdapter
+
+    location = tmpdir.mkdir('reports')
+    file_path = tmpdir.join('file.rdf')
+    file_path.write('rdf')
+    html_report = tmpdir.join('report.html')
+    html_report.write('html')
+    json_report = tmpdir.join('report.json')
+    json_report.write('json')
+    zip_report = tmpdir.join('report.zip')
+    zip_report.write('zip')
+
+    mock_fingerprint_sparql_endpoint.return_value = (str(html_report), str(json_report), str(zip_report))
+
+    reports_location = build_report_from_file(location=str(location), file=str(file_path),
+                                              fuseki_service_location='http://localhost:3030/sparql',
+                                              fuseki_sparql_adapter=sparql_adapter)
+
+    assert (Path(reports_location) / 'report.html').read_text() == 'html'
+    assert (Path(reports_location) / 'report.json').read_text() == 'json'
+    assert (Path(reports_location) / 'report.zip').read_text() == 'zip'

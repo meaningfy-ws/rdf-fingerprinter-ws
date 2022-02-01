@@ -26,7 +26,7 @@ def test_async_fingerprint_sparql_endpoint(mock_build_report_from_sparql_endpoin
     sparql_endpoint = 'http://example.com/sparql'
     graphs = []
 
-    return_value = async_fingerprint_sparql_endpoint(sparql_endpoint=sparql_endpoint, db_cleanup_location=location,
+    return_value = async_fingerprint_sparql_endpoint(sparql_endpoint_url=sparql_endpoint, db_cleanup_location=location,
                                                      graphs=graphs)
 
     mock_build_report_from_sparql_endpoint.called_once()

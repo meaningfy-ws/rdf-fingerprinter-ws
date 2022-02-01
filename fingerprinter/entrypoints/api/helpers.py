@@ -47,17 +47,20 @@ def check_is_url(url: str):
         exception_text = 'Wrong url format. Example: http://example.com'
         logger.exception(exception_text)
         raise BadRequest(exception_text)  # 400
+    return True
 
 
-def check_report_extension(report_name: str) -> str:
+def check_report_extension(report_type: str) -> bool:
     """
     Check if requested report is accepted.
-    :param report_name: the name of the report
+    :param report_type: the name of the report
     :return: the extension of the report
     :rtype: str
     """
-    if report_name not in config.REPORT_TYPES:
+    if report_type not in config.REPORT_TYPES:
         exception_text = 'Wrong report_type format. Accepted formats: ' \
                          f'{", ".join([report_type for report_type in config.REPORT_TYPES])}.'
         logger.exception(exception_text)
         raise UnprocessableEntity(exception_text)  # 422
+
+    return True
