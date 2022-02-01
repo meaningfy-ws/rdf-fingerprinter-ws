@@ -13,7 +13,7 @@ def test_is_url():
     assert is_url(url1)
     assert not is_url(url2)
     assert not is_url(url3)
-    assert not is_url(url4)
+    assert not is_url(str(url4))
 
 
 def test_check_is_url():

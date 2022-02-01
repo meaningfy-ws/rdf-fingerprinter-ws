@@ -68,7 +68,7 @@ def helper_sparql_wrapper(triplestore_service_url: str = "http://localhost:3030"
 # used for testing the services where the adapter is used
 @pytest.fixture(scope='function')
 def fake_sparql_adapter():
-    return FakeSPARQLAdapter()
+    return FakeSPARQLAdapter('http://localhost:3030', requests)
 
 
 @pytest.fixture
