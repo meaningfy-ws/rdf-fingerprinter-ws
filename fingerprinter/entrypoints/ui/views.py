@@ -17,9 +17,13 @@ from werkzeug.utils import redirect
 
 from fingerprinter.config import config
 from fingerprinter.entrypoints.ui import app
-from fingerprinter.entrypoints.ui.api_wrapper import fingerprint_sparql_endpoint as api_fingerprint_sparql_endpoint, \
+from fingerprinter.entrypoints.ui.api_wrapper import get_report, \
+    fingerprint_sparql_endpoint as api_fingerprint_sparql_endpoint, \
     fingerprint_file as api_fingerprint_file, \
-    get_fingerprintings as api_get_fingerprintings
+    get_fingerprintings as api_get_fingerprintings, \
+    delete_fingerprinting as api_delete_fingerprinting, \
+    get_active_tasks as api_get_active_tasks, \
+    revoke_task as api_revoke_task
 from fingerprinter.entrypoints.ui.forms import FingerprintSPARQLEndpointForm, FingerprintFileForm
 from fingerprinter.entrypoints.ui.helpers import get_error_message_from_response
 
@@ -29,7 +33,8 @@ logger = logging.getLogger(config.RDF_FINGERPRINTER_LOGGER)
 @app.route('/', methods=['GET'])
 def index():
     logger.debug('request index view')
-    # fingerprintings, _ = api_get_fingerprintings()
+    fingerprintings, _ = api_get_fingerprintings()
+    print(fingerprintings)
 
     return render_template('index.html', fingerprintings=fingerprintings)
 
@@ -82,3 +87,58 @@ def fingerprint_file():
 
     logger.debug('return fingerprint file clean view')
     return render_template('fingerprint/file.html', form=form, title='Fingerprint File')
+
+
+@app.route('/fingerprintings/<fingerprinting_id>/<report_type>', methods=['GET'])
+def download_report(fingerprinting_id: str, report_type: str):
+    logger.debug(
+        f'request fingerprinting report download view for fingerprinting id {fingerprinting_id}, report type: {report_type}')
+    try:
+        with tempfile.TemporaryDirectory() as temp_folder:
+            report_content, _ = get_report(fingerprinting_id=fingerprinting_id, report_type=report_type)
+            file_name = f'{fingerprinting_id}_{report_type}.{report_type}'
+            report = Path(temp_folder) / file_name
+            report.write_bytes(report_content)
+            logger.debug(f'report file {report} successfully written')
+            return send_from_directory(Path(temp_folder), file_name, as_attachment=True)
+    except Exception as e:
+        logger.exception(str(e))
+        flash(str(e), 'error')
+        return redirect(url_for('index'))
+
+
+@app.route('/reports/<fingerprinting_id>')
+def delete_fingerprinting(fingerprinting_id: str):
+    logger.debug(f'request fingerprinting report delete view for fingerprinting id {fingerprinting_id}')
+    response, status = api_delete_fingerprinting(fingerprinting_id=fingerprinting_id)
+
+    if status != 200:
+        exception_text = get_error_message_from_response(response)
+        logger.exception(exception_text)
+        flash(exception_text, 'error')
+    else:
+        flash('fingerprinting successfully deleted', 'success')
+
+    return redirect(url_for('index'))
+
+
+@app.route('/tasks')
+def get_active_tasks():
+    logger.debug('request active tasks view')
+    active_tasks, _ = api_get_active_tasks()
+    logger.debug('render active tasks view')
+    return render_template('tasks/view_active_tasks.html', tasks=active_tasks)
+
+
+@app.route('/revoke-task/<task_id>')
+def revoke_task(task_id: str):
+    logger.debug(f'request revoke task view for task id {task_id}')
+    response, status = api_revoke_task(task_id=task_id)
+
+    if status == 200:
+        flash(response, 'success')
+    else:
+        logger.exception(response)
+        flash(response, 'error')
+
+    return redirect(url_for('get_active_tasks'))

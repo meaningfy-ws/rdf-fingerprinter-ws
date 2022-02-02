@@ -1,1 +1,50 @@
-hello
+{% extends "base.html" %}
+{% set active_page = "index" %}
+
+{% block app_content %}
+    <h1 id="title">Fingerprinting reports</h1>
+    <table class="table highlight ">
+        <thead class="thead-dark">
+        <tr>
+            <th scope="col">ID</th>
+            <th scope="col">type</th>
+            <th scope="col">url</th>
+            <th scope="col">file</th>
+            <th scope="col">created at</th>
+            <th scope="col">Actions</th>
+            <th scope="col">Remove</th>
+        </tr>
+        </thead>
+        <tbody>
+        {% for fingerprinting in fingerprintings %}
+            {% if fingerprinting %}
+                <tr>
+                    <th scope="row">{{ fingerprinting.uid }}</th>
+                    <td>{{ fingerprinting.fingerprinting_on }}</td>
+                    <td>{{ fingerprinting.url }}</td>
+                    <td>{{ fingerprinting.file }}</td>
+                    <td>{{ fingerprinting.created_at }}</td>
+                    <td>
+                        <a href="{{ url_for('download_report', fingerprinting_id=fingerprinting.uid, report_type='html') }}"
+                           id="get-html-{{ fingerprinting.uid }}"
+                           style="margin-bottom: 5px"
+                           class="btn btn-file blue darken-2">Get HTML report</a>
+                        <a href="{{ url_for('download_report', fingerprinting_id=fingerprinting.uid, report_type='json') }}"
+                           id="get-html-{{ fingerprinting.uid }}"
+                           style="margin-bottom: 5px"
+                           class="btn btn-file blue darken-2">Get JSON report</a>
+                        <a href="{{ url_for('download_report', fingerprinting_id=fingerprinting.uid, report_type='zip') }}"
+                           id="get-zip-{{ fingerprinting.uid }}"
+                           class="btn btn-file blue darken-2">Get all files</a>
+                    </td>
+                    <td>
+                        <a href="{{ url_for('delete_fingerprinting', fingerprinting_id=fingerprinting.uid) }}"
+                           id="remove-{{ fingerprinting.uid }}"
+                           class="btn btn-file red darken-2">Remove</a>
+                    </td>
+                </tr>
+            {% endif %}
+        {% endfor %}
+        </tbody>
+    </table>
+{% endblock %}

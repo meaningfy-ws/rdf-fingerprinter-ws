@@ -68,33 +68,21 @@ def test_generate_meta_file_and_read_file(tmpdir, monkeypatch):
     url = ''
     uid = str(uuid4())
     timestamp = 'today'
-    validation_on = 'file'
+    fingerprinting_on = 'file'
     html_report = 'report.html'
     json_report = 'report.json'
     zip_report = 'report.zip'
     graphs = ['graph1', 'graph2']
 
     meta_file = generate_meta_file(reports_location=reports_location, file_name=file_name,
-                                   url=url, uid=uid, timestamp=timestamp, validation_on=validation_on,
+                                   url=url, uid=uid, timestamp=timestamp, fingerprinting_on=fingerprinting_on,
                                    html_report=html_report,
                                    json_report=json_report, zip_report=zip_report, graphs=graphs)
 
     meta_content = loads(Path(meta_file).read_text())
 
     assert meta_content['uid'] == uid
-    assert meta_content['validation_on'] == validation_on
-    assert meta_content['file'] == file_name
-    assert meta_content['url'] == url
-    assert meta_content['graphs'] == graphs
-    assert meta_content['html_report'] == html_report
-    assert meta_content['json_report'] == json_report
-    assert meta_content['zip_report'] == zip_report
-    assert meta_content['created_at'] == timestamp
-
-    meta_content = read_meta_file(str(reports_location))
-
-    assert meta_content['uid'] == uid
-    assert meta_content['validation_on'] == validation_on
+    assert meta_content['fingerprinting_on'] == fingerprinting_on
     assert meta_content['file'] == file_name
     assert meta_content['url'] == url
     assert meta_content['graphs'] == graphs

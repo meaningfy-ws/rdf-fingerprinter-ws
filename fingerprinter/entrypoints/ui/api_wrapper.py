@@ -13,7 +13,7 @@ from typing import List
 import requests
 from werkzeug.datastructures import FileStorage
 
-from fingerprinter import config
+from fingerprinter.config import config
 
 
 def fingerprint_sparql_endpoint(sparql_endpoint_url: str, graphs: List) -> tuple:
@@ -30,7 +30,7 @@ def fingerprint_sparql_endpoint(sparql_endpoint_url: str, graphs: List) -> tuple
     if graphs:
         data['graphs'] = graphs
 
-    response = requests.post(config.RDF_FINGERPRINTER_API_SERVICE + '/fingerprint-sparql-endpoint', json=data)
+    response = requests.post(f'{config.RDF_FINGERPRINTER_API_SERVICE}/fingerprint-sparql-endpoint', json=data)
 
     return response.content, response.status_code
 
@@ -50,7 +50,7 @@ def fingerprint_file(data_file: FileStorage, graphs: List) -> tuple:
     if graphs:
         data['graphs'] = graphs
 
-    response = requests.post(config.RDF_FINGERPRINTER_API_SERVICE + '/fingerprint-file', data=data, files=files)
+    response = requests.post(f'{config.RDF_FINGERPRINTER_API_SERVICE}/fingerprint-file', files=files, data=data)
 
     return response.content, response.status_code
 
@@ -58,8 +58,53 @@ def fingerprint_file(data_file: FileStorage, graphs: List) -> tuple:
 def get_fingerprintings() -> tuple:
     """
     Method to connect to the fingerprinter api to get the list of fingerprintings.
+    :return: list, int
+    """
+    response = requests.get(f'{config.RDF_FINGERPRINTER_API_SERVICE}/reports')
+
+    return response.json(), response.status_code
+
+
+def get_report(fingerprinting_id: str, report_type: str) -> tuple:
+    """
+    Method to connect to the fingerprinter api to get a report.
+    :param fingerprinting_id: the id of the fingerprinting to get the report for
+    :param report_type: the type of report to get
     :return: file, int
     """
-    response = requests.get(config.RDF_FINGERPRINTER_API_SERVICE + '/reports')
+    response = requests.get(f'{config.RDF_FINGERPRINTER_API_SERVICE}/reports/{fingerprinting_id}',
+                            params={'report_type': report_type})
+
+    return response.content, response.status_code
+
+
+def delete_fingerprinting(fingerprinting_id: str) -> tuple:
+    """
+    Method to connect to the fingerprinter api to delete a fingerprinting.
+    :param fingerprinting_id: the id of the fingerprinting to be deleted
+    :return: int
+    """
+    response = requests.delete(f'{config.RDF_FINGERPRINTER_API_SERVICE}/reports/{fingerprinting_id}')
+
+    return response.json(), response.status_code
+
+
+def get_active_tasks() -> tuple:
+    """
+    Method to connect to the fingerprinter api to get the list of active tasks.
+    :return: list, int
+    """
+    response = requests.get(f'{config.RDF_FINGERPRINTER_API_SERVICE}/tasks/active')
+
+    return response.json(), response.status_code
+
+
+def revoke_task(task_id: str) -> tuple:
+    """
+    Method to connect to the fingerprinter api to revoke a task.
+    :param task_id: the id of the task to be revoked
+    :return: int
+    """
+    response = requests.delete(f'{config.RDF_FINGERPRINTER_API_SERVICE}/tasks/{task_id}')
 
     return response.content, response.status_code

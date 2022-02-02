@@ -96,7 +96,7 @@ def get_fingerprinting_report(uid: str, report_type: str = config.DEFAULT_REPORT
     :rtype: report file, int
     """
     check_report_extension(report_type)
-
+    logger.exception(f'get fingerprinting report: {uid}')
     try:
         location, filename = get_report(uid=uid, extension=report_type,
                                         reports_location=config.RDF_FINGERPRINTER_REPORTS_DB)

@@ -15,6 +15,7 @@
 {% set navigation_bar = [
         (url_for('fingerprint_sparql_endpoint'), 'fingerprint_sparql_endpoint', 'SPARQL Endpoint'),
         (url_for('fingerprint_file'), 'fingerprint_file', 'File'),
+        (url_for('get_active_tasks'), 'get_active_tasks', 'List active tasks')
 ] %}
 
 {% set active_page = active_page|default('index') -%}
