@@ -18,7 +18,8 @@ from werkzeug.utils import redirect
 from fingerprinter.config import config
 from fingerprinter.entrypoints.ui import app
 from fingerprinter.entrypoints.ui.api_wrapper import fingerprint_sparql_endpoint as api_fingerprint_sparql_endpoint, \
-    fingerprint_file as api_fingerprint_file
+    fingerprint_file as api_fingerprint_file, \
+    get_fingerprintings as api_get_fingerprintings
 from fingerprinter.entrypoints.ui.forms import FingerprintSPARQLEndpointForm, FingerprintFileForm
 from fingerprinter.entrypoints.ui.helpers import get_error_message_from_response
 
@@ -28,7 +29,9 @@ logger = logging.getLogger(config.RDF_FINGERPRINTER_LOGGER)
 @app.route('/', methods=['GET'])
 def index():
     logger.debug('request index view')
-    return redirect(url_for('fingerprint_sparql_endpoint'))
+    # fingerprintings, _ = api_get_fingerprintings()
+
+    return render_template('index.html', fingerprintings=fingerprintings)
 
 
 @app.route('/fingerprint-sparql-endpoint', methods=['GET', 'POST'])
@@ -48,11 +51,9 @@ def fingerprint_sparql_endpoint():
             logger.exception(exception_text)
             flash(exception_text, 'error')
         else:
-            with tempfile.TemporaryDirectory() as temp_folder:
-                report = Path(temp_folder) / str(f'report.html')
-                report.write_bytes(response)
-                logger.debug('return fingerprint sparql endpoint view')
-                return send_from_directory(Path(temp_folder), f'report.html', as_attachment=True)
+            flash('fingerprinting successfully started', 'success')
+            logger.debug('render active tasks view')
+            # return redirect(url_for('get_active_tasks'))
 
     logger.debug('return fingerprint sparql endpoint clean view')
     return render_template('fingerprint/sparql_endpoint_url.html', form=form, title='Fingerprint SPARQL Endpoint')
@@ -75,11 +76,9 @@ def fingerprint_file():
             logger.exception(exception_text)
             flash(exception_text, 'error')
         else:
-            with tempfile.TemporaryDirectory() as temp_folder:
-                report = Path(temp_folder) / str(f'report.html')
-                report.write_bytes(response)
-                logger.debug('return fingerprint file view')
-                return send_from_directory(Path(temp_folder), f'report.html', as_attachment=True)
+            flash('fingerprinting successfully started', 'success')
+            logger.debug('render active tasks view')
+            # return redirect(url_for('get_active_tasks'))
 
     logger.debug('return fingerprint file clean view')
     return render_template('fingerprint/file.html', form=form, title='Fingerprint File')

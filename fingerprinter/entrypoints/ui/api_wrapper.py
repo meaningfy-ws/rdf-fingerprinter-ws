@@ -53,3 +53,13 @@ def fingerprint_file(data_file: FileStorage, graphs: List) -> tuple:
     response = requests.post(config.RDF_FINGERPRINTER_API_SERVICE + '/fingerprint-file', data=data, files=files)
 
     return response.content, response.status_code
+
+
+def get_fingerprintings() -> tuple:
+    """
+    Method to connect to the fingerprinter api to get the list of fingerprintings.
+    :return: file, int
+    """
+    response = requests.get(config.RDF_FINGERPRINTER_API_SERVICE + '/reports')
+
+    return response.content, response.status_code
