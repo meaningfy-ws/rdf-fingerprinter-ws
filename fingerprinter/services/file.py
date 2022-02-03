@@ -10,6 +10,9 @@ from werkzeug.utils import secure_filename
 
 
 def build_secure_filename(location: str, filename: str) -> str:
+    """
+    Method to build secure filename from a given location and filename
+    """
     return str(Path(location) / (str(uuid4()) + secure_filename(filename)))
 
 

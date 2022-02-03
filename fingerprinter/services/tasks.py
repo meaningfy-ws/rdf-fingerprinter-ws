@@ -7,6 +7,16 @@ from fingerprinter.services.report_handling import delete_report
 
 
 def flatten_active_tasks(tasks: dict) -> list:
+    """
+    Flatten a dict of active tasks
+    example:
+        {'celery-worker1: [{'id': 'task-id', 'name': 'task-name'}]}
+    returns
+        [{'id': 'task-id', 'name': 'task-name'}]
+
+    :param tasks: dict of active tasks
+    :return: list of active tasks
+    """
     return tasks.get(list(tasks.keys())[0], [])
 
 

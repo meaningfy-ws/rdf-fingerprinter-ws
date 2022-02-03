@@ -13,7 +13,7 @@ from contextlib import contextmanager
 
 from fingerprinter.adapters.sparql_adapter import AbstractSPARQLAdapter
 
-logger = logging
+logger = logging.getLogger(__name__)
 
 
 @contextmanager
@@ -33,5 +33,3 @@ def upload_file_to_dataset(dataset: str, file_path: str, sparql_adapter: Abstrac
     finally:
         logger.debug('delete dataset')
         sparql_adapter.delete_dataset(dataset)
-
-
