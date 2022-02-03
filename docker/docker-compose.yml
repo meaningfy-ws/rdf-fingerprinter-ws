@@ -3,6 +3,7 @@ version: "3.7"
 services:
   fingerprinter-api:
     container_name: fingerprinter-api
+    command: gunicorn --timeout ${RDF_FINGERPRINTER_GUNICORN_TIMEOUT-1200} --workers ${RDF_FINGERPRINTER_GUNICORN_API_WORKERS-2} --bind 0.0.0.0:${RDF_FINGERPRINTER_API_PORT} --reload --log-level=debug fingerprinter.entrypoints.api.run:app --log-file ${RDF_FINGERPRINTER_API_LOGS} --log-level ${RDF_FINGERPRINTER_LOG_LEVEL}
     build:
       context: ..
       dockerfile: ./docker/api/Dockerfile
@@ -27,6 +28,39 @@ services:
     env_file: .env
     depends_on:
       - "fingerprinter-api"
+    networks:
+      - mydefault
+
+  fingerprinter-celery-worker:
+    container_name: fingerprinter-celery-worker
+    build:
+      context: ..
+      dockerfile: ./docker/api/Dockerfile
+    command: celery -A fingerprinter.adapters.celery.celery_worker worker --loglevel ${RDF_FINGERPRINTER_LOG_LEVEL} --logfile ${RDF_FINGERPRINTER_CELERY_LOGS}
+    volumes:
+      - ..:/usr/src/app
+    env_file: .env
+    networks:
+      - mydefault
+    depends_on:
+      - redis
+
+  redis:
+    image: redis:6-alpine
+    ports:
+      - ${RDF_FINGERPRINTER_REDIS_PORT}:${RDF_FINGERPRINTER_REDIS_PORT}
+    networks:
+      - mydefault
+
+  fingerprinter-dashboard:
+    build:
+      context: ..
+      dockerfile: ./docker/api/Dockerfile
+    command: celery -A fingerprinter.adapters.celery.celery_worker --broker=${RDF_FINGERPRINTER_REDIS_LOCATION}:${RDF_FINGERPRINTER_REDIS_PORT} flower --port=${RDF_FINGERPRINTER_FLOWER_PORT}
+    ports:
+      - ${RDF_FINGERPRINTER_FLOWER_PORT}:${RDF_FINGERPRINTER_FLOWER_PORT}
+    depends_on:
+      - fingerprinter-celery-worker
     networks:
       - mydefault
 

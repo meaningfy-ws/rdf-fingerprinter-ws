@@ -6,7 +6,7 @@
 # Email: coslet.mihai@gmail.com 
 
 """
-Service to consume validator API.
+Service to consume fingerprinter API.
 """
 from typing import List
 

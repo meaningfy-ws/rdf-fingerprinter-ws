@@ -11,8 +11,12 @@ selenium==3.141.0  # https://selenium-python.readthedocs.io/
 
 rdf-fingerprinter  # https://github.com/meaningfy-ws/rdf-fingerprinter
 
+shortuuid==1.0.1  # https://pypi.org/project/shortuuid/
+
+celery==5.1.2  # https://docs.celeryproject.org/en/v5.1.2/
+redis==3.5.3  # https://redis-py.readthedocs.io/en/3.5.3/
+flower==1.0.0  # https://flower.readthedocs.io/en/1.0/
+
 eds4jinja2
 Click
 pathlib
-rdflib
-sparqlwrapper

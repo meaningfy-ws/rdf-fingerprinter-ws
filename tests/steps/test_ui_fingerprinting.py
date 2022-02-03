@@ -10,7 +10,7 @@ from pytest_bdd import (
     when,
 )
 
-from fingerprinter import config
+from fingerprinter.config import config
 
 CONVERTERS = {
     'file': str
