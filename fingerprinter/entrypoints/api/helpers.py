@@ -16,7 +16,7 @@ from werkzeug.exceptions import BadRequest, UnprocessableEntity
 
 from fingerprinter.config import config
 
-logger = logging.getLogger(config.RDF_FINGERPRINTER_LOGGER)
+logger = logging.getLogger(__name__)
 
 
 def _guess_file_type(file: str, accepted_types: dict = None):

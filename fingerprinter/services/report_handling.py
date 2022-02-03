@@ -26,7 +26,7 @@ from fingerprinter.services.file import copy_file_to_destination, list_folder_pa
 from fingerprinter.services.handlers import upload_file_to_dataset
 from fingerprinter.services.time import get_timestamp
 
-logger = logging
+logger = logging.getLogger(__name__)
 
 
 def zip_report_files(output_location: str, html_report: str, json_report: str, html_report_name: str = '',
@@ -174,7 +174,7 @@ def build_report_from_sparql_endpoint(location: str, sparql_endpoint: str, graph
     :param uid: fingerprinting unique identifier
     :return:
     """
-    logger.debug('start build report from sparql endpoint library call')
+    logger.debug(f'start build report from sparql endpoint library call for {uid}')
     uid = uid or str(uuid4())
     timestamp = get_timestamp()
 
@@ -210,7 +210,7 @@ def build_report_from_file(location: str, file: str, graphs: list = None, uid: s
     :param fuseki_sparql_adapter: sparql adapter to be used
     :return: the report location
     """
-    logger.debug('start build report from file library call')
+    logger.debug(f'start build report from file library call for {uid}')
 
     if not fuseki_sparql_adapter:
         fuseki_sparql_adapter = FusekiSPARQLAdapter
@@ -278,13 +278,9 @@ def get_available_fingerprintings(reports_location: str = config.RDF_FINGERPRINT
 def get_report(uid: str, extension: str = config.DEFAULT_REPORT_TYPE,
                reports_location: str = config.RDF_FINGERPRINTER_REPORTS_DB) -> tuple:
     report_base_location = build_fingerprinting_reports_location(fingerprinting_uid=uid, db_location=reports_location)
-    print(report_base_location)
     meta = read_meta_file(report_base_location)
-    print(meta)
     filename = secure_filename(f"{meta['uid']}-{meta['created_at']}.{extension}")
-    print(filename)
 
-    print(str(Path(report_base_location) / meta[config.EXTENSION_TO_FILETYPE[extension]]) + str(filename))
     return Path(report_base_location) / meta[config.EXTENSION_TO_FILETYPE[extension]], filename
 
 

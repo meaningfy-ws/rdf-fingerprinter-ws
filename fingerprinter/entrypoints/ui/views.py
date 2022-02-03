@@ -27,14 +27,13 @@ from fingerprinter.entrypoints.ui.api_wrapper import get_report, \
 from fingerprinter.entrypoints.ui.forms import FingerprintSPARQLEndpointForm, FingerprintFileForm
 from fingerprinter.entrypoints.ui.helpers import get_error_message_from_response
 
-logger = logging.getLogger(config.RDF_FINGERPRINTER_LOGGER)
+logger = logging.getLogger(__name__)
 
 
 @app.route('/', methods=['GET'])
 def index():
     logger.debug('request index view')
     fingerprintings, _ = api_get_fingerprintings()
-    print(fingerprintings)
 
     return render_template('index.html', fingerprintings=fingerprintings)
 

@@ -24,7 +24,7 @@ from fingerprinter.services.report_handling import get_available_fingerprintings
     delete_all_reports
 from fingerprinter.services.tasks import retrieve_task, flatten_active_tasks, retrieve_active_tasks, kill_task
 
-logger = logging.getLogger(config.RDF_FINGERPRINTER_LOGGER)
+logger = logging.getLogger(__name__)
 
 
 def fingerprint_sparql_endpoint(body: dict) -> tuple:
@@ -83,6 +83,7 @@ def get_fingerprintings() -> tuple:
     :return: all fingerprinting reports
     :rtype: list of fingerprinting reports meta
     """
+    logger.debug('getting fingerprinting reports')
     fingerprintings = get_available_fingerprintings(config.RDF_FINGERPRINTER_REPORTS_DB)
     return fingerprintings, 200
 
@@ -96,7 +97,7 @@ def get_fingerprinting_report(uid: str, report_type: str = config.DEFAULT_REPORT
     :rtype: report file, int
     """
     check_report_extension(report_type)
-    logger.exception(f'get fingerprinting report: {uid}')
+    logger.debug(f'get fingerprinting report: {uid}')
     try:
         location, filename = get_report(uid=uid, extension=report_type,
                                         reports_location=config.RDF_FINGERPRINTER_REPORTS_DB)
@@ -110,6 +111,7 @@ def delete_fingerprinting(uid: str) -> tuple:
     API method to delete a fingerprinting report.
     :param uid: the uid of the fingerprinting report
     """
+    logger.debug(f'delete fingerprinting report: {uid}')
     removed = delete_report(uid=uid, reports_location=config.RDF_FINGERPRINTER_REPORTS_DB)
     if removed:
         return {'message': f'Fingerprinting with {uid} successfully removed'}, 200
@@ -121,6 +123,7 @@ def delete_all_fingerprintings() -> tuple:
     """
     API method to delete all fingerprinting reports.
     """
+    logger.debug('delete all fingerprinting reports')
     removed = delete_all_reports(reports_location=config.RDF_FINGERPRINTER_REPORTS_DB)
     if removed:
         return {'message': 'All fingerprintings successfully removed'}, 200
@@ -133,6 +136,7 @@ def get_active_tasks() -> tuple:
     Get all active celery tasks
     :return: dict of celery workers and their active tasks
     """
+    logger.debug('get active tasks')
     try:
         tasks = flatten_active_tasks(retrieve_active_tasks())
     except AttributeError:
@@ -146,6 +150,7 @@ def get_task_status(task_id: str) -> tuple:
     :param task_id: Id of task to get status for
     :return: dict
     """
+    logger.debug(f'get task status: {task_id}')
     task = retrieve_task(task_id)
     if task:
         try:
@@ -168,6 +173,7 @@ def stop_running_task(task_id: str) -> tuple:
     Revoke a task
     :param task_id: Id of task to revoke
     """
+    logger.debug(f'stop task: {task_id}')
     try:
         tasks = flatten_active_tasks(retrieve_active_tasks())
         task = next(task for task in tasks if task["id"] == task_id)
