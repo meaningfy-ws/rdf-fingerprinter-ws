@@ -81,7 +81,7 @@ def copy_report_files(uid: str, html_report: str, json_report: str, zip_report: 
 
 
 def generate_meta_file(reports_location: Path, file_name: str = '', url: str = '', uid: str = '',
-                       timestamp: str = '', validation_on: str = 'file', html_report: str = '', json_report: str = '',
+                       timestamp: str = '', fingerprinting_on: str = 'file', html_report: str = '', json_report: str = '',
                        zip_report: str = '',
                        graphs: list = None) -> str:
     """
@@ -92,7 +92,7 @@ def generate_meta_file(reports_location: Path, file_name: str = '', url: str = '
     :param url: the name of the sparql endpoint to be fingerprinted
     :param uid: fingerprinting unique identifier
     :param timestamp: timestamp of fingerprinting creation
-    :param validation_on: file or url
+    :param fingerprinting_on: file or url
     :param html_report: name of the html report
     :param json_report: name of the json report
     :param zip_report: name of the zip containing all reports
@@ -106,7 +106,7 @@ def generate_meta_file(reports_location: Path, file_name: str = '', url: str = '
 
     meta = {
         "uid": uid or str(uuid4()),
-        "validation_on": validation_on,
+        "fingerprinting_on": fingerprinting_on,
         config.EXTENSION_TO_FILETYPE[config.HTML_REPORT_TYPE]: html_report,
         "file": file_name,
         "url": url,
@@ -186,8 +186,7 @@ def build_report_from_sparql_endpoint(location: str, sparql_endpoint: str, graph
                                          zip_report=zip_report)
 
     generate_meta_file(reports_location=reports_location, url=sparql_endpoint, uid=uid, timestamp=timestamp,
-                       validation_on='sparql_endpoint', graphs=graphs, html_report=html_report, json_report=json_report,
-                       zip_report=zip_report)
+                       fingerprinting_on='sparql_endpoint', graphs=graphs)
 
     return str(reports_location)
 
@@ -235,8 +234,8 @@ def build_report_from_file(location: str, file: str, graphs: list = None, uid: s
     reports_location = copy_report_files(uid=fingerprinting_uid, html_report=html_report, json_report=json_report,
                                          zip_report=zip_report)
 
-    generate_meta_file(reports_location=reports_location, url=sparql_endpoint, uid=fingerprinting_uid,
-                       timestamp=timestamp, validation_on='file', graphs=graphs, zip_report=zip_report)
+    generate_meta_file(reports_location=reports_location, url='', file_name=file, uid=fingerprinting_uid,
+                       timestamp=timestamp, fingerprinting_on='file', graphs=graphs)
 
     return str(reports_location)
 
@@ -274,9 +273,13 @@ def get_available_fingerprintings(reports_location: str = config.RDF_FINGERPRINT
 def get_report(uid: str, extension: str = config.DEFAULT_REPORT_TYPE,
                reports_location: str = config.RDF_FINGERPRINTER_REPORTS_DB) -> tuple:
     report_base_location = build_fingerprinting_reports_location(fingerprinting_uid=uid, db_location=reports_location)
+    print(report_base_location)
     meta = read_meta_file(report_base_location)
+    print(meta)
     filename = secure_filename(f"{meta['uid']}-{meta['created_at']}.{extension}")
+    print(filename)
 
+    print(str(Path(report_base_location) / meta[config.EXTENSION_TO_FILETYPE[extension]]) + str(filename))
     return Path(report_base_location) / meta[config.EXTENSION_TO_FILETYPE[extension]], filename
 
 
