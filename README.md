@@ -6,57 +6,56 @@ Contents
 * [API Reference](srcdocs/modules)
 
 # Installation
-
-Make sure that you are running `Docker` and have the correct permissions set. If not, run the following lines to install it. 
-
-```bash
-sudo apt -y install docker.io docker-compose
-
-sudo groupadd docker
-sudo usermod -aG docker $USER
-newgrp docker
-```
-
-To build 
-```bash
-make build-volumes
-make build-services
-```
-
-Install test/dev dependencies:
+Run the following commands to install all required dependencies on a **redhat** system
 
 ```bash
-make install-dev
+make install-os-dependencies
+make install-python-dependencies
 ```
 
-To run the tests:
-> Make sure that fuseki is running and you have the python dependencies installed and your virtual environment activated (if you're using one).
+To set up redis server:
 ```bash
-make fuseki-create-test-dbs
-make test
+make setup-redis
 ```
 
-## Configure fingerprint report template 
-The default fingerprint report template resides in the [rdf-fingerprint project](https://github.com/meaningfy-ws/rdf-fingerprinter/tree/d05429f679fa52730f481809a471b466972386a2/fingerprint_report_templates/fingerprint_report). 
-
-To configure your own template you can copy the default report template and adjust it to your needs. Read more about the required structure of the template on the [eds4jinja2](https://github.com/meaningfy-ws/eds4jinja2) documentation page.
- 
-### Use the custom template
-After you have your custom template, run the `make` command, indicating the location of your template through the `location` variable.
+To set up Fuseki:
 ```bash
-make location=<location to template> set-report-template
+make setup-fuseki
 ```
----
-**NOTE**
 
-Make sure that the location specified ends with a trailing slash `/`, otherwise the command will not work.
-
-Example:
+Run Fuseki:
 ```bash
-make location=~/template/location/ set-report-template
+make run-local-fuseki
 ```
----
-After this, restart the `rdf-fingerprinter-api` container for the effects to take place.
+
+Run api and celery:
+```bash
+make run-api
+```
+
+Run ui:
+```bash
+make run-ui
+```
+
+Stop api and ui servers:
+```bash
+make stop-gunicorn
+```
+
+If you are running the project for the first time this would be the commands run:
+```bash
+make install-os-dependencies
+make install-python-dependencies
+make setup-redis
+make setup-fuseki
+make run-local-fuseki
+make run-api
+make run-ui
+```
+
+### [this file](curl-examples.md) contains a list of examples on how to use the updated api
+
 
 # Usage
 

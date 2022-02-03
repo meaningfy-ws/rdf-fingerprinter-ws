@@ -2,10 +2,50 @@ include docker/.env
 
 BUILD_PRINT = \e[1;34mSTEP: \e[0m
 
+
+install-os-dependencies:
+	@ ./bash/install_os_dependencies.sh
+
+install-python-dependencies:
+	@ ./bash/setup_python.sh
+
+setup-fuseki:
+	@ ./bash/setup_fuseki.sh
+
+run-local-fuseki:
+	@ ./fuseki/fuseki-server -q
+
+
+run-api:
+	@ ./bash/run_api.sh
+
+run-ui:
+	@ ./bash/run_ui.sh
+
+setup-redis:
+	@ sudo systemctl enable redis --now
+
+
+#------------------------------------------------------------------------------
+# Ubuntu related commands
+#------------------------------------------------------------------------------
+
+ubuntu-install-os-dependencies:
+	@ sudo apt install git python3-pip redis-server python3.8-venv curl
+
+ubuntu-setup-redis:
+	@ sudo cp docker/redis.conf /etc/redis/redis.conf
+	@ sudo systemctl restart redis.service
+
+ubuntu-install-python-dependencies:
+	@ echo "$(BUILD_PRINT)Installing the production requirements"
+	@ python3 -m venv env
+	@ pip install --upgrade pip
+	@ pip install -r requirements/dev.txt
+
 #-----------------------------------------------------------------------------
 # Basic commands
 #-----------------------------------------------------------------------------
-
 install-dev:
 	@ echo "$(BUILD_PRINT)Installing the local requirements"
 	@ pip install --upgrade pip
