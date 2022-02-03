@@ -16,6 +16,9 @@ from pathlib import Path
 
 
 class FingerprinterConfig:
+    """
+    Class to hold the configuration for the fingerprinter project.
+    """
     logger_name = 'gunicorn.error'
     logger = logging
 

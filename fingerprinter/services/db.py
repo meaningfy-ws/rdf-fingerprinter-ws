@@ -9,6 +9,11 @@ from fingerprinter.services.file import save_file
 
 
 def create_db_entry(location: str = config.RDF_FINGERPRINTER_FILE_DB) -> str:
+    """
+    Create a new entry in the database.
+    :param location: location to create the entry
+    :return: entry path
+    """
     location_to_save = Path(location) / str(uuid4())
     location_to_save.mkdir()
     return str(location_to_save)
