@@ -2,21 +2,53 @@ include docker/.env
 
 BUILD_PRINT = \e[1;34mSTEP: \e[0m
 
+
+install-os-dependencies:
+	@ ./bash/install_os_dependencies.sh
+
+install-python-dependencies:
+	@ ./bash/setup_python.sh
+
+run-api:
+	@ ./bash/run_api.sh
+
+run-ui:
+	@ ./bash/run_ui.sh
+
+setup-redis:
+	@ sudo systemctl enable redis --now
+
+stop-gunicorn:
+	@ ./bash/stop_gunicorn.sh
+#------------------------------------------------------------------------------
+# Ubuntu related commands
+#------------------------------------------------------------------------------
+
+ubuntu-install-os-dependencies:
+	@ sudo apt install git python3-pip redis-server python3.8-venv curl
+
+ubuntu-setup-redis:
+	@ sudo cp docker/redis.conf /etc/redis/redis.conf
+	@ sudo systemctl restart redis.service
+
+ubuntu-install-python-dependencies:
+	@ echo "$(BUILD_PRINT)Installing the production requirements"
+	@ python3 -m venv env
+	@ pip install --upgrade pip
+	@ pip install -r requirements/dev.txt
+
 #-----------------------------------------------------------------------------
 # Basic commands
 #-----------------------------------------------------------------------------
-
 install-dev:
 	@ echo "$(BUILD_PRINT)Installing the local requirements"
 	@ pip install --upgrade pip
 	@ pip install -r requirements/dev.txt
-	@ sudo ./requirements/install_chrome_and_driver.sh
 
 install-prod:
 	@ echo "$(BUILD_PRINT)Installing the production requirements"
 	@ pip install --upgrade pip
 	@ pip install -r requirements.txt
-	@ sudo ./requirements/install_chrome_and_driver.sh
 
 test:
 	@ echo "$(BUILD_PRINT)Running the tests"

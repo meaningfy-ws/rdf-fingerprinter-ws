@@ -6,57 +6,52 @@ Contents
 * [API Reference](srcdocs/modules)
 
 # Installation
-
-Make sure that you are running `Docker` and have the correct permissions set. If not, run the following lines to install it. 
+Make sure to create a `.env` file in the `bash/` directory. You should use the content from `bash/.env.example` as a template.
+In order to for the fingerprinter to work correctly you need to have a fuseki server running, and update these values in the `bash/.env` file
+```
+RDF_FINGERPRINTER_FUSEKI_LOCATION=
+RDF_FINGERPRINTER_FUSEKI_PORT=
+RDF_FINGERPRINTER_FUSEKI_USERNAME=
+RDF_FINGERPRINTER_FUSEKI_PASSWORD=
+```
+Run the following commands to install all required dependencies on a **redhat** system
 
 ```bash
-sudo apt -y install docker.io docker-compose
-
-sudo groupadd docker
-sudo usermod -aG docker $USER
-newgrp docker
+make install-os-dependencies
+make install-python-dependencies
 ```
 
-To build 
+To set up redis server:
 ```bash
-make build-volumes
-make build-services
+make setup-redis
 ```
 
-Install test/dev dependencies:
-
+Run api and celery:
 ```bash
-make install-dev
+make run-api
 ```
 
-To run the tests:
-> Make sure that fuseki is running and you have the python dependencies installed and your virtual environment activated (if you're using one).
+Run ui:
 ```bash
-make fuseki-create-test-dbs
-make test
+make run-ui
 ```
 
-## Configure fingerprint report template 
-The default fingerprint report template resides in the [rdf-fingerprint project](https://github.com/meaningfy-ws/rdf-fingerprinter/tree/d05429f679fa52730f481809a471b466972386a2/fingerprint_report_templates/fingerprint_report). 
-
-To configure your own template you can copy the default report template and adjust it to your needs. Read more about the required structure of the template on the [eds4jinja2](https://github.com/meaningfy-ws/eds4jinja2) documentation page.
- 
-### Use the custom template
-After you have your custom template, run the `make` command, indicating the location of your template through the `location` variable.
+Stop api and ui servers:
 ```bash
-make location=<location to template> set-report-template
+make stop-gunicorn
 ```
----
-**NOTE**
 
-Make sure that the location specified ends with a trailing slash `/`, otherwise the command will not work.
-
-Example:
+If you are running the project for the first time this would be the commands run:
 ```bash
-make location=~/template/location/ set-report-template
+make install-os-dependencies
+make install-python-dependencies
+make setup-redis
+make run-api
+make run-ui
 ```
----
-After this, restart the `rdf-fingerprinter-api` container for the effects to take place.
+
+### [this file](curl-examples.md) contains a list of examples on how to use the updated api
+
 
 # Usage
 
