@@ -6,6 +6,7 @@ Contents
 * [API Reference](srcdocs/modules)
 
 # Installation
+Make sure to create a `.env` file in the `bash/` directory. You should use the content from `bash/.env.example` as a template.
 In order to for the fingerprinter to work correctly you need to have a fuseki server running, and update these values in the `bash/.env` file
 ```
 RDF_FINGERPRINTER_FUSEKI_LOCATION=
