@@ -82,13 +82,13 @@ class FingerprinterConfig:
 
     @property
     def RDF_FINGERPRINTER_FUSEKI_USERNAME(self) -> str:
-        value = os.environ.get('RDF_FINGERPRINTER_FUSEKI_USERNAME', 'admin')
+        value = os.environ.get('RDF_FINGERPRINTER_FUSEKI_USERNAME', '')
         self.logger.debug(value)
         return value
 
     @property
     def RDF_FINGERPRINTER_FUSEKI_PASSWORD(self) -> str:
-        value = os.environ.get('RDF_FINGERPRINTER_FUSEKI_PASSWORD', 'admin')
+        value = os.environ.get('RDF_FINGERPRINTER_FUSEKI_PASSWORD', '')
         self.logger.debug(value)
         return value
 

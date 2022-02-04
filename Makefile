@@ -15,7 +15,6 @@ setup-fuseki:
 run-local-fuseki:
 	@ ./fuseki/fuseki-server -q
 
-
 run-api:
 	@ ./bash/run_api.sh
 
@@ -25,7 +24,8 @@ run-ui:
 setup-redis:
 	@ sudo systemctl enable redis --now
 
-
+stop-gunicorn:
+	@ ./bash/stop_gunicorn.sh
 #------------------------------------------------------------------------------
 # Ubuntu related commands
 #------------------------------------------------------------------------------

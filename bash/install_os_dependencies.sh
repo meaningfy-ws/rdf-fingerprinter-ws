@@ -1,2 +1,2 @@
 #!/bin/bash
-sudo yum install redis curl
+sudo yum install epel-release redis curl
