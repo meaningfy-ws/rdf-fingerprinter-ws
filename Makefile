@@ -9,12 +9,6 @@ install-os-dependencies:
 install-python-dependencies:
 	@ ./bash/setup_python.sh
 
-setup-fuseki:
-	@ ./bash/setup_fuseki.sh
-
-run-local-fuseki:
-	@ ./fuseki/fuseki-server -q
-
 run-api:
 	@ ./bash/run_api.sh
 

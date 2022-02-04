@@ -6,6 +6,13 @@ Contents
 * [API Reference](srcdocs/modules)
 
 # Installation
+In order to for the fingerprinter to work correctly you need to have a fuseki server running, and update these values in the `bash/.env` file
+```
+RDF_FINGERPRINTER_FUSEKI_LOCATION=
+RDF_FINGERPRINTER_FUSEKI_PORT=
+RDF_FINGERPRINTER_FUSEKI_USERNAME=
+RDF_FINGERPRINTER_FUSEKI_PASSWORD=
+```
 Run the following commands to install all required dependencies on a **redhat** system
 
 ```bash
@@ -16,16 +23,6 @@ make install-python-dependencies
 To set up redis server:
 ```bash
 make setup-redis
-```
-
-To set up Fuseki:
-```bash
-make setup-fuseki
-```
-
-Run Fuseki:
-```bash
-make run-local-fuseki
 ```
 
 Run api and celery:
@@ -48,8 +45,6 @@ If you are running the project for the first time this would be the commands run
 make install-os-dependencies
 make install-python-dependencies
 make setup-redis
-make setup-fuseki
-make run-local-fuseki
 make run-api
 make run-ui
 ```
