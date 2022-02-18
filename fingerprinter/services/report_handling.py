@@ -8,7 +8,7 @@
 """
 Service layer for report generation.
 """
-import logging
+import logging as logger
 import shutil
 from json import dumps, loads
 from pathlib import Path
@@ -25,8 +25,6 @@ from fingerprinter.config import config
 from fingerprinter.services.file import copy_file_to_destination, list_folder_paths_from_path, list_folders_from_path
 from fingerprinter.services.handlers import upload_file_to_dataset
 from fingerprinter.services.time import get_timestamp
-
-logger = logging.getLogger(__name__)
 
 
 def zip_report_files(output_location: str, html_report: str, json_report: str, html_report_name: str = '',
