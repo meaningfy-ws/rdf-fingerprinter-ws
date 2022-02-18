@@ -8,7 +8,7 @@
 """
 Service layer for report generation.
 """
-import logging
+import logging as logger
 import shutil
 from json import dumps, loads
 from pathlib import Path
@@ -25,8 +25,6 @@ from fingerprinter.config import config
 from fingerprinter.services.file import copy_file_to_destination, list_folder_paths_from_path, list_folders_from_path
 from fingerprinter.services.handlers import upload_file_to_dataset
 from fingerprinter.services.time import get_timestamp
-
-logger = logging.getLogger(__name__)
 
 
 def zip_report_files(output_location: str, html_report: str, json_report: str, html_report_name: str = '',
@@ -197,14 +195,13 @@ def build_report_from_sparql_endpoint(location: str, sparql_endpoint: str, graph
     return str(reports_location)
 
 
-def build_report_from_file(location: str, file: str, graphs: list = None, uid: str = '',
+def build_report_from_file(location: str, file: str, uid: str = '',
                            fuseki_service_location: str = config.RDF_FINGERPRINTER_FUSEKI_SERVICE,
                            fuseki_sparql_adapter: AbstractSPARQLAdapter = None) -> str:
     """
     Build reports from file using the fingerprinter
     :param location: location for the report to be built in
     :param file: file to be fingerprinted
-    :param graphs: (optional) restrict the fingerprinting calculation to this graph
     :param uid: fingerprinting unique identifier
     :param fuseki_service_location: fuseki service location
     :param fuseki_sparql_adapter: sparql adapter to be used
@@ -215,8 +212,6 @@ def build_report_from_file(location: str, file: str, graphs: list = None, uid: s
     if not fuseki_sparql_adapter:
         fuseki_sparql_adapter = FusekiSPARQLAdapter
 
-    if not graphs:
-        graphs = []
 
     fingerprinting_uid = uid or str(uuid4())
     timestamp = get_timestamp()
@@ -233,14 +228,14 @@ def build_report_from_file(location: str, file: str, graphs: list = None, uid: s
     with upload_file_to_dataset(dataset=dataset_uid, file_path=file, sparql_adapter=sparql_adapter):
         sparql_endpoint = f'{fuseki_service_location}/{dataset_uid}/sparql'
         html_report, json_report, zip_report = fingerprint_sparql_endpoint(sparql_endpoint=sparql_endpoint,
-                                                                           output_location=location, graphs=graphs,
+                                                                           output_location=location, graphs=[],
                                                                            additional_config=additional_config)
 
     reports_location = copy_report_files(uid=fingerprinting_uid, html_report=html_report, json_report=json_report,
                                          zip_report=zip_report)
 
     generate_meta_file(reports_location=reports_location, url='', file_name=file, uid=fingerprinting_uid,
-                       timestamp=timestamp, fingerprinting_on='file', graphs=graphs)
+                       timestamp=timestamp, fingerprinting_on='file', graphs=[])
 
     return str(reports_location)
 
@@ -277,6 +272,7 @@ def get_available_fingerprintings(reports_location: str = config.RDF_FINGERPRINT
 
 def get_report(uid: str, extension: str = config.DEFAULT_REPORT_TYPE,
                reports_location: str = config.RDF_FINGERPRINTER_REPORTS_DB) -> tuple:
+    logger.debug(f'start get report library call for {uid}')
     report_base_location = build_fingerprinting_reports_location(fingerprinting_uid=uid, db_location=reports_location)
     meta = read_meta_file(report_base_location)
     filename = secure_filename(f"{meta['uid']}-{meta['created_at']}.{extension}")
@@ -291,7 +287,7 @@ def delete_report(uid: str, reports_location: str = config.RDF_FINGERPRINTER_REP
     :param reports_location: location of the reports
     :return: True if the report was removed, False otherwise
     """
-    logger.debug('start remove report library call')
+    logger.debug(f'start remove report library call for {uid}')
     report_location = build_fingerprinting_reports_location(fingerprinting_uid=uid, db_location=reports_location)
 
     if report_location:

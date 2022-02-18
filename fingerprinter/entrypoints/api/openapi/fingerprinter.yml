@@ -52,11 +52,6 @@ components:
           type: string
           format: binary
           description: The file to be fingerprinted
-        graphs:
-          type: array
-          description: An optional list of named graphs to restrict the scope of the fingerprinting
-          items:
-            type: string
       required:
         - data_file
     TaskStatus:

@@ -13,7 +13,7 @@ def test_async_fingerprint_file(mock_build_report_from_file, api_client, tmpdir,
     data_file = location.join('data-file.ttl')
     data_file.write('some data')
 
-    return_value = async_fingerprint_file(file_path=str(data_file), db_cleanup_location=location, graphs=[])
+    return_value = async_fingerprint_file(file_path=str(data_file), db_cleanup_location=location)
 
     mock_build_report_from_file.called_once()
     assert not dir_exists(location)

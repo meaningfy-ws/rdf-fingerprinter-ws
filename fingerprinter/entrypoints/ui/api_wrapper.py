@@ -35,22 +35,17 @@ def fingerprint_sparql_endpoint(sparql_endpoint_url: str, graphs: List) -> tuple
     return response.content, response.status_code
 
 
-def fingerprint_file(data_file: FileStorage, graphs: List) -> tuple:
+def fingerprint_file(data_file: FileStorage) -> tuple:
     """
     Method to connect to the fingerprinter api to fingerprint an RDF file.
     :param data_file: the file to be fingerprinted
-    :param graphs: a named list of graphs to restrict the fingerprint calculation to
     :return: file, int
     """
     files = {
         'data_file': (data_file.filename, data_file.stream, data_file.mimetype),
     }
 
-    data = dict()
-    if graphs:
-        data['graphs'] = graphs
-
-    response = requests.post(f'{config.RDF_FINGERPRINTER_API_SERVICE}/fingerprint-file', files=files, data=data)
+    response = requests.post(f'{config.RDF_FINGERPRINTER_API_SERVICE}/fingerprint-file', files=files)
 
     return response.content, response.status_code
 

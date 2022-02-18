@@ -57,7 +57,7 @@ def fingerprint_sparql_endpoint():
         else:
             flash('fingerprinting successfully started', 'success')
             logger.debug('render active tasks view')
-            # return redirect(url_for('get_active_tasks'))
+            return redirect(url_for('get_active_tasks'))
 
     logger.debug('return fingerprint sparql endpoint clean view')
     return render_template('fingerprint/sparql_endpoint_url.html', form=form, title='Fingerprint SPARQL Endpoint')
@@ -71,8 +71,7 @@ def fingerprint_file():
 
     if form.validate_on_submit():
         response, status = api_fingerprint_file(
-            data_file=form.data_file.data,
-            graphs=form.graphs.data.split()
+            data_file=form.data_file.data
         )
 
         if status != 200:
@@ -82,7 +81,7 @@ def fingerprint_file():
         else:
             flash('fingerprinting successfully started', 'success')
             logger.debug('render active tasks view')
-            # return redirect(url_for('get_active_tasks'))
+            return redirect(url_for('get_active_tasks'))
 
     logger.debug('return fingerprint file clean view')
     return render_template('fingerprint/file.html', form=form, title='Fingerprint File')

@@ -27,10 +27,13 @@ def test_index(mock_get_fingerprintings, ui_client):
     assert 'Fingerprinting reports' in title.get_text()
 
 
+@patch('fingerprinter.entrypoints.ui.views.api_get_active_tasks')
 @patch('fingerprinter.entrypoints.ui.views.api_fingerprint_sparql_endpoint')
-def test_fingerprint_sparql_endpoint_success(mock_api_fingerprint_sparql_endpoint, ui_client):
+def test_fingerprint_sparql_endpoint_success(mock_api_fingerprint_sparql_endpoint, mock_api_get_active_tasks,
+                                             ui_client):
     ui_url = '/fingerprint-sparql-endpoint'
     mock_api_fingerprint_sparql_endpoint.return_value = 'ok', 200
+    mock_api_get_active_tasks.return_value = [], 200
 
     soup = _helper_get_request_and_parse(ui_client, ui_url)
 
@@ -42,12 +45,12 @@ def test_fingerprint_sparql_endpoint_success(mock_api_fingerprint_sparql_endpoin
         'graphs': ''
     }
 
-    response = ui_client.post(ui_url, data=data, content_type='multipart/form-data')
+    response = ui_client.post(ui_url, data=data, content_type='multipart/form-data', follow_redirects=True)
 
     assert response.status_code == 200
     soup = BeautifulSoup(response.data, 'html.parser')
     title = soup.find(id='title')
-    assert 'Fingerprint SPARQL Endpoint' in title.get_text()
+    assert 'List of active tasks' in title.get_text()
 
 
 @patch('fingerprinter.entrypoints.ui.views.api_fingerprint_sparql_endpoint')
@@ -72,10 +75,12 @@ def test_fingerprint_sparql_endpoint_failure(mock_api_fingerprint_sparql_endpoin
     assert exception_content in error_message.get_text()
 
 
+@patch('fingerprinter.entrypoints.ui.views.api_get_active_tasks')
 @patch('fingerprinter.entrypoints.ui.views.api_fingerprint_file')
-def test_fingerprint_file_success(mock_api_fingerprint_file, ui_client):
+def test_fingerprint_file_success(mock_api_fingerprint_file, mock_api_get_active_tasks, ui_client):
     ui_url = '/fingerprint-file'
     mock_api_fingerprint_file.return_value = 'ok', 200
+    mock_api_get_active_tasks.return_value = [], 200
 
     soup = _helper_get_request_and_parse(ui_client, ui_url)
 
@@ -83,16 +88,15 @@ def test_fingerprint_file_success(mock_api_fingerprint_file, ui_client):
     assert 'Fingerprint File' in title.get_text()
 
     data = {
-        'data_file': FileStorage(BytesIO(b'data file content'), 'data.ttl'),
-        'graphs': ''
+        'data_file': FileStorage(BytesIO(b'data file content'), 'data.ttl')
     }
 
-    response = ui_client.post(ui_url, data=data, content_type='multipart/form-data')
+    response = ui_client.post(ui_url, data=data, content_type='multipart/form-data', follow_redirects=True)
 
     assert response.status_code == 200
     soup = BeautifulSoup(response.data, 'html.parser')
     title = soup.find(id='title')
-    assert 'Fingerprint File' in title.get_text()
+    assert 'List of active tasks' in title.get_text()
 
 
 @patch('fingerprinter.entrypoints.ui.views.api_fingerprint_file')

@@ -50,11 +50,9 @@ def fingerprint_sparql_endpoint(body: dict) -> tuple:
     return {'task_id': task.id}, 200
 
 
-def fingerprint_file(body: dict, data_file: FileStorage) -> tuple:
+def fingerprint_file(data_file: FileStorage) -> tuple:
     """
     API method to handle file fingerprinting.
-    :param body: the json body that comes from the request
-        graphs: a list of named graphs to restrict the fingerprint calculation to
     :param data_file: the file to be fingerprinted
     :return: the fingerprinting report in the requested format
     :rtype: report file (html), int
@@ -70,8 +68,7 @@ def fingerprint_file(body: dict, data_file: FileStorage) -> tuple:
     db_location = create_db_entry()
     file_to_fingerprint = save_file(data_file, db_location)
 
-    graphs = body.get('graphs', [])
-    task = async_fingerprint_file.delay(file_path=file_to_fingerprint, db_cleanup_location=db_location, graphs=graphs)
+    task = async_fingerprint_file.delay(file_path=file_to_fingerprint, db_cleanup_location=db_location)
 
     logger.debug(f'task executed with id: {task.id}')
     return {'task_id': task.id}, 200

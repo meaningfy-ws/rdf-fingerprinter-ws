@@ -22,5 +22,5 @@ class FingerprintSPARQLEndpointForm(BaseFingerprintForm):
     sparql_endpoint_url = StringField('Endpoint URL', validators=[DataRequired()])
 
 
-class FingerprintFileForm(BaseFingerprintForm):
+class FingerprintFileForm(FlaskForm):
     data_file = FileField('Data file', validators=[FileRequired()])
