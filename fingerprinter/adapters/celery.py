@@ -35,18 +35,16 @@ def async_fingerprint_sparql_endpoint(self, sparql_endpoint_url: str, db_cleanup
 
 
 @celery_worker.task(name=CELERY_FINGERPRINT_FILE, bind=True)
-def async_fingerprint_file(self, file_path: str, db_cleanup_location: str, graphs: list = None):
+def async_fingerprint_file(self, file_path: str, db_cleanup_location: str):
     """
     Task to fingeprint a file
 
     :param file_path: The file to be fingerprinted
     :param db_cleanup_location: location to cleanup
-    :param graphs: list of optional graphs to fingerprint
     """
     logger.info('Starting async_fingerprint_file')
 
-    report_path = build_report_from_file(location=db_cleanup_location, file=file_path, graphs=graphs,
-                                         uid=self.request.id)
+    report_path = build_report_from_file(location=db_cleanup_location, file=file_path, uid=self.request.id)
 
     shutil.rmtree(db_cleanup_location)
     logger.info(f'Report generated at {report_path}')
