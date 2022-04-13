@@ -8,7 +8,7 @@ curl --location --request GET 'localhost:4020/reports'
 
 ### fingerprint file
 
-change `path-to-file` to the desired filel.
+change `path-to-file` to the desired file.
 
 ```bash
 curl --location --request POST 'localhost:4020/fingerprint-file' \
