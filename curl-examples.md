@@ -8,13 +8,11 @@ curl --location --request GET 'localhost:4020/reports'
 
 ### fingerprint file
 
-change `path-to-file` to the desired file. `graphs` is optional.
+change `path-to-file` to the desired filel.
 
 ```bash
 curl --location --request POST 'localhost:4020/fingerprint-file' \
---form 'data_file=@"<path-to-file>"' \
---form 'graphs="graph1"' \
---form 'graphs="graph2"'
+--form 'data_file=@"<path-to-file>"'
 ```
 
 ### fingerprint sparql endpoint

@@ -6,7 +6,13 @@ Contents
 * [API Reference](srcdocs/modules)
 
 # Installation
-Make sure to create a `.env` file in the `bash/` directory. You should use the content from `bash/.env.example` as a template.
+> NOTE: The specified installation instruction are for development purposes only. (Slight modifications are required for production use; including having a production level Fuseki server and Redis service available.)
+
+Make sure that the EPEL (Extra Packages for Enterprise Linux) repository is enabled added to the server's package lists. This is usually installed by running:
+```bash 
+sudo yum install epel-release
+```
+
 In order to for the fingerprinter to work correctly you need to have a fuseki server running, and update these values in the `bash/.env` file
 ```
 RDF_FINGERPRINTER_FUSEKI_LOCATION=
