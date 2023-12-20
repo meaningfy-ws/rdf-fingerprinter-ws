@@ -1,22 +1,15 @@
-requests==2.24.0  # https://requests.readthedocs.io/en/master/
-requests-toolbelt==0.9.1  # https://github.com/requests/toolbelt
-rdflib==5.0.0  # https://rdflib.readthedocs.io/en/stable/
-SPARQLWrapper==1.8.5  # SPARQLWrapper==1.8.5  #https://rdflib.dev/sparqlwrapper/
-
-connexion[swagger-ui]==2.7.0  # https://github.com/zalando/connexion
-Flask==1.1.2  # https://flask.palletsprojects.com/en/1.1.x/e
-Flask-Wtf==0.14.3  # https://flask-wtf.readthedocs.io/en/stable/
-
-selenium==3.141.0  # https://selenium-python.readthedocs.io/
-
-rdf-fingerprinter  # https://github.com/meaningfy-ws/rdf-fingerprinter
-
-shortuuid==1.0.1  # https://pypi.org/project/shortuuid/
-
-celery==5.1.2  # https://docs.celeryproject.org/en/v5.1.2/
-redis==3.5.3  # https://redis-py.readthedocs.io/en/3.5.3/
-flower==1.0.0  # https://flower.readthedocs.io/en/1.0/
-
-eds4jinja2
-Click
-pathlib
+requests~=2.31.0
+requests-toolbelt~=1.0.0
+rdflib~=7.0.0
+SPARQLWrapper~=2.0.0
+connexion[swagger-ui]~=2.14.2
+Flask~=2.2.5
+Flask-WTF~=1.2.1
+selenium~=4.16.0
+rdf-fingerprinter~=0.3.0
+shortuuid~=1.0.11
+celery~=5.3.6
+redis~=5.0.1
+flower~=2.0.1
+eds4jinja2~=0.2.0
+click~=8.1.7

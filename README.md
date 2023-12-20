@@ -8,7 +8,12 @@ Contents
 # Installation
 > NOTE: The specified installation instruction are for development purposes only. (Slight modifications are required for production use; including having a production level Fuseki server and Redis service available.)
 
-Make sure that the EPEL (Extra Packages for Enterprise Linux) repository is enabled added to the server's package lists. This is usually installed by running:
+You may proceed with the following steps, but you are also able to develop
+using the docker services, if you are so inclined (e.g. if installing
+third-party software other than docker looks less appealing) as outlined
+in **Usage** further below.
+
+For Red Hat systems, make sure that the EPEL (Extra Packages for Enterprise Linux) repository is enabled added to the server's package lists. This is usually installed by running:
 ```bash 
 sudo yum install epel-release
 ```
@@ -20,40 +25,40 @@ RDF_FINGERPRINTER_FUSEKI_PORT=
 RDF_FINGERPRINTER_FUSEKI_USERNAME=
 RDF_FINGERPRINTER_FUSEKI_PASSWORD=
 ```
-Run the following commands to install all required dependencies on a **redhat** system
+Run the following commands to install all required dependencies on a **redhat** system (see the Makefile or tab-complete for other platforms)
 
 ```bash
-make install-os-dependencies
-make install-python-dependencies
+make install-os-dependencies-redhat
+make install-python-dependencies-redhat
 ```
 
 To set up redis server:
 ```bash
-make setup-redis
+make run-local-redis-redhat
 ```
 
 Run api and celery:
 ```bash
-make run-api
+make run-local-api
 ```
 
 Run ui:
 ```bash
-make run-ui
+make run-local-ui
 ```
 
 Stop api and ui servers:
 ```bash
-make stop-gunicorn
+make stop-local-gunicorn
 ```
 
 If you are running the project for the first time this would be the commands run:
 ```bash
-make install-os-dependencies
-make install-python-dependencies
-make setup-redis
-make run-api
-make run-ui
+make install-os-dependencies-redhat
+make install-python-dependencies-redhat
+make run-local-redis-redhat
+make run-local-api
+make run-local-ui
 ```
 
 ### [this file](curl-examples.md) contains a list of examples on how to use the updated api
