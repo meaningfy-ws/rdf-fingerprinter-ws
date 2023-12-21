@@ -98,7 +98,7 @@ def get_fingerprinting_report(uid: str, report_type: str = config.DEFAULT_REPORT
     try:
         location, filename = get_report(uid=uid, extension=report_type,
                                         reports_location=config.RDF_FINGERPRINTER_REPORTS_DB)
-        return send_file(location, attachment_filename=filename)
+        return send_file(location, download_name=filename)
     except FileNotFoundError:
         raise NotFound('Fingerprinting doesn\'t exist.')
 

@@ -3,35 +3,35 @@ include docker/.env
 BUILD_PRINT = \e[1;34mSTEP: \e[0m
 
 
-install-os-dependencies:
+install-os-dependencies-redhat:
 	@ ./bash/install_os_dependencies.sh
 
-install-python-dependencies:
+install-python-dependencies-redhat:
 	@ ./bash/setup_python.sh
 
-run-api:
+run-local-api:
 	@ ./bash/run_api.sh
 
-run-ui:
+run-local-ui:
 	@ ./bash/run_ui.sh
 
-setup-redis:
+run-local-redis-redhat:
 	@ sudo systemctl enable redis --now
 
-stop-gunicorn:
+stop-local-gunicorn:
 	@ ./bash/stop_gunicorn.sh
 #------------------------------------------------------------------------------
 # Ubuntu related commands
 #------------------------------------------------------------------------------
 
-ubuntu-install-os-dependencies:
+install-os-dependencies-ubuntu:
 	@ sudo apt install git python3-pip redis-server python3.8-venv curl
 
-ubuntu-setup-redis:
+run-local-redis-ubuntu:
 	@ sudo cp docker/redis.conf /etc/redis/redis.conf
 	@ sudo systemctl restart redis.service
 
-ubuntu-install-python-dependencies:
+install-python-dependencies-ubuntu:
 	@ echo "$(BUILD_PRINT)Installing the production requirements"
 	@ python3 -m venv env
 	@ pip install --upgrade pip

@@ -1,1 +1,5 @@
 fuseki-fingerprinter-volume/
+.venv*
+.git*
+venv*
+env*
