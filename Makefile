@@ -58,13 +58,26 @@ test:
 # Service commands
 #-----------------------------------------------------------------------------
 build-volumes:
-	@ docker volume create rdf-fingerprinter-template
+	@ docker volume create rdf-fingerprinter-template-${ENVIRONMENT} || true
+#	@ docker volume create rdf-differ-template
+
+build-externals:
+	@ echo -e "$(BUILD_PRINT)Creating the necessary volumes, networks and folders and setting the special rights"
+	@ docker network create proxy-net || true
+
+start-traefik: build-externals
+	@ echo -e "$(BUILD_PRINT)Starting the Traefik services $(END_BUILD_PRINT)"
+	@ docker-compose -p common --file ./docker/traefik/docker-compose.yml --env-file docker/.env up -d
+
+stop-traefik:
+	@ echo -e "$(BUILD_PRINT)Stopping the Traefik services $(END_BUILD_PRINT)"
+	@ docker-compose -p common --file ./docker/traefik/docker-compose.yml --env-file docker/.env down
 
 build-services:
 	@ echo -e '$(BUILD_PRINT)Building the containers'
 	@ docker-compose --file docker/docker-compose.yml --env-file docker/.env build
 
-start-services:
+start-services: build-volumes
 	@ echo -e '$(BUILD_PRINT)(dev) Starting the containers'
 	@ docker-compose --file docker/docker-compose.yml --env-file docker/.env up -d
 

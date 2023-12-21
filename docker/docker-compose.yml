@@ -2,86 +2,148 @@ version: "3.7"
 
 services:
   fingerprinter-api:
-    container_name: fingerprinter-api
+    container_name: fingerprinter-api-${ENVIRONMENT}
+    expose:
+      - ${RDF_FINGERPRINTER_API_PORT}
     command: gunicorn --timeout ${RDF_FINGERPRINTER_GUNICORN_TIMEOUT-1200} --workers ${RDF_FINGERPRINTER_GUNICORN_API_WORKERS-2} --bind 0.0.0.0:${RDF_FINGERPRINTER_API_PORT} --reload --log-level=debug fingerprinter.entrypoints.api.run:app --log-file ${RDF_FINGERPRINTER_API_LOGS} --log-level ${RDF_FINGERPRINTER_LOG_LEVEL}
     build:
       context: ..
       dockerfile: ./docker/api/Dockerfile
     volumes:
-      - ..:/usr/src/app
+      - fingerprinter-data:/usr/src/app
       - rdf-fingerprinter-template:${RDF_FINGERPRINTER_TEMPLATE_LOCATION}
-    ports:
-      - ${RDF_FINGERPRINTER_API_PORT}:${RDF_FINGERPRINTER_API_PORT}
+#    ports:
+#      - ${RDF_FINGERPRINTER_API_PORT}:${RDF_FINGERPRINTER_API_PORT}
     env_file: .env
     networks:
-      - mydefault
+      - proxy-net
+      - fingerprinter-net
+    labels:
+      #### Labels define the behavior and rules of the traefik proxy for this container ####
+      - "traefik.enable=true" # <== Enable traefik to proxy this container
+      - "traefik.http.routers.${ENVIRONMENT}-fingerprinter-api.rule=Host(`api.${SUBDOMAIN}${DOMAIN}`)" # <== Your Domain Name goes here for the http rule
+      - "traefik.http.routers.${ENVIRONMENT}-fingerprinter-api.entrypoints=web" # <== Defining the entrypoint for http, **ref: line 30
+      - "traefik.http.routers.${ENVIRONMENT}-fingerprinter-api.middlewares=redirect@file" # <== This is a middleware to redirect to https
+      - "traefik.http.routers.${ENVIRONMENT}-fingerprinter-api-secured.rule=Host(`api.${SUBDOMAIN}${DOMAIN}`)" # <== Your Domain Name for the https rule
+      - "traefik.http.routers.${ENVIRONMENT}-fingerprinter-api-secured.entrypoints=web-secured" # <== Defining entrypoint for https, **ref: line 31
+      - "traefik.http.routers.${ENVIRONMENT}-fingerprinter-api-secured.tls.certresolver=mytlschallenge" # <== Defining certsresolvers for https
 
   fingerprinter-ui:
-    container_name: fingerprinter-ui
+    container_name: fingerprinter-ui-${ENVIRONMENT}
+    expose:
+      - ${RDF_FINGERPRINTER_UI_PORT}
     build:
       context: ..
       dockerfile: ./docker/ui/Dockerfile
     volumes:
-      - ..:/usr/src/app
-    ports:
-      - ${RDF_FINGERPRINTER_UI_PORT}:${RDF_FINGERPRINTER_UI_PORT}
+      - fingerprinter-data:/usr/src/app
+#    ports:
+#      - ${RDF_FINGERPRINTER_UI_PORT}:${RDF_FINGERPRINTER_UI_PORT}
     env_file: .env
     depends_on:
-      - "fingerprinter-api"
+      - fingerprinter-api
     networks:
-      - mydefault
+      - proxy-net
+      - fingerprinter-net
+    labels:
+      #### Labels define the behavior and rules of the traefik proxy for this container ####
+      - "traefik.enable=true" # <== Enable traefik to proxy this container
+      - "traefik.http.routers.${ENVIRONMENT}-fingerprinter-ui.rule=Host(`rdf.${SUBDOMAIN}${DOMAIN}`)" # <== Your Domain Name goes here for the http rule
+      - "traefik.http.routers.${ENVIRONMENT}-fingerprinter-ui.entrypoints=web" # <== Defining the entrypoint for http, **ref: line 30
+      - "traefik.http.routers.${ENVIRONMENT}-fingerprinter-ui.middlewares=redirect@file" # <== This is a middleware to redirect to https
+      - "traefik.http.routers.${ENVIRONMENT}-fingerprinter-ui-secured.rule=Host(`rdf.${SUBDOMAIN}${DOMAIN}`)" # <== Your Domain Name for the https rule
+      - "traefik.http.routers.${ENVIRONMENT}-fingerprinter-ui-secured.entrypoints=web-secured" # <== Defining entrypoint for https, **ref: line 31
+      - "traefik.http.routers.${ENVIRONMENT}-fingerprinter-ui-secured.tls.certresolver=mytlschallenge" # <== Defining certsresolvers for https
 
   fingerprinter-celery-worker:
-    container_name: fingerprinter-celery-worker
+    container_name: fingerprinter-celery-worker-${ENVIRONMENT}
     build:
       context: ..
       dockerfile: ./docker/api/Dockerfile
     command: celery -A fingerprinter.adapters.celery.celery_worker worker --loglevel ${RDF_FINGERPRINTER_LOG_LEVEL} --logfile ${RDF_FINGERPRINTER_CELERY_LOGS}
     volumes:
-      - ..:/usr/src/app
+      - fingerprinter-data:/usr/src/app
     env_file: .env
     networks:
-      - mydefault
+      - fingerprinter-net
     depends_on:
-      - redis
+      - fingerprinter-redis
 
-  redis:
+  fingerprinter-redis:
     image: redis:6-alpine
-    ports:
-      - ${RDF_FINGERPRINTER_REDIS_PORT}:${RDF_FINGERPRINTER_REDIS_PORT}
+    container_name: fingerprinter-redis-${ENVIRONMENT}
+    expose:
+      - ${RDF_FINGERPRINTER_REDIS_PORT}
+#    ports:
+#      - ${RDF_FINGERPRINTER_REDIS_PORT}:${RDF_FINGERPRINTER_REDIS_PORT}
     networks:
-      - mydefault
+      - fingerprinter-net
 
-  fingerprinter-dashboard:
+  fingerprinter-flower:
+    container_name: fingerprinter-flower-${ENVIRONMENT}
     build:
       context: ..
       dockerfile: ./docker/api/Dockerfile
-    command: celery -A fingerprinter.adapters.celery.celery_worker --broker=${RDF_FINGERPRINTER_REDIS_LOCATION}:${RDF_FINGERPRINTER_REDIS_PORT} flower --port=${RDF_FINGERPRINTER_FLOWER_PORT}
-    ports:
-      - ${RDF_FINGERPRINTER_FLOWER_PORT}:${RDF_FINGERPRINTER_FLOWER_PORT}
+    command: celery -A fingerprinter.adapters.celery.celery_worker --broker=${RDF_FINGERPRINTER_REDIS_LOCATION}:${RDF_FINGERPRINTER_REDIS_PORT} flower --port=${RDF_FINGERPRINTER_FLOWER_PORT} --basic-auth=admin:${RDF_FLOWER_ADMIN_PASSWORD}
+    expose:
+      - ${RDF_FINGERPRINTER_FLOWER_PORT}
+#    ports:
+#      - ${RDF_FINGERPRINTER_FLOWER_PORT}:${RDF_FINGERPRINTER_FLOWER_PORT}
     depends_on:
       - fingerprinter-celery-worker
     networks:
-      - mydefault
+      - proxy-net
+      - fingerprinter-net
+    labels:
+      #### Labels define the behavior and rules of the traefik proxy for this container ####
+      - "traefik.enable=true" # <== Enable traefik to proxy this container
+      - "traefik.http.routers.${ENVIRONMENT}-fingerprinter-flower.rule=Host(`flower.${SUBDOMAIN}${DOMAIN}`)" # <== Your Domain Name goes here for the http rule
+      - "traefik.http.routers.${ENVIRONMENT}-fingerprinter-flower.entrypoints=web" # <== Defining the entrypoint for http, **ref: line 30
+      - "traefik.http.routers.${ENVIRONMENT}-fingerprinter-flower.middlewares=redirect@file" # <== This is a middleware to redirect to https
+      - "traefik.http.routers.${ENVIRONMENT}-fingerprinter-flower-secured.rule=Host(`flower.${SUBDOMAIN}${DOMAIN}`)" # <== Your Domain Name for the https rule
+      - "traefik.http.routers.${ENVIRONMENT}-fingerprinter-flower-secured.entrypoints=web-secured" # <== Defining entrypoint for https, **ref: line 31
+      - "traefik.http.routers.${ENVIRONMENT}-fingerprinter-flower-secured.tls.certresolver=mytlschallenge" # <== Defining certsresolvers for https
+      - "traefik.http.routers.${ENVIRONMENT}-fingerprinter-flower-secured.service=fingerprinter-flower"
+      - "traefik.http.services.fingerprinter-flower.loadbalancer.server.port=5555"
 
-  fuseki:
-    container_name: fuseki
+  fingerprinter-fuseki:
+    container_name: fingerprinter-fuseki-${ENVIRONMENT}
     image: stain/jena-fuseki:4.0.0
     volumes:
-      - ${PWD}/${RDF_FINGERPRINTER_FUSEKI_DATA_FOLDER}/fuseki:/fuseki
+      - fuseki-fingerprinter-data:/fuseki
     env_file: .env
     environment:
       - ADMIN_PASSWORD=${RDF_FINGERPRINTER_FUSEKI_ADMIN_PASSWORD}
       - JVM_ARGS=${RDF_FINGERPRINTER_FUSEKI_JVM_ARGS}
-    ports:
-      - ${RDF_FINGERPRINTER_FUSEKI_PORT}:3030
+#    ports:
+#      - ${RDF_FINGERPRINTER_FUSEKI_PORT}:3030
     networks:
-      - mydefault
+      - proxy-net
+      - fingerprinter-net
+    labels:
+      #### Labels define the behavior and rules of the traefik proxy for this container ####
+      - "traefik.enable=true" # <== Enable traefik to proxy this container
+      - "traefik.http.routers.${ENVIRONMENT}-fingerprinter-fuseki.rule=Host(`fuseki.${SUBDOMAIN}${DOMAIN}`)" # <== Your Domain Name goes here for the http rule
+      - "traefik.http.routers.${ENVIRONMENT}-fingerprinter-fuseki.entrypoints=web" # <== Defining the entrypoint for http, **ref: line 30
+      - "traefik.http.routers.${ENVIRONMENT}-fingerprinter-fuseki.middlewares=redirect@file" # <== This is a middleware to redirect to https
+      - "traefik.http.routers.${ENVIRONMENT}-fingerprinter-fuseki-secured.rule=Host(`fuseki.${SUBDOMAIN}${DOMAIN}`)" # <== Your Domain Name for the https rule
+      - "traefik.http.routers.${ENVIRONMENT}-fingerprinter-fuseki-secured.entrypoints=web-secured" # <== Defining entrypoint for https, **ref: line 31
+      - "traefik.http.routers.${ENVIRONMENT}-fingerprinter-fuseki-secured.tls.certresolver=mytlschallenge" # <== Defining certsresolvers for http
 
 volumes:
   rdf-fingerprinter-template:
+    name: rdf-fingerprinter-template-${ENVIRONMENT}
     external: true
+  fingerprinter-data:
+    name: fingerprinter-data-${ENVIRONMENT}
+  fuseki-fingerprinter-data:
+    name: fuseki-fingerprinter-data-${ENVIRONMENT}
 
 networks:
-  mydefault:
-    name: globalnet
+  proxy-net:
+    external:
+      name: proxy-net
+  fingerprinter-net:
+    internal: true
+    name: fingerprinter-net-${ENVIRONMENT}
+
