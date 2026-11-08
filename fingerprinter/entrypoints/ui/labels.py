@@ -230,10 +230,20 @@ TAB_NAMES = {Tab.ENDPOINT: "From an endpoint", Tab.FILE: "From a file"}
 ENDPOINT_URL_LABEL = "SPARQL endpoint URL"
 ENDPOINT_URL_HELP = "The query endpoint, for example http://localhost:3030/dataset/sparql."
 GRAPHS_LABEL = "Named graphs (optional)"
-GRAPHS_HELP = (
-    "One graph IRI per line, or separated by spaces. "
-    "Leave empty to profile every graph, including the default graph."
-)
+GRAPHS_HELP = "Leave all unticked to profile every graph, including the default graph."
+LOAD_GRAPHS = "Load graphs"
+GRAPHS_NOT_LOADED = "Select “Load graphs” to choose from the endpoint’s graphs."
+NO_NAMED_GRAPHS = "This endpoint has no named graphs."
+GRAPHS_OTHER_ENDPOINT = "These graphs belong to another endpoint. Load graphs again."
+
+
+def graphs_found(number: int) -> str:
+    """The announcement after a listing: ``No named graphs found.``, ``1 named graph found.``"""
+    if number == 0:
+        return "No named graphs found."
+    return f"{count(number, 'named graph', 'named graphs')} found."
+
+
 FILE_LABEL = "RDF file"
 
 JOB_STARTED = "Job started."
@@ -257,6 +267,7 @@ PROBLEMS: dict[str, str] = {
     "FormatNotAvailable": "No such job or report.",
     "JobNotCancellable": "This job has already finished.",
     "JobIsActive": "Cancel the job before deleting it.",
+    "GraphListingFailed": "Could not list the graphs: {reason}.",
 }
 PROBLEM_TYPE_PREFIX = "urn:fingerprinter:"
 
@@ -269,5 +280,6 @@ def problem_sentence(problem: dict[str, Any] | None, *, upload_limit_mb: int | N
         return PROBLEMS[kind].format(
             limit=upload_limit_mb,
             accepted=", ".join(problem.get("accepted", [])),
+            reason=str(problem.get("detail", "")),
         )
     return str(problem.get("detail") or SERVER_ERROR)

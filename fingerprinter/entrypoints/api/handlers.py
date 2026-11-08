@@ -27,6 +27,11 @@ def fingerprint_sparql_endpoint(body: dict[str, Any]) -> tuple[dict[str, str], H
     return {"task_id": job_id}, HTTPStatus.ACCEPTED
 
 
+def get_endpoint_graphs(url: str) -> tuple[dict[str, list[str]], HTTPStatus]:
+    graphs = jobs.list_graphs(url, fingerprinter=_services().fingerprinter)
+    return {"graphs": list(graphs)}, HTTPStatus.OK
+
+
 def fingerprint_file(data_file: FileStorage) -> tuple[dict[str, str], HTTPStatus]:
     services = _services()
     job_id = jobs.submit_file_job(

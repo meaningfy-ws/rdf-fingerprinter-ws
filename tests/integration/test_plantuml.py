@@ -21,6 +21,13 @@ def test_a_small_diagram_is_drawn_as_svg(renderer):
     assert b"Country" in svg
 
 
+def test_a_title_outside_ascii_is_drawn_as_written(renderer):
+    """The library's titles hold an em dash; without a charset the server reads Latin-1."""
+    svg = renderer.render("@startuml\ntitle graph — overview\nclass A\n@enduml\n")
+
+    assert b"&#8212;" in svg or "—".encode() in svg, "the em dash came back mangled"
+
+
 def test_a_diagram_the_server_refuses_is_an_error(renderer):
     with pytest.raises(DiagramRenderFailed):
         renderer.render("this is not a diagram")

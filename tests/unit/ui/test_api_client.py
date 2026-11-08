@@ -8,7 +8,11 @@ import pytest
 import requests
 from werkzeug.datastructures import FileStorage
 
-from fingerprinter.entrypoints.ui.api_client import REQUEST_TIMEOUT_SECONDS, ApiClient
+from fingerprinter.entrypoints.ui.api_client import (
+    LISTING_TIMEOUT_SECONDS,
+    REQUEST_TIMEOUT_SECONDS,
+    ApiClient,
+)
 from fingerprinter.entrypoints.ui.api_model import ApiJob, ApiState
 from fingerprinter.entrypoints.ui.exceptions import ApiError
 from tests.unit.ui.fake_api import record
@@ -42,6 +46,7 @@ class RecordingRequests:
     """Stands in for ``requests``: records each call and answers with ``answer`` (or raises it)."""
 
     RequestException = requests.RequestException
+    Timeout = requests.Timeout
 
     def __init__(self) -> None:
         self.calls: list[tuple[str, str, dict]] = []
@@ -85,6 +90,55 @@ def test_an_endpoint_job_without_graphs_sends_none(client, requests_double):
     client.start_endpoint_job("http://e/sparql", [])
 
     assert requests_double.calls[0][2]["json"] == {"sparql_endpoint_url": "http://e/sparql"}
+
+
+def test_the_graphs_of_an_endpoint_are_asked_with_the_url_as_a_query_value(client, requests_double):
+    requests_double.answer = Answer(200, {"graphs": ["http://g/1", "http://g/2"]})
+
+    graphs = client.endpoint_graphs("http://e/sparql?a=b")
+
+    assert graphs == ("http://g/1", "http://g/2")
+    assert requests_double.calls == [
+        (
+            "GET",
+            f"{API}/endpoint-graphs",
+            {"params": {"url": "http://e/sparql?a=b"}, "timeout": LISTING_TIMEOUT_SECONDS},
+        )
+    ]
+    # the library's worst case is about 65 s (rdf-fingerprinter#76); the UI waits longer for it
+    assert (REQUEST_TIMEOUT_SECONDS, LISTING_TIMEOUT_SECONDS) == (60, 75)
+
+
+def test_a_listing_that_times_out_is_the_endpoints_slowness(client, requests_double):
+    requests_double.answer = requests.Timeout("read timed out")
+
+    with pytest.raises(ApiError) as error:
+        client.endpoint_graphs("http://e/sparql")
+
+    assert not error.value.unreachable
+    assert error.value.problem == {
+        "type": "urn:fingerprinter:GraphListingFailed",
+        "detail": "the endpoint did not answer in time",
+    }
+
+
+def test_a_listing_the_api_cannot_be_asked_for_is_unreachable(client, requests_double):
+    requests_double.answer = requests.ConnectionError("down")
+
+    with pytest.raises(ApiError) as error:
+        client.endpoint_graphs("http://e/sparql")
+
+    assert error.value.unreachable
+
+
+@pytest.mark.parametrize("body", [{"no": "graphs"}, ["g"], {"graphs": 7}, ValueError])
+def test_a_graph_listing_that_is_not_one_is_a_server_error(client, requests_double, body):
+    requests_double.answer = Answer(200, body)
+
+    with pytest.raises(ApiError) as error:
+        client.endpoint_graphs("http://e/sparql")
+
+    assert error.value.status == 502
 
 
 def test_a_file_job_posts_the_file_as_multipart(client, requests_double):

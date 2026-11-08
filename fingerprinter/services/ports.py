@@ -15,6 +15,10 @@ class Fingerprinter(Protocol):
         """Fingerprint the endpoint into ``work_folder``; the outcome names the files written."""
         ...
 
+    def named_graphs(self, url: str) -> tuple[str, ...]:
+        """The endpoint's named graph IRIs, sorted; raises ``GraphListingFailed`` with the reason."""
+        ...
+
 
 class DiagramRenderer(Protocol):
     def render(self, puml_text: str) -> bytes:
