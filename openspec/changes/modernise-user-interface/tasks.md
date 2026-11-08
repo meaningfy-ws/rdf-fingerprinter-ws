@@ -14,7 +14,7 @@ scenarios and asked to implement them (2026-11-08, `inputs/mockups.md`).
 - [x] 1.4 The New job page: tabs, endpoint form (free-text graphs until 3.2), file form (types and limit from `bootstrap`), "What you get"; `POST /jobs/endpoint`, `POST /jobs/file`; sentences per the Error matrix. Tests in `tests/unit/ui/test_new_job.py`, named after "An endpoint job is started", "An invalid URL is refused", "An unsupported file is refused".
 - [x] 1.5 Delete and cancel per U-3: confirmation pages and `POST` routes; downloads through `/jobs/<id>/files/<format>` with the U-4 headers; `/jobs/<id>/report` (U-4 headers; the stage-1 target of "Open report"); the `ApiClient` methods of U-7; the old routes, templates and their tests removed (`/fingerprint-*`, `/tasks`, `/revoke-task/*`, `/reports/*`; `tests/unit/ui/test_views.py` replaced, `test_api_client.py` rewritten). Tests in `tests/unit/ui/test_confirmations.py` (incl. the download headers), named after "A running job is cancelled", "A delete is abandoned", "A finished job offers no cancel".
 - [x] 1.6 U-12: the API and UI server threads on the e2e stack; `tests/e2e/ui/test_journeys.py` ("start an endpoint job and watch it finish" on the continents dataset, "delete with confirmation") and `tests/e2e/ui/test_accessibility.py` ("No external assets", "Both themes pass" on Jobs, New job and the confirmation, each also at 360 px; the keyboard-only journey); CI's container job installs Chromium.
-- [ ] 1.7 Stage 1 PR, with the acceptance demo in `evidence/acceptance-stage-1.md`.
+- [x] 1.7 Stage 1 PR, with the acceptance demo in `evidence/acceptance-stage-1.md`.
 
 ## 2. Job page, report and diagrams (DEC-5 to DEC-7; U-4, U-8, U-9, U-11)
 
@@ -46,7 +46,7 @@ scenarios and asked to implement them (2026-11-08, `inputs/mockups.md`).
 
 ## Roadmap
 
-- [x] 1.0 · [x] 1.1 · [x] 1.2 · [x] 1.3 · [x] 1.4 · [x] 1.5 · [x] 1.6 · [ ] 1.7
+- [x] 1.0 · [x] 1.1 · [x] 1.2 · [x] 1.3 · [x] 1.4 · [x] 1.5 · [x] 1.6 · [x] 1.7
 - [ ] 2.1 · [ ] 2.2 · [ ] 2.3 · [ ] 2.4
 - [ ] 3.1 · [ ] 3.2 · [ ] 3.3
 

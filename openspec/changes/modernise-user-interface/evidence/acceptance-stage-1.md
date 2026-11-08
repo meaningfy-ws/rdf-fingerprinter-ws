@@ -30,4 +30,4 @@ still show their outputs.
   dark, and at 360 px; no external asset requested.
 - Five-lens review, findings fixed (design.md, "Stage-1 review", S1-1 to S1-8).
 
-- [ ] Accepted by the developer (date, remarks):
+- [x] Accepted by the developer (2026-11-08): "look fine, go ahead".
