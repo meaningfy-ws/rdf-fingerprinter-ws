@@ -42,11 +42,11 @@ Each stage ends in one PR into `develop`, run through the stage loop of skillery
 
 ## 4. Stage 4 — Infrastructure and delivery (DEC-12, DEC-13, DEC-14, D-13)
 
-- [ ] 4.1 `infra/`: multistage non-root Dockerfiles (`api`, `ui`, `worker`) on Python 3.13 with uv; `infra/compose.yaml` (api, ui, worker, flower, redis, fuseki) without source mounts; `infra/.env.example` with placeholders and none of the library's operational variables (D-15, `tests/unit/test_infra_env.py`); `infra/.env` git-ignored. Remove `docker/`, `bash/` and their Makefile targets; add `make up`, `down`, `rebuild`, `logs`, `run-api`, `run-ui`, `run-worker` (the Docker block of `/home/lps/work/repos/rdf-persistence/Makefile`).
-- [ ] 4.2 Pick the `stain/jena-fuseki` tag per D-13; pin it in `infra/compose.yaml` and the container fixtures.
-- [ ] 4.3 CI: a `containers` job in `ci.yml` running `make test-containers` (integration and e2e); `.github/workflows/release.yml` building the three images and pushing them to `ghcr.io/meaningfy-ws/` on a GitHub release; remove `package.yml`. Note: the `containers` job already exists (from `modernise-user-interface` 1.0); only the release workflow and the removal of `package.yml` remain.
-- [ ] 4.4 Rewrite `README.md` for uv, `make install`, `make up` and the API of D-4, folding in `curl-examples.md`; update `docs/modules/ROOT/pages/index.adoc`, the runbook's *Tools* and *Before a PR* sections (`docs/modules/ROOT/pages/develop/index.adoc`), `AGENTS.md` *Project specifics* and `openspec/config.yaml` `context:`; add `CHANGELOG.md` and `SECURITY.md`.
-- [ ] 4.5 Check the success measure's last clause: `grep -rn` finds no `rdf-fingerprinter~=0.3`, `python 3.8`/`3.8` image or `requirements/` reference outside `openspec/changes/*/inputs/`.
+- [x] 4.1 `infra/`: multistage non-root Dockerfiles (`api`, `ui`, `worker`) on Python 3.13 with uv; `infra/compose.yaml` (api, ui, worker, flower, redis, fuseki) without source mounts; `infra/.env.example` with placeholders and none of the library's operational variables (D-15, `tests/unit/test_infra_env.py`); `infra/.env` git-ignored. Remove `docker/`, `bash/` and their Makefile targets; add `make up`, `down`, `rebuild`, `logs`, `run-api`, `run-ui`, `run-worker` (the Docker block of `/home/lps/work/repos/rdf-persistence/Makefile`).
+- [x] 4.2 Pick the `stain/jena-fuseki` tag per D-13; pin it in `infra/compose.yaml` and the container fixtures.
+- [x] 4.3 CI: a `containers` job in `ci.yml` running `make test-containers` (integration and e2e); `.github/workflows/release.yml` building the three images and pushing them to `ghcr.io/meaningfy-ws/` on a GitHub release; remove `package.yml`. Note: the `containers` job already exists (from `modernise-user-interface` 1.0); only the release workflow and the removal of `package.yml` remain.
+- [x] 4.4 Rewrite `README.md` for uv, `make install`, `make up` and the API of D-4, folding in `curl-examples.md`; update `docs/modules/ROOT/pages/index.adoc`, the runbook's *Tools* and *Before a PR* sections (`docs/modules/ROOT/pages/develop/index.adoc`), `AGENTS.md` *Project specifics* and `openspec/config.yaml` `context:`; add `CHANGELOG.md` and `SECURITY.md`.
+- [x] 4.5 Check the success measure's last clause: `grep -rn` finds no `rdf-fingerprinter~=0.3`, `python 3.8`/`3.8` image or `requirements/` reference outside `openspec/changes/*/inputs/`.
 - [ ] 4.6 Stage 4 PR into `develop`, with the acceptance demo of the EPIC's success measure on a clean clone, recorded in `evidence/acceptance-stage-4.md`.
 - [ ] 4.7 Archive the change (`openspec archive upgrade-fingerprinter-library --yes`); mark DEC-4 points 4–5 and DEC-6 resolved in `openspec/changes/data-profiling-tool/proposal.md`.
 
@@ -98,7 +98,7 @@ live in `tests/resources/`.
 - [x] 1.1 · [x] 1.2 · [x] 1.3 · [x] 1.4 · [x] 1.5 · [x] 1.6 · [x] 1.7 · [x] 1.8 · [x] 1.9
 - [x] 2.1 · [x] 2.2 · [x] 2.3 · [x] 2.4 · [x] 2.5 · [x] 2.6 · [x] 2.7
 - [x] 3.1 · [x] 3.2 · [x] 3.3 · [x] 3.4 · [x] 3.5 · [x] 3.6 · [ ] 3.7
-- [ ] 4.1 · [ ] 4.2 · [ ] 4.3 · [ ] 4.4 · [ ] 4.5 · [ ] 4.6 · [ ] 4.7
+- [x] 4.1 · [x] 4.2 · [x] 4.3 · [x] 4.4 · [x] 4.5 · [ ] 4.6 · [ ] 4.7
 
 ## Verification
 

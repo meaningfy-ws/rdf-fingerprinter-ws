@@ -144,3 +144,6 @@ dmypy.json
 # Temporary files (agents and people)
 temp/
 test-results.xml
+
+# Local stack settings (secrets); the committed template is infra/.env.example
+infra/.env

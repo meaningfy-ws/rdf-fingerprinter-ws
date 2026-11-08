@@ -1,6 +1,6 @@
 """The composition root: reads the settings, builds the adapters and services, exposes the apps.
 
-* API:    ``gunicorn --worker-class uvicorn.workers.UvicornWorker 'fingerprinter.bootstrap:api_app()'``
+* API:    ``gunicorn --worker-class uvicorn_worker.UvicornWorker 'fingerprinter.bootstrap:api_app()'``
 * UI:     ``gunicorn 'fingerprinter.bootstrap:ui_app()'``
 * worker: ``celery -A fingerprinter.bootstrap:celery_app worker``
 """

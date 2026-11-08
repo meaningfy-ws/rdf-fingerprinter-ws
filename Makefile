@@ -21,12 +21,14 @@ COV_FLAGS = --cov=$(PACKAGE_NAME) \
 # The unit lane never collects the container tests.
 UNIT_LANE = --ignore=$(TEST_PATH)/integration --ignore=$(TEST_PATH)/e2e
 
-# The legacy docker/ targets read their settings from docker/.env (stage 4 replaces it with infra/).
--include docker/.env
+COMPOSE_FILE = $(REPO_ROOT)/infra/compose.yaml
+ENV_FILE     = $(REPO_ROOT)/infra/.env
+COMPOSE      = docker compose -f $(COMPOSE_FILE) --env-file $(ENV_FILE)
 
 .DEFAULT_GOAL := help
 .PHONY: help install-uv install lock format lint lint-fix typecheck check-architecture check-spec \
-        test test-unit test-feature test-containers check-quality check-all
+        test test-unit test-feature test-containers check-quality check-all \
+        check-env up down rebuild logs run-api run-ui run-worker
 
 #-----------------------------------------------------------------------------
 # Setup
@@ -105,29 +107,37 @@ test-feature: ## Run BDD feature tests only
 	@ uv run pytest $(TEST_PATH) $(UNIT_LANE) -m "feature"
 
 #-----------------------------------------------------------------------------
-# Service commands
+# Stack (docker compose) and local runs; settings in infra/.env (cp infra/.env.example infra/.env)
 #-----------------------------------------------------------------------------
-build-services:
-	@ echo -e '$(BUILD_PRINT)Building the containers'
-	@ docker-compose --file docker/docker-compose.yml --env-file docker/.env build
+check-env:
+	@ test -f $(ENV_FILE) || (echo -e "$(ICON_ERROR) Missing $(ENV_FILE). Run: cp infra/.env.example infra/.env" && exit 1)
 
-start-services:
-	@ echo -e '$(BUILD_PRINT)(dev) Starting the containers'
-	@ docker-compose --file docker/docker-compose.yml --env-file docker/.env up -d
+up: check-env ## Build if needed and start the stack (docker compose up -d)
+	@ $(COMPOSE) up -d --build
 
-stop-services:
-	@ echo -e '$(BUILD_PRINT)(dev) Stopping the containers'
-	@ docker-compose --file docker/docker-compose.yml --env-file docker/.env stop
+down: check-env ## Stop and remove the stack's containers (volumes stay)
+	@ $(COMPOSE) down
 
-#-----------------------------------------------------------------------------
-# Fuseki helpers
-#-----------------------------------------------------------------------------
+rebuild: check-env ## Rebuild the images from scratch and start the stack
+	@ $(COMPOSE) build --no-cache
+	@ $(COMPOSE) up -d
 
-fuseki-create-test-dbs:
-	@ echo "$(BUILD_PRINT)Building "test-dataset" at http://localhost:$(if $(RDF_FINGERPRINTER_FUSEKI_ADMIN_PASSWORD),$(RDF_DIFFER_FUSEKI_PORT),unknown port)/$$/datasets"
-	@ sleep 7
-	@ curl -v --anyauth --user 'admin:$(RDF_FINGERPRINTER_FUSEKI_ADMIN_PASSWORD)' -d 'dbType=mem&dbName=test-dataset'  'http://localhost:$(RDF_FINGERPRINTER_FUSEKI_PORT)/$$/datasets'
-	@ curl -v -X POST -H content-type:application/rdf+xml --anyauth --user 'admin:$(RDF_FINGERPRINTER_FUSEKI_ADMIN_PASSWORD)' -T ./tests/resources/treaties-source-ap.rdf -G http://localhost:$(RDF_FINGERPRINTER_FUSEKI_PORT)/test-dataset/data
+logs: check-env ## Follow the stack's logs
+	@ $(COMPOSE) logs -f
+
+# Run one service on the host against the stack's Fuseki, Redis and PlantUML (published on localhost).
+LOCAL_RUN = set -a && . $(ENV_FILE) && set +a && \
+	RDF_FINGERPRINTER_FUSEKI_LOCATION=http://localhost RDF_FINGERPRINTER_REDIS_LOCATION=redis://localhost \
+	RDF_FINGERPRINTER_PLANTUML_LOCATION=http://localhost RDF_FINGERPRINTER_API_LOCATION=http://localhost
+
+run-api: check-env ## Run the API on the host (needs the stack's Redis, Fuseki and PlantUML)
+	@ $(LOCAL_RUN) uv run gunicorn --worker-class uvicorn_worker.UvicornWorker --bind 0.0.0.0:$$RDF_FINGERPRINTER_API_PORT 'fingerprinter.bootstrap:api_app()'
+
+run-ui: check-env ## Run the UI on the host (needs the API)
+	@ $(LOCAL_RUN) uv run gunicorn --bind 0.0.0.0:$$RDF_FINGERPRINTER_UI_PORT 'fingerprinter.bootstrap:ui_app()'
+
+run-worker: check-env ## Run the Celery worker on the host (needs the stack's Redis, Fuseki and PlantUML)
+	@ $(LOCAL_RUN) uv run celery -A fingerprinter.bootstrap:celery_app worker --loglevel $$RDF_FINGERPRINTER_LOG_LEVEL
 
 #-----------------------------------------------------------------------------
 # Docs (Antora)

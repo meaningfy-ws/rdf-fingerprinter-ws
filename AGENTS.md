@@ -20,11 +20,11 @@ the library), [`agents.adoc`](docs/modules/ROOT/pages/develop/agents.adoc) (what
 here when agents deliver; the method is skillery's `epic-delivery`), [`testing.adoc`](docs/modules/ROOT/pages/develop/testing.adoc) (the testing
 checklist). This file is its short form.
 
-> **Modernisation in progress.** Stage 1 of the **library-upgrade EPIC** moved the repo to uv,
-> Python 3.13, `rdf-fingerprinter` 3.5, Connexion 3 / Flask 3 and the gates (`make check-all`).
-> Stages 2–4 bring the cosmic-python layering, every output format, `infra/` and the container
-> tests; a **UI EPIC** follows. Never claim a gate that does not exist yet as run (today:
-> `make check-all`, `make check-docs`, `make build-docs`; no `make test-containers` yet).
+> **Modernisation in progress.** The **library-upgrade EPIC** (uv, Python 3.13, `rdf-fingerprinter`
+> 3.6, Connexion 3 / Flask 3, the cosmic-python layering, every output format, `infra/` and the
+> container tests) is in its last stage; the **UI EPIC** is under way. The gates that exist:
+> `make check-all`, `make test-containers`, `make check-docs`, `make build-docs`. Never claim one as
+> run unless it ran.
 
 ## Skill routing (use the skill for the task)
 
@@ -160,23 +160,24 @@ parallel epic files under `.claude/`.
 
 - **Archetype:** product — a Flask API (Connexion, OpenAPI in `entrypoints/api/openapi/`) and a
   Flask UI (Jinja templates) with Celery workers, wrapping `rdf-fingerprinter`.
-- **Top-level package:** `fingerprinter/` (no `/src`): `adapters/`, `services/`,
-  `entrypoints/{api,ui}/`, `config.py`. Tests in `tests/unit/`.
+- **Top-level package:** `fingerprinter/` (no `/src`): `domain/`, `services/`, `adapters/`,
+  `entrypoints/{api,ui,worker}/`, `config.py`, `bootstrap.py`. Tests in `tests/{unit,feature,integration,e2e}/`.
 - **Datastores / external systems:** Fuseki (a temporary dataset per uploaded file), Redis (Celery
-  broker), the file system (`db/`, `reports/`).
-- **Deployable:** Docker images under `docker/` (`api`, `ui`; compose with Celery, Flower, Redis,
-  Fuseki); images published to Docker Hub on a GitHub release (`package.yml`); no CD.
-- **Make targets today:** `make install`, `make check-all` (= `check-quality` + `test`), `lint`,
-  `typecheck`, `check-architecture`, `check-spec`, `test`; `make start-services` /
-  `stop-services` (legacy `docker/`); docs: `make install-antora`, `build-docs`, `preview-docs`,
-  `check-docs`.
-- **CI:** `ci.yml` (`make check-all` on Python 3.13, PRs into and pushes to `develop`), `docs.yml`,
-  `package.yml` (images on release, until stage 4).
-- **In-flight changes:** `upgrade-fingerprinter-library` (PLAN gated, next to implement);
-  `modernise-user-interface` (EPIC shaped; PLAN derived once the upgrade is archived; stage 3
-  blocked by `meaningfy-ws/rdf-fingerprinter#63`); `data-profiling-tool` (parked; blocked on the
-  library upgrade, its DEC-4).
+  broker), a PlantUML server (class diagrams), the file system (`db/`, `reports/`).
+- **Deployable:** `infra/` holds `compose.yaml`, `.env.example` and multistage non-root Dockerfiles
+  (`api`, `ui`, `worker`; Python 3.13, uv); images are published to
+  `ghcr.io/meaningfy-ws/rdf-fingerprinter-ws-{api,ui,worker}` on a GitHub release (`release.yml`); no CD.
+- **Make targets:** `make install`, `make check-all` (= `check-quality` + `test`), `lint`,
+  `typecheck`, `check-architecture`, `check-spec`, `test`, `test-containers`; the stack: `make up`,
+  `down`, `rebuild`, `logs`, `run-api`, `run-ui`, `run-worker` (settings in `infra/.env`, copied from
+  `infra/.env.example`); docs: `make install-antora`, `build-docs`, `preview-docs`, `check-docs`.
+- **CI:** `ci.yml` (`check-all` and the `containers` job on Python 3.13, PRs into and pushes to
+  `develop`), `docs.yml`, `release.yml` (images to GHCR on a release); every action is pinned to a
+  commit SHA with its tag in a comment.
+- **In-flight changes:** `upgrade-fingerprinter-library` (stages 1-3 done; stage 4, `infra/` and
+  delivery, in progress); `modernise-user-interface` (stages 1-2 delivered; the graph picker, stage 3,
+  follows); `data-profiling-tool` (parked; blocked on the library upgrade, its DEC-4).
 - **Library quirks (3.6.0):** typed (`py.typed`); `list_named_graphs` lists an endpoint's named
-  graphs (for the UI EPIC's graph picker); it configures no logging on import; `resolve_settings` lives in
+  graphs (for the UI's graph picker); it configures no logging on import; `resolve_settings` lives in
   `fingerprint.service_layer.settings`.
 - **Scratch:** `temp/` for throwaway files; `site/` for the prototype (both git-ignored).

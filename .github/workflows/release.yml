@@ -1,0 +1,45 @@
+# Release: on a published GitHub release, build the three images and push them to GHCR,
+# tagged with the release's tag and `latest`. Authenticates with the workflow's GITHUB_TOKEN.
+name: release
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+
+jobs:
+  images:
+    name: Publish the ${{ matrix.image }} image
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        image: [api, ui, worker]
+    env:
+      IMAGE: ghcr.io/meaningfy-ws/rdf-fingerprinter-ws-${{ matrix.image }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - uses: docker/login-action@8aa5831fb8d48d8f76594c7ddde61ae58019f550 # v4.8.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          file: infra/${{ matrix.image }}/Dockerfile
+          push: true
+          tags: |
+            ${{ env.IMAGE }}:${{ github.event.release.tag_name }}
+            ${{ env.IMAGE }}:latest
+          labels: |
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.version=${{ github.event.release.tag_name }}

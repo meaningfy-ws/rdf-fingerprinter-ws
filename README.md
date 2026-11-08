@@ -1,73 +1,103 @@
-#  RDF Fingerprinter
-This service provides the possibility to fingerprint an RDF file or SPARQL endpoint.
+# RDF Fingerprinter WS
 
-Contents
---------
-* [API Reference](srcdocs/modules)
+A web service and UI that fingerprint an RDF file or a SPARQL endpoint with the
+[`rdf-fingerprinter`](https://github.com/meaningfy-ws/rdf-fingerprinter) library: they guess the
+application profile the data instantiates and write a report in several formats. Fingerprinting runs
+as asynchronous jobs.
 
-# Installation
-Requires [uv](https://docs.astral.sh/uv/) (Python 3.13 is fetched by uv) and Docker for the services.
+Documentation: the `docs/` Antora component (`make build-docs`); the developer runbook is
+`docs/modules/ROOT/pages/develop/`.
+
+## Install
+
+Requires [uv](https://docs.astral.sh/uv/) (it fetches Python 3.13) and Docker.
 
 ```bash
 make install      # uv sync: the service and its development tools
-make check-all    # lint, type check, architecture, spec and the tests
+make check-all    # lint, type check, architecture, spec, docs and the tests
 ```
 
-The services (API, UI, Celery worker, Flower, Redis, Fuseki) run with Docker; see **Usage** below.
-They read their settings from `docker/.env`.
-
-### [this file](curl-examples.md) contains a list of examples on how to use the updated api
-
-
-# Usage
-
-## Start services
-To run the docker containers for the `rdf-fingerprinter` `api` and `ui`, and `fuseki`:
+## Run the stack
 
 ```bash
-make start-services
+cp infra/.env.example infra/.env     # then replace every "change-me"
+make up                              # build the images and start the stack
+make logs                            # follow the logs
+make down                            # stop it (the data volumes stay)
+make rebuild                         # rebuild the images from scratch and start
 ```
 
-The diffing services are split into:
+| Service | URL (default ports) | Role |
+|---|---|---|
+| `fingerprinter-ui` | <http://localhost:8020> | the web UI, a client of the API |
+| `fingerprinter-api` | <http://localhost:4020> | the REST API; Swagger UI at <http://localhost:4020/ui> |
+| `fingerprinter-flower` | <http://localhost:5557> | Flower, a view of the Celery jobs (localhost only) |
+| `fingerprinter-worker` | – | runs the fingerprinting jobs |
+| `fuseki`, `redis`, `plantuml` | localhost only | temporary datasets of uploaded files, the Celery broker, the class diagrams |
 
-service | URL | info
-------- | ------- | ----
-`fingerprinter-api` | [localhost:4020](http://localhost:4020) | _access [localhost:4020/ui](http://localhost:4020/ui) for the swagger interface_ 
-`fingerprinter-ui` | [localhost:8020](http://localhost:8020) |
+`infra/.env` (git-ignored) holds the settings and the secrets; `infra/.env.example` lists every one.
+The images are built from `infra/{api,ui,worker}/Dockerfile` and published to
+`ghcr.io/meaningfy-ws/rdf-fingerprinter-ws-{api,ui,worker}` on each release.
 
-## Fingerprinter API
+To work on one service on the host against the stack's Redis, Fuseki and PlantUML, use
+`make run-api`, `make run-ui` and `make run-worker`.
 
-> Go to this link [localhost:4020/ui](http://localhost:4020/ui) to access the online definition of the API.
+**Security.** The worker fetches whatever SPARQL endpoint URL a client submits, so restrict its
+outgoing traffic at the network level. See [SECURITY.md](SECURITY.md).
 
-![fingerprinter-api](./docs/images/fingerprinter-api.png)
+## The API
 
-## Fingerprinter UI
+The contract is `fingerprinter/entrypoints/api/openapi/fingerprinter.yml`; the running API serves it
+at `/ui`. Errors are `application/problem+json`.
 
-> To fingerprint a file access [http://localhost:8020/fingerprint-file](http://localhost:8020/fingerprint-file)
+| Method and path | Does | Answers |
+|---|---|---|
+| `POST /fingerprint-sparql-endpoint` | start a job for a SPARQL endpoint (JSON: `sparql_endpoint_url`, optional `graphs`) | `202` `{"task_id"}`; `400`, `503` |
+| `POST /fingerprint-file` | start a job for an uploaded RDF file (multipart field `data_file`) | `202` `{"task_id"}`; `413`, `415`, `503` |
+| `GET /reports` | list the job records | `200` |
+| `GET /reports/{uid}` | one job record | `200`; `404` |
+| `DELETE /reports/{uid}` | delete a job and its report | `200`; `404`, `409` while the job is queued or running |
+| `GET /reports/{uid}/{format}` | download a format (`html`, `json`, `shacl`, `puml`, `svg`, `pattern`, `shex`, `pitfalls`, `zip`); a format of several files comes as a zip | `200`; `400`, `404` |
+| `GET /reports/{uid}/{format}/{file}` | download one file of a format | `200`; `404` |
+| `DELETE /remove-reports` | delete every job and report | `200` |
+| `GET /tasks/active` | the jobs that are queued or running | `200` |
+| `GET /tasks/{task_id}` | the state of a job: `queued`, `running`, `completed`, `completed_with_failures`, `failed`, `cancelled` | `200`; `404` |
+| `DELETE /tasks/{task_id}` | cancel a queued or running job | `200`; `404`, `409` when it has finished |
 
-![file-ui](./docs/images/file-ui.png)
+Examples (default port; replace the placeholders):
 
-
-> To fingerprint a file access [http://localhost:8020/fingerprint-sparql-endpoint](http://localhost:8020/fingerprint-sparql-endpoint)
-
-![sparql-endpoint-ui](./docs/images/sparql-endpoint-ui.png)
-
-### Report example
-![sparql-endpoint-ui](./docs/images/report-example.png)
-
-
-## Stop services
-To stop the containers run:
 ```bash
-make stop-services
+# a SPARQL endpoint; "graphs" is optional
+curl -X POST localhost:4020/fingerprint-sparql-endpoint \
+  -H 'Content-Type: application/json' \
+  -d '{"sparql_endpoint_url": "<sparql-endpoint-url>", "graphs": ["<graph-1>"]}'
+
+# a file
+curl -X POST localhost:4020/fingerprint-file -F 'data_file=@<path-to-file>'
+
+# the job records, one job, one format of its report
+curl localhost:4020/reports
+curl localhost:4020/tasks/<task_id>
+curl -OJ localhost:4020/reports/<uid>/html
+
+# cancel a running job, delete a finished one, delete everything
+curl -X DELETE localhost:4020/tasks/<task_id>
+curl -X DELETE localhost:4020/reports/<uid>
+curl -X DELETE localhost:4020/remove-reports
 ```
 
-# Contributing
-You are more than welcome to help expand and mature this project. We adhere to [Apache code of conduct](https://www.apache.org/foundation/policies/conduct), please follow it in all your interactions on the project.   
+## The UI
 
-When contributing to this repository, please first discuss the change you wish to make via issue, email, or any other method with the maintainers of this repository before making a change.
+Open <http://localhost:8020>: the console lists the jobs and starts new ones (an endpoint with an
+optional graph choice, or a file); a job's page shows the report, the class diagram and the
+downloads.
 
-## Licence 
-This project is licensed under [GNU GPLv3](https://www.gnu.org/licenses/gpl-3.0.en.html) licence. 
+## Contributing
 
-Powered by [Meaningfy](https://github.com/meaningfy-ws).
+We adhere to the [Apache code of conduct](https://www.apache.org/foundation/policies/conduct).
+Please discuss a change with the maintainers (an issue is fine) before making it, and follow the
+developer runbook. See [CHANGELOG.md](CHANGELOG.md) for what changed.
+
+## Licence
+
+GNU GPLv3 (see [LICENSE](LICENSE)). Powered by [Meaningfy](https://github.com/meaningfy-ws).

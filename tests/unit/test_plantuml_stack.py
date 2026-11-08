@@ -7,7 +7,7 @@ import yaml
 
 from tests import containers
 
-COMPOSE = Path(__file__).parents[2] / "docker" / "docker-compose.yml"
+COMPOSE = Path(__file__).parents[2] / "infra" / "compose.yaml"
 SANDBOX = "SANDBOX"
 
 

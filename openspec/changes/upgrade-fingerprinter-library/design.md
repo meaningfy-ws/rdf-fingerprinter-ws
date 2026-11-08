@@ -116,7 +116,7 @@ Library 3.5.0 facts this plan relies on (checked in `/home/lps/work/repos/rdf-fi
   logger settings. The two Flask secret keys have no default: a missing key stops the app at start
   (DEC-13).
 - **D-8 API runtime.** Connexion 3 `FlaskApp`, served by gunicorn with
-  `uvicorn.workers.UvicornWorker`. Handlers reach the services through
+  `uvicorn_worker.UvicornWorker`. Handlers reach the services through
   `flask.current_app.extensions["fingerprinter"]`, set by `create_app`. A handler maps a domain
   exception to its problem response in one error handler per exception.
 - **D-9 UI.** A Flask 3 app (Flask-WTF forms, Jinja templates), a client of the API over HTTP
@@ -126,7 +126,7 @@ Library 3.5.0 facts this plan relies on (checked in `/home/lps/work/repos/rdf-fi
 - **D-10 Dependencies.** Exact pins in `pyproject.toml`, the latest releases on the day task 1.1
   runs (as `/home/lps/work/repos/rdf-persistence/pyproject.toml`), `rdf-fingerprinter==3.5.0`.
   Runtime: `rdf-fingerprinter`, `flask`, `flask-wtf`, `connexion[flask,swagger-ui,uvicorn]`,
-  `celery[redis]`, `flower`, `requests`, `gunicorn`. Dropped: `SPARQLWrapper`, `eds4jinja2`,
+  `celery[redis]`, `flower`, `requests`, `gunicorn`, `uvicorn-worker` (stage 4, #37). Dropped: `SPARQLWrapper`, `eds4jinja2`,
   `rdflib`, `selenium`, `requests-toolbelt`, and `shortuuid`/`click` unless an import remains.
   Groups: `test` (pytest, pytest-bdd, pytest-cov, testcontainers, beautifulsoup4), `lint` (ruff,
   mypy, import-linter, types-requests), `dev` (pre-commit).
@@ -387,7 +387,24 @@ Deferred, with their home:
   test, which passes without it (5 of 5 runs, prefork worker): the task's `finally` removes the
   dataset despite `revoke(terminate=True)`. Closed as not needed.
 
-Deferred: action pins by SHA and the deprecated `uvicorn.workers` module (stage 4 images).
+Deferred, then done in stage 4: action pins by SHA (#36) and the `uvicorn-worker` package in place of
+the deprecated `uvicorn.workers` module (#37).
+
+### Stage 4 as built (2026-11-08)
+
+- **D-12/DEC-12** `infra/{api,ui,worker}/Dockerfile` (builder stage `uv sync --frozen
+  --no-default-groups --no-install-project`: `--no-dev` would keep the `test` and `lint` groups;
+  runtime stage `python:3.13-slim`, user `app` uid 10001, source copied, no tests or docs).
+  `infra/compose.yaml` is the project `rdf-fingerprinter-ws`: no source mounts, named volumes for
+  reports, uploads and Fuseki, no `container_name` (it clashes with another stack on the same host),
+  Redis, Fuseki, PlantUML and Flower published on `127.0.0.1` only. The services reach Fuseki,
+  Redis and PlantUML on the images' own ports (an `environment:` override); the `.env` ports of those
+  three are the host-published ones, which is also what `make run-*` uses.
+- **D-13** `stain/jena-fuseki:5.1.0` in the compose file and the fixtures.
+- **#35** The worker's egress cannot be closed by compose alone (it must reach any endpoint a client
+  gives): `SECURITY.md` and the compose header say to restrict it at the network level.
+- Images go to `ghcr.io/meaningfy-ws/rdf-fingerprinter-ws-{api,ui,worker}` on a published release
+  (`release.yml`, `GITHUB_TOKEN`); every action in `.github/workflows` is pinned to a commit SHA.
 
 ## Risks / Trade-offs
 
