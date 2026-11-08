@@ -2,14 +2,15 @@
 
 ### Requirement: One console lists every job with its state
 The UI SHALL show one console page listing every job the API returns, newest first, with its
-source (endpoint URL or file name), creation time and state (`queued`, `running`, `completed`,
-`completed_with_failures`, `failed`, `cancelled`), each state shown by text and not by colour
+source (endpoint URL or file name), creation time and status, each status shown by its label
+(`queued` Queued, `running` Running…, `completed` Done, `completed_with_failures` Done with warnings,
+`failed` Failed, `cancelled` Cancelled) and not by colour
 alone (DEC-4, DEC-8).
 
 #### Scenario: Jobs in every state are listed
 - **GIVEN** the API holds a completed job, a failed job and a running job
 - **WHEN** a user opens the console
-- **THEN** the page lists the three jobs, newest first, each with its source and its state as text
+- **THEN** the page lists the three jobs, newest first, each with its source and its status label
 
 #### Scenario: An empty console says so
 - **GIVEN** the API holds no job
@@ -24,8 +25,8 @@ assistive technology without moving focus (DEC-3).
 #### Scenario: A running job reaches completion
 - **GIVEN** the console shows a job in state `running`
 - **WHEN** the job completes
-- **THEN** within one polling interval its row shows `completed` and its link to the job page, and
-  the row stops polling
+- **THEN** within one polling interval its row shows "Done" and its link to the report, the change
+  is announced once, and polling stops
 
 #### Scenario: Finished jobs do not poll
 - **GIVEN** the console shows only jobs in final states
@@ -35,12 +36,12 @@ assistive technology without moving focus (DEC-3).
 ### Requirement: Start a job from an endpoint or a file
 The UI SHALL offer a form for a SPARQL endpoint URL with optional named graphs and a form for an
 uploaded file of a supported type; on success it SHALL show the new job in the console in state
-`queued`; on an API error it SHALL keep the user's input and show the API's message next to the
-form.
+`queued`; on an API error it SHALL keep the user's input and show a plain sentence for the error next
+to the field it concerns (design, Error matrix).
 
 #### Scenario: An endpoint job is started
 - **WHEN** a user submits `http://example.org/sparql` with no graph chosen
-- **THEN** the console shows a new job for that URL in state `queued`
+- **THEN** the console shows a new job for that URL with status "Queued" (or later)
 
 #### Scenario: An invalid URL is refused
 - **WHEN** a user submits `not a url`
@@ -48,11 +49,11 @@ form.
 
 #### Scenario: An unsupported file is refused
 - **WHEN** a user uploads `notes.docx`
-- **THEN** the form is shown again with the API's message about the file type
+- **THEN** the form is shown again with the sentence naming the accepted file types
 
 ### Requirement: Choose named graphs from the endpoint
-The endpoint form SHALL offer, once the library's public graph listing is released
-(`meaningfy-ws/rdf-fingerprinter#63`), the endpoint's named graphs, listed through the API, as choices; no
+The endpoint form SHALL offer the endpoint's named graphs, listed through the API (the library's
+`list_named_graphs`, rdf-fingerprinter 3.6.0), as choices; no
 choice SHALL mean all graphs. When the listing fails the form SHALL say why and still accept a
 submission without graphs (DEC-9).
 
@@ -73,7 +74,7 @@ confirmation that names the job; the outcome SHALL be shown as a message (DEC-8)
 #### Scenario: A running job is cancelled
 - **GIVEN** a running job
 - **WHEN** a user chooses cancel and confirms
-- **THEN** the job shows state `cancelled`
+- **THEN** the job shows status "Cancelled"
 
 #### Scenario: A delete is abandoned
 - **WHEN** a user chooses delete on a report and then declines the confirmation

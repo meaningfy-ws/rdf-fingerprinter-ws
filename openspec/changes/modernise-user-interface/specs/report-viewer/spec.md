@@ -1,28 +1,28 @@
 ## ADDED Requirements
 
 ### Requirement: A job page shows the report
-For a job in state `completed` or `completed_with_failures`, the job page SHALL show the library's
+For a job whose state is `completed` or `completed_with_failures` (Done, Done with warnings), the job page SHALL show the library's
 report page (`html`) inside a frame sandboxed with scripts allowed and without same-origin access,
 with a link that opens it in a new tab; the UI SHALL NOT alter the report's content (DEC-5).
 
 #### Scenario: The report is read in the page
-- **GIVEN** a completed endpoint job
+- **GIVEN** an endpoint job that is Done
 - **WHEN** a user opens its job page
 - **THEN** the page holds a frame whose `sandbox` is `allow-scripts` and whose content is that
   job's `main.html`, including its pitfall section
 
 ### Requirement: A job page shows the class diagram
-When the job holds `puml/diagram.svg`, the job page SHALL show it as an image with a text
-alternative; when it does not, the page SHALL say that no diagram is available and why, taken from
+When the job holds diagrams (format `svg`), the job page SHALL show the whole-model diagram as an
+image with a text alternative, with a picker over the others; when it does not, the page SHALL say that no diagram is available and why, taken from
 the job's failures.
 
 #### Scenario: The diagram is shown
-- **GIVEN** a completed job whose diagram was rendered
+- **GIVEN** a job that is Done and whose diagrams were rendered
 - **WHEN** a user opens its job page
 - **THEN** the page shows the diagram image with a text alternative naming the job's source
 
 #### Scenario: The diagram failed to render
-- **GIVEN** a job in state `completed_with_failures` whose failures include the diagram rendering
+- **GIVEN** a job that is Done with warnings (`completed_with_failures`) and no diagram could be drawn
 - **WHEN** a user opens its job page
 - **THEN** the page says no diagram is available and shows that failure
 
@@ -31,10 +31,10 @@ The job page SHALL list each format the job holds with a download link, and the 
 outputs.
 
 #### Scenario: Downloads are listed
-- **GIVEN** a completed job
+- **GIVEN** a job that is Done
 - **WHEN** a user opens its job page
-- **THEN** the page links to `html`, `json`, `shacl`, `puml`, `svg`, `pattern`, `shex`, `pitfalls`
-  and `zip`
+- **THEN** the page lists Report, Profile (JSON), SHACL shapes, Class diagram (PlantUML), Class diagram
+  (SVG), Pattern schema, ShEx schema, Pitfalls (TSV) and Download all (.zip), each with a download
 
 ### Requirement: Failures and reasons are visible
 The job page SHALL list a `completed_with_failures` job's failures and show a `failed` job's
@@ -43,7 +43,7 @@ reason; a `failed` or `cancelled` job SHALL offer no report, diagram or download
 #### Scenario: An unreachable endpoint
 - **GIVEN** a job that failed because its endpoint was unreachable
 - **WHEN** a user opens its job page
-- **THEN** the page shows state `failed` and the reason, and no report frame
+- **THEN** the page shows the status "Failed" and the reason, and no report frame
 
 ### Requirement: The UI is accessible and self-contained
 Every page SHALL pass an axe-core WCAG 2.2 AA check in the light and dark themes, be usable by
