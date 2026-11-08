@@ -12,7 +12,7 @@
 - Structural fingerprinting of RDF files and SPARQL endpoints: Flask API/UI + Celery, wrapping `rdf-fingerprinter`.
 - Top-level package: `fingerprinter/` (no `/src`). Branches: off `develop`, PRs into `develop`; `main` = releases.
 - Layers: `entrypoints → services → adapters` (legacy; no domain layer, no `.importlinter`).
-- Tooling: pip `requirements/*.txt`, pytest + pytest-bdd (`setup.cfg`). `make` is the dev interface.
+- Tooling: uv (`pyproject.toml`, `uv.lock`, Python 3.13); Ruff, mypy, import-linter, pytest (`pytest.ini`); `make check-all` is the gate.
 - Method: developer runbook `docs/modules/ROOT/pages/develop/` (Antora); `make check-docs`, `make build-docs`.
 
 ## Spine (where work and truth live)
