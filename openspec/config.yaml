@@ -12,7 +12,7 @@ context: |
   Architecture: legacy layering (entrypoints, services, adapters; no domain layer, no
   .importlinter yet). New code follows cosmic-python.
   Top-level package: fingerprinter (no /src). uv, Python 3.13, pyproject.toml + uv.lock.
-  Library: rdf-fingerprinter 3.5.0 pinned (stage 1 of upgrade-fingerprinter-library done); gates:
+  Library: rdf-fingerprinter 3.6.0 pinned (stages 1-2 of upgrade-fingerprinter-library done); gates:
   make check-all (Ruff, mypy, import-linter, openspec, coverage >= 80). Stages 2-4 of that EPIC
   bring the layering, every format, infra/ and container tests; the UI EPIC follows. No workarounds of the library: gaps become issues in meaningfy-ws/rdf-fingerprinter
   (docs/modules/ROOT/pages/develop/rdf-fingerprinter.adoc).

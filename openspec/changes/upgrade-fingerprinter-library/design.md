@@ -187,7 +187,8 @@ Library 3.5.0 facts this plan relies on (checked in `/home/lps/work/repos/rdf-fi
   `[mypy-fingerprint.*] ignore_missing_imports = True`, named and scoped to that package; it changes
   no behaviour, only what mypy can check at the library boundary. The section is removed in the PR
   that raises the pin to a release that ships the marker. *Leader's choice:* the gate does not wait
-  for the fix, since nothing in the service compensates for the gap.
+  for the fix, since nothing in the service compensates for the gap. *Resolved:* the library
+  released 3.6.0 with `py.typed` (#64); the pin is 3.6.0 and the `mypy.ini` section is gone.
 
 ## Algorithm / approach
 
