@@ -285,6 +285,43 @@ Recorded before the fixes (Rule of Divergence):
 - **R1-7** Tests write only to their own temporary folders (an autouse fixture), never to the
   repository's `db/` and `reports/`.
 
+### Stage-2 review (five lenses, 2026-11-08): accepted fixes
+
+Recorded before the fixes (Rule of Divergence). *Leader's choices* are marked.
+
+- **R2-1** *(leader's choice)* An endpoint URL with user info (`https://user:pw@host/…`) is refused
+  at the boundary (`InvalidSource`, 400), because records are readable by every client and the
+  library redacts user info as secret. Query strings are kept as given (endpoints use them, e.g.
+  `default-graph-uri`).
+- **R2-2** Uploads are capped: `Settings.max_upload_bytes` (`RDF_FINGERPRINTER_MAX_UPLOAD_MB`,
+  default 512); `FileUploadStore.save` counts the bytes it writes and raises `UploadTooLarge`
+  (413), discarding the partial file.
+- **R2-3** A worker runs a job only from `queued` (a duplicate delivery or a cancelled record is
+  logged and left alone); a failed run discards any saved outputs before recording `failed`.
+- **R2-4** Only broker errors are `QueueUnavailable` (503): `CeleryJobQueue` translates kombu and
+  connection errors; any other exception while queueing propagates as the bug it is.
+- **R2-5** `LibraryFingerprinter` reads the profile name from the library's public
+  `fingerprint.config.profile_file` (D-15: the service still sets none of the library's variables).
+- **R2-6** The `one-library-adapter` contract covers the whole package with one ignored import
+  (`fingerprinter.adapters.fingerprint_library -> fingerprint`); `bootstrap` builds the API's and the
+  worker's adapters only when those are asked for, so the UI process builds none.
+- **R2-7** Feature scenarios run through the API's test client (`create_app` with the fakes), so
+  status codes come from the real error handlers and Connexion's validation; the `@unit` scenarios'
+  tests carry their scenario names; the in-memory `JobStore` refuses a second save like the real one.
+- **R2-8** Clean-up: `job_store=`/`upload_store=`/`dataset_store=` keyword names; `http.HTTPStatus`
+  for status codes; the UI's flash categories defined once; the task-state body built by the domain
+  (`JobRecord`); `FileJobStore.list` skips a record deleted while listing; one `file_extension`
+  helper; the UI quotes path values sent to the API; `uid`/`task_id` are `format: uuid` in the
+  contract; `redis_url` is hidden from `repr`; Fuseki errors carry a plain message.
+
+Deferred, with their home:
+- Delete and cancel as `POST` with confirmation: the UI EPIC (`modernise-user-interface` DEC-8).
+- Restricting the worker's outgoing traffic (SSRF): stage 4 `infra/` and `SECURITY.md`.
+- The Gherkin tightened where stage 2 allowed less ("its seven formats"; failures "in the report's
+  metadata"): task 3.4.
+- A public one-line failure description in the library: not filed; the adapter's own formatting of
+  `Failure` fields is presentation, not a correction.
+
 ### As built in stage 2 (task 2.4, 2026-11-08)
 
 - **D-13** The adapter tests use `stain/jena-fuseki:5.1.0`: on 4.0.0, deleting a dataset nobody
