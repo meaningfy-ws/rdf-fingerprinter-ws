@@ -71,7 +71,9 @@ def test_a_file_job_posts_the_file_as_multipart(client, requests_double):
 @pytest.mark.parametrize(
     ("call", "path"),
     [
-        (lambda c: c.get_report("../x?y#z", "h/tml"), "/reports/..%2Fx%3Fy%23z/h%2Ftml"),
+        (lambda c: c.get_job("../x?y#z"), "/reports/..%2Fx%3Fy%23z"),
+        (lambda c: c.get_file("../x?y#z", "h/tml"), "/reports/..%2Fx%3Fy%23z/h%2Ftml"),
+        (lambda c: c.get_file("j1", "svg", "a/b c.svg"), "/reports/j1/svg/a%2Fb%20c.svg"),
         (lambda c: c.delete_report("a/b"), "/reports/a%2Fb"),
         (lambda c: c.cancel_task("a b"), "/tasks/a%20b"),
     ],
@@ -86,9 +88,10 @@ def test_path_values_are_quoted_so_they_stay_one_segment(client, requests_double
     ("call", "method", "path"),
     [
         (lambda c: c.get_reports(), "get", "/reports"),
-        (lambda c: c.get_report("j1", "html"), "get", "/reports/j1/html"),
+        (lambda c: c.get_job("j1"), "get", "/reports/j1"),
+        (lambda c: c.get_file("j1", "html"), "get", "/reports/j1/html"),
+        (lambda c: c.get_file("j1", "svg", "d.svg"), "get", "/reports/j1/svg/d.svg"),
         (lambda c: c.delete_report("j1"), "delete", "/reports/j1"),
-        (lambda c: c.get_active_tasks(), "get", "/tasks/active"),
         (lambda c: c.cancel_task("j1"), "delete", "/tasks/j1"),
     ],
 )
@@ -97,3 +100,8 @@ def test_each_call_reaches_its_route(client, requests_double, call, method, path
 
     assert answer == f"{method} answer"
     assert requests_double.calls == [(method, f"{API}{path}", {"timeout": REQUEST_TIMEOUT_SECONDS})]
+
+
+@pytest.mark.parametrize("gone", ["get_report", "get_active_tasks"])
+def test_the_calls_nothing_uses_any_more_are_gone(client, gone):
+    assert not hasattr(client, gone)

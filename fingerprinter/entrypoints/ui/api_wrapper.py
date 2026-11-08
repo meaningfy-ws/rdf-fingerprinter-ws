@@ -17,6 +17,12 @@ class ApiClient:
     def __init__(self, base_url: str):
         self.base_url = base_url.rstrip("/")
 
+    def _get(self, path: str):
+        return requests.get(f"{self.base_url}{path}", timeout=REQUEST_TIMEOUT_SECONDS)
+
+    def _delete(self, path: str):
+        return requests.delete(f"{self.base_url}{path}", timeout=REQUEST_TIMEOUT_SECONDS)
+
     def fingerprint_sparql_endpoint(self, sparql_endpoint_url: str, graphs: list[str]):
         data: dict[str, str | list[str]] = {"sparql_endpoint_url": sparql_endpoint_url}
         if graphs:
@@ -34,23 +40,18 @@ class ApiClient:
         )
 
     def get_reports(self):
-        return requests.get(f"{self.base_url}/reports", timeout=REQUEST_TIMEOUT_SECONDS)
+        return self._get("/reports")
 
-    def get_report(self, job_id: str, report_format: str):
-        return requests.get(
-            f"{self.base_url}/reports/{_segment(job_id)}/{_segment(report_format)}",
-            timeout=REQUEST_TIMEOUT_SECONDS,
-        )
+    def get_job(self, job_id: str):
+        return self._get(f"/reports/{_segment(job_id)}")
+
+    def get_file(self, job_id: str, report_format: str, name: str | None = None):
+        """One format of a job, or (with ``name``) one file the job's record lists under it."""
+        path = f"/reports/{_segment(job_id)}/{_segment(report_format)}"
+        return self._get(f"{path}/{_segment(name)}" if name else path)
 
     def delete_report(self, job_id: str):
-        return requests.delete(
-            f"{self.base_url}/reports/{_segment(job_id)}", timeout=REQUEST_TIMEOUT_SECONDS
-        )
-
-    def get_active_tasks(self):
-        return requests.get(f"{self.base_url}/tasks/active", timeout=REQUEST_TIMEOUT_SECONDS)
+        return self._delete(f"/reports/{_segment(job_id)}")
 
     def cancel_task(self, task_id: str):
-        return requests.delete(
-            f"{self.base_url}/tasks/{_segment(task_id)}", timeout=REQUEST_TIMEOUT_SECONDS
-        )
+        return self._delete(f"/tasks/{_segment(task_id)}")

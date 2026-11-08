@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}{{ dialog.title }}{% endblock %}
+
+{% block app_content %}
+    {# The dialog is the whole page, drawn over a dimmed content area; the header stays reachable. #}
+    <div class="dialog-backdrop">
+        <div class="dialog" role="alertdialog" aria-modal="true"
+             aria-labelledby="dialog-title" aria-describedby="dialog-detail">
+            <h1 id="dialog-title">{{ dialog.title }}</h1>
+            <p id="dialog-detail"><strong class="source">{{ source }}</strong><br>{{ dialog.detail }}</p>
+            <form method="post" action="{{ action }}" class="form-actions">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <a class="btn" href="{{ keep }}" autofocus>{{ dialog.keep }}</a>
+                <button type="submit" class="btn btn-danger">{{ dialog.confirm }}</button>
+            </form>
+        </div>
+    </div>
+{% endblock %}

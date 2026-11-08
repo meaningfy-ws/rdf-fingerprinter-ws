@@ -2,31 +2,22 @@
 
 import re
 from pathlib import Path
-from types import SimpleNamespace
 
 import pytest
 from bs4 import BeautifulSoup
 
 from fingerprinter.domain.model import JobState, ReportFormat
-from fingerprinter.entrypoints.ui import create_app, labels
+from fingerprinter.entrypoints.ui import labels
+from tests.unit.ui.fake_api import make_app
 
 UI = Path(__file__).parents[3] / "fingerprinter" / "entrypoints" / "ui"
 CSS = (UI / "static" / "app.css").read_text()
-PAGES = ["/", "/fingerprint-sparql-endpoint", "/fingerprint-file", "/tasks"]
-
-
-class EmptyApi:
-    def get_reports(self):
-        return SimpleNamespace(json=lambda: [])
-
-    get_active_tasks = get_reports
+PAGES = ["/", "/jobs/new?from=endpoint", "/jobs/new?from=file"]
 
 
 @pytest.fixture
-def client():
-    app = create_app("http://api.test", "k", accepted_extensions=("ttl",), max_upload_bytes=1)
-    app.extensions["api"] = EmptyApi()
-    return app.test_client()
+def client(api):
+    return make_app(api).test_client()
 
 
 def soup(response) -> BeautifulSoup:

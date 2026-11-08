@@ -151,6 +151,17 @@ WCAG 2.2 AA in light and dark; no external assets. Non-goals: the EPIC's no-gos.
   install`, `uv run playwright install --with-deps chromium`, `make test-containers`; upgrade task
   4.3 then only adds the release workflow.
 
+## As built in stage 1 (tasks 1.3–1.5, 2026-11-08)
+
+- **U-5** The announcement is an out-of-band swap of the live region's *content*
+  (`hx-swap-oob="innerHTML"` on `#announce`): replacing the element itself is not reliably read out.
+- **U-4** `next` accepts any local path (so a row's cancel returns to `/?show=active`); `//host`,
+  backslashes, schemes and relative paths become `/`.
+- **U-4** The confirmation sits in a dimmed content area under the header, not a fixed overlay, so no
+  focusable link is hidden behind it (WCAG 2.2 *focus not obscured*).
+- **U-2** "What you get" hides "Class diagram (SVG)" until task 2.2 produces it.
+- The UI's downloads are proxied into memory, as before (no streaming of large zips).
+
 ## Algorithm — live status
 
 The rows fragment is the same template as the page's table body (`templates/jobs/_rows.html`).

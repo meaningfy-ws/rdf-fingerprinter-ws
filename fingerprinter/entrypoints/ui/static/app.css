@@ -156,6 +156,13 @@ textarea { min-height: 6rem; }
 .dropzone { padding: 1.5rem 1rem; text-align: center; background: var(--soft); border: 2px dashed var(--muted); border-radius: var(--radius); }
 .form-actions { display: flex; flex-wrap: wrap; gap: .75rem; margin-top: 1.5rem; }
 
+.source { font-weight: 600; overflow-wrap: anywhere; }
+.split { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 1rem; align-items: start; }
+.outputs dt { font-weight: 600; }
+.outputs dd { margin: 0 0 .75rem; color: var(--muted); font-size: .875rem; }
+.dropzone input[type="file"] { max-width: 100%; }
+@media (max-width: 720px) { .split { grid-template-columns: minmax(0, 1fr); } }
+
 /* tabs: links, so each tab is a page state */
 .tabs { display: flex; flex-wrap: wrap; gap: .25rem; margin: 0 0 1rem; padding: 0; list-style: none; border-bottom: 1px solid var(--line); }
 .tabs a {
@@ -176,7 +183,7 @@ textarea { min-height: 6rem; }
 .empty p { margin-inline: auto; }
 
 /* confirmation dialog, drawn over the dimmed page */
-.dialog-backdrop { position: fixed; inset: 0; z-index: 30; display: grid; place-items: center; padding: 1rem; background: rgb(0 0 0 / .55); }
+.dialog-backdrop { display: grid; place-items: center; min-height: 60vh; padding: 1rem; background: rgb(0 0 0 / .55); border-radius: var(--radius); }
 .dialog { width: 100%; max-width: 28rem; padding: 1.5rem; background: var(--surface); color: var(--text); border: 1px solid var(--line); border-radius: 12px; }
 .dialog .form-actions { justify-content: flex-end; }
 

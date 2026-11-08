@@ -17,9 +17,8 @@
     <div class="bar">
         <a class="brand" href="{{ url_for('index') }}">{{ icons.logo() }} RDF Fingerprinter</a>
         <nav class="nav" aria-label="Main">
-            <a href="{{ url_for('index') }}"{% if active_page|default('index') == 'index' %} aria-current="page"{% endif %}>Jobs</a>
-            {# stage 1 replaces this target with the New job page (task 1.4) #}
-            <a class="btn btn-primary" href="{{ url_for('fingerprint_sparql_endpoint') }}">{{ icons.plus() }} New job</a>
+            <a href="{{ url_for('index') }}"{% if active_page|default('') == 'index' %} aria-current="page"{% endif %}>Jobs</a>
+            <a class="btn btn-primary" href="{{ url_for('new_job') }}">{{ icons.plus() }} New job</a>
         </nav>
     </div>
 </header>

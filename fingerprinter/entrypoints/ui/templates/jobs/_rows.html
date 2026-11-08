@@ -1,0 +1,51 @@
+{% import "icons.html" as icons %}
+{# The table body; the page includes it and /jobs/rows answers it (design, live status). #}
+<tbody id="job-rows"{% if polling %} hx-get="{{ url_for('job_rows', show=show) }}" hx-trigger="every 3s" hx-swap="outerHTML" hx-vals='{{ {"was": was}|tojson }}'{% endif %}>
+{% if paused %}
+    <tr><td colspan="5" class="muted">{{ labels.UPDATES_PAUSED }}</td></tr>
+{% elif not rows %}
+    <tr><td colspan="5" class="empty">
+        {% if total %}
+            <p><strong>No jobs here.</strong></p>
+            <a class="btn" href="{{ url_for('index') }}">Show all</a>
+        {% else %}
+            {% include "jobs/_none.html" %}
+        {% endif %}
+    </td></tr>
+{% else %}
+    {% for job in rows %}
+    <tr id="job-{{ job.id }}">
+        <th scope="row">
+            <span class="source">{{ job.source }}</span><br>
+            <span class="muted small">{{ job.kind }}</span>
+        </th>
+        <td><time datetime="{{ job.started.iso }}" title="{{ job.started.title }}">{{ job.started.text }}</time></td>
+        <td>
+            <span class="badge {{ job.badge_class }}">{{ job.label }}</span>
+            {% if job.note %}<br><span class="muted small">{{ job.note }}</span>{% endif %}
+        </td>
+        <td>
+            {% if job.has_outputs %}
+            <div class="actions">
+                <a href="{{ url_for('job_report', job_id=job.id) }}" target="_blank" rel="noopener">{{ labels.OPEN_REPORT }}<span class="visually-hidden"> (opens in a new tab)</span></a>
+                <a href="{{ url_for('job_download', job_id=job.id, report_format='zip') }}">{{ icons.download(16) }} {{ labels.FORMAT_NAMES['zip'] }}</a>
+            </div>
+            {% endif %}
+        </td>
+        <td>
+            <details class="menu">
+                <summary>{{ icons.more() }}<span class="visually-hidden">Actions for {{ job.source }}</span></summary>
+                <div class="items">
+                    {% if job.active %}
+                    <a href="{{ url_for('confirm_cancel', job_id=job.id, next=next_url) }}">{{ labels.CANCEL_JOB }}</a>
+                    {% else %}
+                    <a href="{{ url_for('confirm_delete', job_id=job.id, next=next_url) }}">{{ labels.DELETE }}</a>
+                    {% endif %}
+                </div>
+            </details>
+        </td>
+    </tr>
+    {% endfor %}
+{% endif %}
+</tbody>
+{% if announce is not none %}<div id="announce" hx-swap-oob="innerHTML">{{ announce }}</div>{% endif %}

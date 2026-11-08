@@ -88,10 +88,53 @@ FORMATS: tuple[Format, ...] = (
 )
 
 
+ACTIVE_STATES = frozenset({"queued", "running"})
+OUTPUT_STATES = frozenset({"completed", "completed_with_failures"})
+
+
+@dataclass(frozen=True)
+class Filter:
+    id: str
+    label: str
+    states: frozenset[str] | None  # None: every state
+
+
+DEFAULT_FILTER = "all"
+FILTERS: tuple[Filter, ...] = (
+    Filter(DEFAULT_FILTER, "All", None),
+    Filter("active", "In progress", ACTIVE_STATES),
+    Filter("finished", "Finished", OUTPUT_STATES),
+    Filter("stopped", "Failed or cancelled", frozenset({"failed", "cancelled"})),
+)
+FORMAT_NAMES = {f.id: f.name for f in FORMATS}
+
+
+@dataclass(frozen=True)
+class Confirmation:
+    title: str
+    detail: str
+    keep: str
+    confirm: str
+
+
+DELETE_CONFIRMATION = Confirmation(
+    "Delete this report?", "This cannot be undone.", "Keep it", "Delete report"
+)
+CANCEL_CONFIRMATION = Confirmation(
+    "Cancel this job?", "The job stops. This cannot be undone.", "Keep it", "Cancel job"
+)
+
+OPEN_REPORT = "Open report"
+DELETE = "Delete…"
+CANCEL_JOB = "Cancel job…"
+CHOOSE_A_FILE = "Choose a file to upload."
+
 JOB_STARTED = "Job started."
 REPORT_DELETED = "Report deleted."
 JOB_CANCELLED = "Job cancelled."
 
+NOT_FOUND_TITLE = "Not found"
+FAILED_TITLE = "Something went wrong"
 UNREACHABLE = "The service is not reachable. Try again in a moment."
 UPDATES_PAUSED = "Status updates paused: the service is not reachable."
 SERVER_ERROR = "Something went wrong on the server. Try again."
