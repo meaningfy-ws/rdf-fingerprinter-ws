@@ -33,4 +33,4 @@ Fuseki of the stack holds a dataset `demo`: `continents-source-ap.rdf` in the de
 - `make up` reuses images built earlier on the machine; the README says to `make rebuild` after
   pulling.
 
-- [ ] Accepted by the developer.
+- [x] Accepted by the developer (2026-11-08): "Accept all three".

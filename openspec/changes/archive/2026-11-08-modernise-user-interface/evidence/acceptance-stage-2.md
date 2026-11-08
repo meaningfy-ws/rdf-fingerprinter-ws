@@ -28,4 +28,4 @@ http://localhost:4020/ui (Swagger), Fuseki, Redis and the PlantUML server in Doc
   Job page's three tabs and a failed job, light and dark, and at 360 px; no external asset.
 - Five-lens review, findings fixed (design.md, "Stage-2 review", S2-1 to S2-6).
 
-- [ ] Accepted by the developer.
+- [x] Accepted by the developer (2026-11-08): "Accept all three".

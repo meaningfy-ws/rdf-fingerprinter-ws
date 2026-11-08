@@ -32,4 +32,4 @@ Screenshots: `docs/modules/ROOT/pages/index.adoc` (`ui-*.png`).
   `meaningfy-ws/rdf-fingerprinter#76` (no overall query deadline or size limit) and `#77`
   (`list_named_graphs` error contract).
 
-- [ ] Accepted by the developer.
+- [x] Accepted by the developer (2026-11-08): "Accept all three".
