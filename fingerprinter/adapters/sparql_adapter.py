@@ -3,24 +3,25 @@
 # sparql_adapter.py
 # Date:  17/10/2020
 # Author: Mihai Coșleț
-# Email: coslet.mihai@gmail.com 
+# Email: coslet.mihai@gmail.com
 
 """
 Adapter for the SPARQL wrapper library
 """
+
 from abc import ABC, abstractmethod
 from json import JSONDecodeError
 from urllib.parse import urljoin
 
 from requests.auth import HTTPBasicAuth
 
-from fingerprinter.config import config
 from fingerprinter.adapters.helpers import get_file_format
+from fingerprinter.config import config
 
 
-class FusekiException(Exception):
+class FusekiException(Exception):  # noqa: N818  (public name kept; stage 2 replaces this adapter)
     """
-        An exception when Fuseki server interaction has failed.
+    An exception when Fuseki server interaction has failed.
     """
 
 
@@ -74,20 +75,20 @@ class FusekiSPARQLAdapter(AbstractSPARQLAdapter):
         identifying the dataset
         """
         if not dataset_name:
-            raise ValueError('Dataset name cannot be empty.')
+            raise ValueError("Dataset name cannot be empty.")
 
-        data = {
-            'dbType': 'tdb',
-            'dbName': dataset_name
-        }
+        data = {"dbType": "tdb", "dbName": dataset_name}
 
-        response = self.http_client.post(urljoin(self.triplestore_service_url, f"/$/datasets"),
-                                         auth=HTTPBasicAuth(config.RDF_FINGERPRINTER_FUSEKI_USERNAME,
-                                                            config.RDF_FINGERPRINTER_FUSEKI_PASSWORD),
-                                         data=data)
+        response = self.http_client.post(
+            urljoin(self.triplestore_service_url, "/$/datasets"),
+            auth=HTTPBasicAuth(
+                config.RDF_FINGERPRINTER_FUSEKI_USERNAME, config.RDF_FINGERPRINTER_FUSEKI_PASSWORD
+            ),
+            data=data,
+        )
 
         if response.status_code == 409:
-            raise FusekiException('A dataset with this name already exists.')
+            raise FusekiException("A dataset with this name already exists.")
 
     def delete_dataset(self, dataset_name: str):
         """
@@ -95,12 +96,15 @@ class FusekiSPARQLAdapter(AbstractSPARQLAdapter):
         :param dataset_name: The dataset identifier. This should be short alphanumeric string uniquely
         identifying the dataset
         """
-        response = self.http_client.delete(urljoin(self.triplestore_service_url, f"/$/datasets/{dataset_name}"),
-                                           auth=HTTPBasicAuth(config.RDF_FINGERPRINTER_FUSEKI_USERNAME,
-                                                              config.RDF_FINGERPRINTER_FUSEKI_PASSWORD))
+        response = self.http_client.delete(
+            urljoin(self.triplestore_service_url, f"/$/datasets/{dataset_name}"),
+            auth=HTTPBasicAuth(
+                config.RDF_FINGERPRINTER_FUSEKI_USERNAME, config.RDF_FINGERPRINTER_FUSEKI_PASSWORD
+            ),
+        )
 
         if response.status_code == 404:
-            raise FusekiException('The dataset to be deleted doesn\'t exist.')
+            raise FusekiException("The dataset to be deleted doesn't exist.")
 
     def get_dataset(self, dataset_name: str) -> dict:
         """
@@ -108,13 +112,16 @@ class FusekiSPARQLAdapter(AbstractSPARQLAdapter):
         :param dataset_name: The dataset identifier. This should be short alphanumeric string uniquely
         :return: dataset info
         """
-        response = self.http_client.get(urljoin(self.triplestore_service_url, f"/$/datasets/{dataset_name}"),
-                                        auth=HTTPBasicAuth(config.RDF_FINGERPRINTER_FUSEKI_USERNAME,
-                                                           config.RDF_FINGERPRINTER_FUSEKI_PASSWORD))
+        response = self.http_client.get(
+            urljoin(self.triplestore_service_url, f"/$/datasets/{dataset_name}"),
+            auth=HTTPBasicAuth(
+                config.RDF_FINGERPRINTER_FUSEKI_USERNAME, config.RDF_FINGERPRINTER_FUSEKI_PASSWORD
+            ),
+        )
         if response.status_code == 404:
-            raise FusekiException(f'The dataset <{dataset_name}> doesn\'t exist.')
+            raise FusekiException(f"The dataset <{dataset_name}> doesn't exist.")
         if response.status_code != 200:
-            raise FusekiException(f'Error connecting to fuseki: {response.text}')
+            raise FusekiException(f"Error connecting to fuseki: {response.text}")
 
         try:
             return response.json()
@@ -134,15 +141,19 @@ class FusekiSPARQLAdapter(AbstractSPARQLAdapter):
         }
         """
         # the file object is streamed as the request body (Graph Store Protocol), so large files are not loaded in memory
-        with open(file_path, 'rb') as data:
-            response = self.http_client.post(urljoin(self.triplestore_service_url, f"/{dataset_name}/data"),
-                                             data=data,
-                                             auth=HTTPBasicAuth(config.RDF_FINGERPRINTER_FUSEKI_USERNAME,
-                                                                config.RDF_FINGERPRINTER_FUSEKI_PASSWORD),
-                                             headers={'Content-Type': get_file_format(file_path)})
+        with open(file_path, "rb") as data:
+            response = self.http_client.post(
+                urljoin(self.triplestore_service_url, f"/{dataset_name}/data"),
+                data=data,
+                auth=HTTPBasicAuth(
+                    config.RDF_FINGERPRINTER_FUSEKI_USERNAME,
+                    config.RDF_FINGERPRINTER_FUSEKI_PASSWORD,
+                ),
+                headers={"Content-Type": get_file_format(file_path)},
+            )
 
         if response.status_code != 200:
-            raise FusekiException(f'Error connecting to fuseki: {response.text}')
+            raise FusekiException(f"Error connecting to fuseki: {response.text}")
 
         try:
             return response.json()

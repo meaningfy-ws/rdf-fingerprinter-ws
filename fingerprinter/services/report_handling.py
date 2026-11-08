@@ -8,11 +8,11 @@
 """
 Service layer for report generation.
 """
+
 import logging as logger
 import shutil
 from json import dumps, loads
 from pathlib import Path
-from typing import List
 from uuid import uuid4
 from zipfile import ZipFile
 
@@ -23,13 +23,23 @@ from werkzeug.utils import secure_filename
 
 from fingerprinter.adapters.sparql_adapter import AbstractSPARQLAdapter, FusekiSPARQLAdapter
 from fingerprinter.config import config
-from fingerprinter.services.file import copy_file_to_destination, list_folder_paths_from_path, list_folders_from_path
+from fingerprinter.services.file import (
+    copy_file_to_destination,
+    list_folder_paths_from_path,
+    list_folders_from_path,
+)
 from fingerprinter.services.handlers import upload_file_to_dataset
 from fingerprinter.services.time import get_timestamp
 
 
-def zip_report_files(output_location: str, html_report: str, json_report: str, html_report_name: str = '',
-                     json_report_name: str = '', zip_report_name: str = '') -> str:
+def zip_report_files(
+    output_location: str,
+    html_report: str,
+    json_report: str,
+    html_report_name: str = "",
+    json_report_name: str = "",
+    zip_report_name: str = "",
+) -> str:
     """
     Method to zip files
     :param output_location: location to create zip
@@ -45,16 +55,23 @@ def zip_report_files(output_location: str, html_report: str, json_report: str, h
     json_report_name = json_report_name or config.RDF_FINGERPRINTER_JSON_REPORT_NAME
     zip_report_name = zip_report_name or config.RDF_FINGERPRINTER_ZIP_REPORT_NAME
 
-    logger.debug('zipping report')
+    logger.debug("zipping report")
     zip_location = str(Path(output_location) / zip_report_name)
-    with ZipFile(zip_location, 'w') as zip_report:
+    with ZipFile(zip_location, "w") as zip_report:
         zip_report.write(html_report, arcname=html_report_name)
         zip_report.write(json_report, arcname=json_report_name)
     return zip_location
 
 
-def copy_report_files(uid: str, html_report: str, json_report: str, zip_report: str,
-                      html_report_name: str = '', json_report_name: str = '', zip_report_name: str = '') -> Path:
+def copy_report_files(
+    uid: str,
+    html_report: str,
+    json_report: str,
+    zip_report: str,
+    html_report_name: str = "",
+    json_report_name: str = "",
+    zip_report_name: str = "",
+) -> Path:
     """
     Method to copy reports from temporary director to the reports location
     :param uid: uid of the fingerprinting
@@ -79,11 +96,18 @@ def copy_report_files(uid: str, html_report: str, json_report: str, zip_report: 
     return reports_location
 
 
-def generate_meta_file(reports_location: Path, file_name: str = '', url: str = '', uid: str = '',
-                       timestamp: str = '', fingerprinting_on: str = 'file', html_report: str = '',
-                       json_report: str = '',
-                       zip_report: str = '',
-                       graphs: list = None) -> str:
+def generate_meta_file(
+    reports_location: Path,
+    file_name: str = "",
+    url: str = "",
+    uid: str = "",
+    timestamp: str = "",
+    fingerprinting_on: str = "file",
+    html_report: str = "",
+    json_report: str = "",
+    zip_report: str = "",
+    graphs: list = None,
+) -> str:
     """
     method to generate meta file
 
@@ -113,7 +137,7 @@ def generate_meta_file(reports_location: Path, file_name: str = '', url: str = '
         "graphs": graphs,
         config.EXTENSION_TO_FILETYPE[config.JSON_REPORT_TYPE]: json_report,
         "zip_report": zip_report,
-        "created_at": timestamp
+        "created_at": timestamp,
     }
 
     meta_file = reports_location / config.RDF_FINGERPRINTER_REPORT_META_NAME
@@ -121,7 +145,7 @@ def generate_meta_file(reports_location: Path, file_name: str = '', url: str = '
     return str(meta_file)
 
 
-def read_meta_file(report_base_location: str, meta_file_name: str = '') -> dict:
+def read_meta_file(report_base_location: str, meta_file_name: str = "") -> dict:
     """
     method to read data from meta file
     :param report_base_location: report location
@@ -132,7 +156,9 @@ def read_meta_file(report_base_location: str, meta_file_name: str = '') -> dict:
     return loads((Path(report_base_location) / meta_file_name).read_text())
 
 
-def fingerprint_sparql_endpoint(sparql_endpoint: str, output_location: str, graphs: List = None) -> tuple:
+def fingerprint_sparql_endpoint(
+    sparql_endpoint: str, output_location: str, graphs: list = None
+) -> tuple:
     """
         Fingerprint a SPARQL endpoint with the rdf-fingerprinter library: its report page and its profile.
     :param sparql_endpoint: SPARQL endpoint for querying the triplestore service
@@ -140,20 +166,25 @@ def fingerprint_sparql_endpoint(sparql_endpoint: str, output_location: str, grap
     :param graphs: (optional) the graphs to profile; none means every graph (the library default)
     :return: the html report, json report and zip locations
     """
-    logger.debug('generating fingerprinting reports')
+    logger.debug("generating fingerprinting reports")
     # env={}: the library's operational settings never come from this service's environment (D-15)
     settings = resolve_settings(env={}, selected_graphs=graphs or None)
-    html_report, _ = fingerprint_report(sparql_endpoint, output_location, settings, formats=(), prefix_list=None)
-    json_report = Path(html_report).parent / 'profile.json'
+    html_report, _ = fingerprint_report(
+        sparql_endpoint, output_location, settings, formats=(), prefix_list=None
+    )
+    json_report = Path(html_report).parent / "profile.json"
 
-    zip_report = zip_report_files(output_location=output_location, html_report=str(html_report),
-                                  json_report=str(json_report))
+    zip_report = zip_report_files(
+        output_location=output_location, html_report=str(html_report), json_report=str(json_report)
+    )
 
-    logger.debug('finish generating fingerprinting reports')
+    logger.debug("finish generating fingerprinting reports")
     return str(html_report), str(json_report), zip_report
 
 
-def build_report_from_sparql_endpoint(location: str, sparql_endpoint: str, graphs: List = None, uid: str = '') -> str:
+def build_report_from_sparql_endpoint(
+    location: str, sparql_endpoint: str, graphs: list = None, uid: str = ""
+) -> str:
     """
     Build a report from a SPARQL endpoint using the fingerprinter
     available at
@@ -163,26 +194,37 @@ def build_report_from_sparql_endpoint(location: str, sparql_endpoint: str, graph
     :param uid: fingerprinting unique identifier
     :return:
     """
-    logger.debug(f'start build report from sparql endpoint library call for {uid}')
+    logger.debug(f"start build report from sparql endpoint library call for {uid}")
     uid = uid or str(uuid4())
     timestamp = get_timestamp()
 
+    html_report, json_report, zip_report = fingerprint_sparql_endpoint(
+        sparql_endpoint=sparql_endpoint, output_location=location, graphs=graphs
+    )
 
-    html_report, json_report, zip_report = fingerprint_sparql_endpoint(sparql_endpoint=sparql_endpoint,
-                                                                       output_location=location, graphs=graphs)
+    reports_location = copy_report_files(
+        uid=uid, html_report=html_report, json_report=json_report, zip_report=zip_report
+    )
 
-    reports_location = copy_report_files(uid=uid, html_report=html_report, json_report=json_report,
-                                         zip_report=zip_report)
-
-    generate_meta_file(reports_location=reports_location, url=sparql_endpoint, uid=uid, timestamp=timestamp,
-                       fingerprinting_on='sparql_endpoint', graphs=graphs)
+    generate_meta_file(
+        reports_location=reports_location,
+        url=sparql_endpoint,
+        uid=uid,
+        timestamp=timestamp,
+        fingerprinting_on="sparql_endpoint",
+        graphs=graphs,
+    )
 
     return str(reports_location)
 
 
-def build_report_from_file(location: str, file: str, uid: str = '',
-                           fuseki_service_location: str = config.RDF_FINGERPRINTER_FUSEKI_SERVICE,
-                           fuseki_sparql_adapter: AbstractSPARQLAdapter = None) -> str:
+def build_report_from_file(
+    location: str,
+    file: str,
+    uid: str = "",
+    fuseki_service_location: str = config.RDF_FINGERPRINTER_FUSEKI_SERVICE,
+    fuseki_sparql_adapter: AbstractSPARQLAdapter = None,
+) -> str:
     """
     Build reports from file using the fingerprinter
     :param location: location for the report to be built in
@@ -192,29 +234,39 @@ def build_report_from_file(location: str, file: str, uid: str = '',
     :param fuseki_sparql_adapter: sparql adapter to be used
     :return: the report location
     """
-    logger.debug(f'start build report from file library call for {uid}')
+    logger.debug(f"start build report from file library call for {uid}")
 
     if not fuseki_sparql_adapter:
         fuseki_sparql_adapter = FusekiSPARQLAdapter
 
-
     fingerprinting_uid = uid or str(uuid4())
     timestamp = get_timestamp()
-
 
     dataset_uid = str(uuid4())
     sparql_adapter = fuseki_sparql_adapter(fuseki_service_location, requests)
 
     with upload_file_to_dataset(dataset=dataset_uid, file_path=file, sparql_adapter=sparql_adapter):
-        sparql_endpoint = f'{fuseki_service_location}/{dataset_uid}/sparql'
-        html_report, json_report, zip_report = fingerprint_sparql_endpoint(sparql_endpoint=sparql_endpoint,
-                                                                           output_location=location, graphs=[])
+        sparql_endpoint = f"{fuseki_service_location}/{dataset_uid}/sparql"
+        html_report, json_report, zip_report = fingerprint_sparql_endpoint(
+            sparql_endpoint=sparql_endpoint, output_location=location, graphs=[]
+        )
 
-    reports_location = copy_report_files(uid=fingerprinting_uid, html_report=html_report, json_report=json_report,
-                                         zip_report=zip_report)
+    reports_location = copy_report_files(
+        uid=fingerprinting_uid,
+        html_report=html_report,
+        json_report=json_report,
+        zip_report=zip_report,
+    )
 
-    generate_meta_file(reports_location=reports_location, url='', file_name=file, uid=fingerprinting_uid,
-                       timestamp=timestamp, fingerprinting_on='file', graphs=[])
+    generate_meta_file(
+        reports_location=reports_location,
+        url="",
+        file_name=file,
+        uid=fingerprinting_uid,
+        timestamp=timestamp,
+        fingerprinting_on="file",
+        graphs=[],
+    )
 
     return str(reports_location)
 
@@ -228,31 +280,38 @@ def build_fingerprinting_reports_location(fingerprinting_uid: str, db_location: 
     """
     for location in list_folders_from_path(Path(db_location)):
         content = read_meta_file(Path(db_location) / location)
-        if content.get('uid', None) == fingerprinting_uid:
+        if content.get("uid", None) == fingerprinting_uid:
             return str(Path(db_location) / location)
 
-    return ''
+    return ""
 
 
-def get_available_fingerprintings(reports_location: str = config.RDF_FINGERPRINTER_REPORTS_DB) -> list:
+def get_available_fingerprintings(
+    reports_location: str = config.RDF_FINGERPRINTER_REPORTS_DB,
+) -> list:
     """
     Get the available fingerprintings
     :param reports_location: location of the reports
     :return: list of available fingerprintings
     """
-    logger.debug('start get available fingerprintings library call')
+    logger.debug("start get available fingerprintings library call")
     reports = list()
     for location in list_folder_paths_from_path(Path(reports_location)):
         reports.append(read_meta_file(str(location)))
 
-    logger.debug(f'found {len(reports)} fingerprintings')
+    logger.debug(f"found {len(reports)} fingerprintings")
     return reports
 
 
-def get_report(uid: str, extension: str = config.DEFAULT_REPORT_TYPE,
-               reports_location: str = config.RDF_FINGERPRINTER_REPORTS_DB) -> tuple:
-    logger.debug(f'start get report library call for {uid}')
-    report_base_location = build_fingerprinting_reports_location(fingerprinting_uid=uid, db_location=reports_location)
+def get_report(
+    uid: str,
+    extension: str = config.DEFAULT_REPORT_TYPE,
+    reports_location: str = config.RDF_FINGERPRINTER_REPORTS_DB,
+) -> tuple:
+    logger.debug(f"start get report library call for {uid}")
+    report_base_location = build_fingerprinting_reports_location(
+        fingerprinting_uid=uid, db_location=reports_location
+    )
     meta = read_meta_file(report_base_location)
     filename = secure_filename(f"{meta['uid']}-{meta['created_at']}.{extension}")
 
@@ -266,8 +325,10 @@ def delete_report(uid: str, reports_location: str = config.RDF_FINGERPRINTER_REP
     :param reports_location: location of the reports
     :return: True if the report was removed, False otherwise
     """
-    logger.debug(f'start remove report library call for {uid}')
-    report_location = build_fingerprinting_reports_location(fingerprinting_uid=uid, db_location=reports_location)
+    logger.debug(f"start remove report library call for {uid}")
+    report_location = build_fingerprinting_reports_location(
+        fingerprinting_uid=uid, db_location=reports_location
+    )
 
     if report_location:
         shutil.rmtree(report_location)
@@ -282,11 +343,11 @@ def delete_all_reports(reports_location: str = config.RDF_FINGERPRINTER_REPORTS_
     :param reports_location: location of the reports
     :return: True if the reports were removed, False otherwise
     """
-    logger.debug('start remove all reports library call')
+    logger.debug("start remove all reports library call")
     try:
         for location in list_folder_paths_from_path(Path(reports_location)):
             shutil.rmtree(str(location))
         return True
     except Exception:
-        logger.exception('error removing all reports')
+        logger.exception("error removing all reports")
         return False

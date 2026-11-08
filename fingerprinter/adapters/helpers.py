@@ -7,13 +7,13 @@
 from pathlib import PurePath
 
 INPUT_MIME_TYPES = {
-    'rdf': 'application/rdf+xml',
-    'trix': 'application/xml',
-    'nq': 'application/n-quads',
-    'nt': 'application/n-triples',
-    'jsonld': 'application/ld+json',
-    'n3': 'text/n3',
-    'ttl': 'text/turtle',
+    "rdf": "application/rdf+xml",
+    "trix": "application/xml",
+    "nq": "application/n-quads",
+    "nt": "application/n-triples",
+    "jsonld": "application/ld+json",
+    "n3": "text/n3",
+    "ttl": "text/turtle",
 }
 
 
@@ -28,7 +28,7 @@ def get_file_format(file: str, types: dict = None) -> str:
     if types is None:
         types = INPUT_MIME_TYPES
 
-    file_format = types.get(PurePath(str(file)).suffix.lstrip('.').lower())
+    file_format = types.get(PurePath(str(file)).suffix.lstrip(".").lower())
     if file_format is None:
         raise ValueError(f'Format of "{file}" is not supported.')
 

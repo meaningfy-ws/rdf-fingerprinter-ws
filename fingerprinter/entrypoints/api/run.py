@@ -3,14 +3,15 @@
 # run.py
 # Date:  14/10/2020
 # Author: Mihai Coșleț
-# Email: coslet.mihai@gmail.com 
+# Email: coslet.mihai@gmail.com
 
 """
 API server through connexion definitions.
 """
+
 import logging
 
-from fingerprinter.config import config, ProductionConfig, DevelopmentConfig
+from fingerprinter.config import DevelopmentConfig, ProductionConfig, config
 from fingerprinter.entrypoints.api import app, connexion_app
 
 if config.RDF_FINGERPRINTER_DEBUG:
@@ -18,10 +19,10 @@ if config.RDF_FINGERPRINTER_DEBUG:
 else:
     app.config.from_object(ProductionConfig())
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     connexion_app.run()
 
-if __name__ != '__main__':
-    gunicorn_logger = logging.getLogger('gunicorn.error')
+if __name__ != "__main__":
+    gunicorn_logger = logging.getLogger("gunicorn.error")
     app.logger.handlers = gunicorn_logger.handlers
     app.logger.setLevel(gunicorn_logger.level)

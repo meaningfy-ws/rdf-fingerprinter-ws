@@ -65,10 +65,10 @@ def kill_task(task: dict, db_location: str):
     :param db_location: which db to be used for cleanup
     :return:
     """
-    revoke_task(task['id'], True)
-    logger.debug('cleanup fingerprinting create')
+    revoke_task(task["id"], True)
+    logger.debug("cleanup fingerprinting create")
 
-    cleanup_fingerprinting(uid=task['id'], db_location=db_location)
+    cleanup_fingerprinting(uid=task["id"], db_location=db_location)
 
 
 def cleanup_fingerprinting(uid: str, db_location: str):
@@ -78,5 +78,5 @@ def cleanup_fingerprinting(uid: str, db_location: str):
     :param uid: fingerprinting id
     :param db_location: which db to be used for cleanup
     """
-    logger.debug('request to revoke task received. initiating cleanup process.')
+    logger.debug("request to revoke task received. initiating cleanup process.")
     delete_report(uid, db_location)

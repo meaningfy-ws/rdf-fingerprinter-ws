@@ -3,7 +3,7 @@
 # __init__.py
 # Date:  15/10/2020
 # Author: Mihai Coșleț
-# Email: coslet.mihai@gmail.com 
+# Email: coslet.mihai@gmail.com
 
 """
 Unit tests.

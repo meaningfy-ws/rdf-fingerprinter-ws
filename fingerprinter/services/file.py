@@ -2,7 +2,6 @@ import logging as logger
 import os
 import shutil
 from pathlib import Path
-from typing import Union
 from uuid import uuid4
 
 from werkzeug.datastructures import FileStorage
@@ -26,7 +25,7 @@ def copy_file_to_destination(file: str, destination: str) -> str:
     return shutil.copy(file, destination)
 
 
-def save_file(file_to_save: FileStorage, location_to_save: Union[str, Path], file_name: str = ''):
+def save_file(file_to_save: FileStorage, location_to_save: str | Path, file_name: str = ""):
     """
     method to save file to permanent storage
     :param file_to_save: file received from request
@@ -42,16 +41,18 @@ def save_file(file_to_save: FileStorage, location_to_save: Union[str, Path], fil
         raise TypeError("File cannot be of None type.")
 
     try:
-        saved_file = build_secure_filename(str(location_to_save), file_name or file_to_save.filename)
+        saved_file = build_secure_filename(
+            str(location_to_save), file_name or file_to_save.filename
+        )
         file_to_save.save(str(saved_file))
         return saved_file
 
     except Exception as e:
         logger.error(str(e))
-        raise ValueError(str(e))
+        raise ValueError(str(e)) from e
 
 
-def dir_exists(path: Union[str, Path]) -> bool:
+def dir_exists(path: str | Path) -> bool:
     """
     Method to check the existence of the dir from the indicated path.
     :param path: str or Path

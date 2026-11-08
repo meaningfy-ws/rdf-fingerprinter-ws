@@ -19,8 +19,7 @@ def create_db_entry(location: str = config.RDF_FINGERPRINTER_FILE_DB) -> str:
     return str(location_to_save)
 
 
-def save_file_for_fingerprinting(file_to_fingerprint: FileStorage,
-                                 location_to_save: str) -> str:
+def save_file_for_fingerprinting(file_to_fingerprint: FileStorage, location_to_save: str) -> str:
     """
     Save a file to the database.
     :param file_to_fingerprint: FileStorage object
@@ -32,6 +31,6 @@ def save_file_for_fingerprinting(file_to_fingerprint: FileStorage,
         saved_file_to_fingerprint = save_file(file_to_fingerprint, location_to_save)
     except TypeError:
         saved_file_to_fingerprint = None
-        logger.debug('no file to save')
+        logger.debug("no file to save")
 
     return saved_file_to_fingerprint
