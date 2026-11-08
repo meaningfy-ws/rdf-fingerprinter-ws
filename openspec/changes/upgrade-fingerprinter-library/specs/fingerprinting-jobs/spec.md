@@ -3,8 +3,9 @@
 ### Requirement: Start a job for a SPARQL endpoint
 The service SHALL accept a request to fingerprint a SPARQL endpoint, given an `http` or `https` URL
 and an optional list of graph IRIs, and SHALL answer with the id of a queued job. It SHALL reject a
-request whose URL is missing or not `http`/`https` with a `400` problem response, before any job is
-queued (upgrade-fingerprinter-library DEC-5).
+request whose URL is missing, not `http`/`https`, or carries a user name or password with a `400`
+problem response, before any job is queued (upgrade-fingerprinter-library DEC-5; design R2-1: job
+records are readable by every client).
 
 #### Scenario: A valid endpoint is queued
 - **WHEN** a client posts an endpoint URL `http://example.org/sparql` with no graphs
@@ -14,10 +15,16 @@ queued (upgrade-fingerprinter-library DEC-5).
 - **WHEN** a client posts the endpoint URL `ftp://example.org/sparql`
 - **THEN** the service answers `400` with a problem response and queues no job
 
+#### Scenario: An endpoint URL with user info is rejected
+- **WHEN** a client posts the endpoint URL `https://user:secret@example.org/sparql`
+- **THEN** the service answers `400` with a problem response and queues no job
+
 ### Requirement: Start a job for an uploaded RDF file
 The service SHALL accept an uploaded RDF file in one of the serialisations supported today (`.ttl`
 Turtle, `.rdf` RDF/XML, `.trix` TriX, `.nt` N-Triples, `.nq` N-Quads, `.n3` N3, `.jsonld` JSON-LD) and SHALL answer with the id of a queued job. It
-SHALL reject any other file with a `415` problem response, before any job is queued.
+SHALL reject any other file with a `415` problem response, and a file larger than the upload limit
+(`RDF_FINGERPRINTER_MAX_UPLOAD_MB`, default 512) with a `413` problem response, keeping nothing of
+it, before any job is queued (design R2-2).
 
 #### Scenario: An RDF/XML file is queued
 - **WHEN** a client uploads `continents-source-ap.rdf`
@@ -26,6 +33,21 @@ SHALL reject any other file with a `415` problem response, before any job is que
 #### Scenario: An unsupported file is rejected
 - **WHEN** a client uploads `notes.txt`
 - **THEN** the service answers `415` with a problem response listing the accepted types, and queues no job
+
+#### Scenario: A file over the upload limit is rejected
+- **GIVEN** an upload limit of 1 MB
+- **WHEN** a client uploads a 2 MB `.ttl` file
+- **THEN** the service answers `413` with a problem response, keeps no part of the file and queues no job
+
+### Requirement: An unavailable queue refuses the job
+When the job queue (the Celery broker) cannot take a job, the service SHALL answer `503` with a
+problem response and record the job `failed` with the reason, discarding a file job's upload; any
+other error while queueing SHALL NOT be reported as an unavailable queue (design R2-4).
+
+#### Scenario: The broker is down
+- **GIVEN** the broker is not reachable
+- **WHEN** a client posts an endpoint URL
+- **THEN** the service answers `503` with a problem response and the job's record is `failed`
 
 ### Requirement: A job writes every output
 A job that completes SHALL write, through the `rdf-fingerprinter` library, the report page

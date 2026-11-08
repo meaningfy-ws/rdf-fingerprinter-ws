@@ -138,7 +138,14 @@ test-first in its final place.
 - The `fingerprinter` package restructured into `domain`, `services`, `adapters`, `entrypoints`
   (`api`, `ui`, `worker`) and a composition root (DEC-8).
 - `rdf-fingerprinter` 3.5 through `fingerprint_report`; every format and the pitfall scan (DEC-1,
-  DEC-2, DEC-3).
+  DEC-2, DEC-3). *As delivered:* pinned at 3.6.0, released for this work (`py.typed`, #64;
+  `list_named_graphs`, #63).
+- *Added in delivery (stage-2 review, design R2-1, R2-2, R2-4; specs updated 2026-11-08):* an
+  endpoint URL carrying a user name or password is refused (`400`); uploads are capped
+  (`RDF_FINGERPRINTER_MAX_UPLOAD_MB`, default 512; `413`); an unavailable broker answers `503` and
+  records the job `failed`.
+- *Added by `modernise-user-interface` (its U-3, U-7):* the job record carries `finished_at` and the
+  files of each format; deleting a `queued` or `running` job answers `409`.
 - **BREAKING**: report downloads by format name; job state with failures (DEC-5, DEC-11).
 - **BREAKING**: custom report templates removed (DEC-4).
 - The Flask UI on Flask 3 with per-format downloads (DEC-10).
@@ -166,7 +173,7 @@ test-first in its final place.
 
 - Code: all of `fingerprinter/`; `tests/`; the OpenAPI contract
   (`entrypoints/api/openapi/fingerprinter.yml`); the UI templates.
-- Dependencies: every runtime and development dependency; `rdf-fingerprinter` 3.5.
+- Dependencies: every runtime and development dependency; `rdf-fingerprinter` 3.5 (delivered: 3.6.0).
 - Systems: Fuseki, Redis, the Celery worker and Flower in `infra/`; GHCR.
 - Users of the API: the report download changes (BREAKING).
 - Unblocks: `data-profiling-tool` (DEC-4 points 4 and 5, DEC-6 of that EPIC).

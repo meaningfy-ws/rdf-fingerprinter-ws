@@ -403,6 +403,20 @@ Deferred: action pins by SHA and the deprecated `uvicorn.workers` module (stage 
   end (`tasks.md`).
 - [Breaking the API breaks the old UI] → the UI moves with the API in stage 3 (D-9).
 
+## Beyond the original specs (recorded 2026-11-08)
+
+Behaviour built and tested that the specs did not state, now written into them:
+
+- `fingerprinting-jobs`: "An endpoint URL with user info is rejected" (R2-1); "A file over the
+  upload limit is rejected" (R2-2); the requirement "An unavailable queue refuses the job" with "The
+  broker is down" (R2-4, Error matrix).
+- `report-access`: `finished_at` and `files` in the record, older records listing their files from
+  disk, and "An active job cannot be deleted" (`409`). These came with `modernise-user-interface`
+  (its U-3, U-7); they are written here because that change cannot modify a capability before this
+  one is archived.
+- The test map gains these rows, and the two UI rows point at `tests/unit/ui/test_job_page.py`,
+  which replaced `test_views.py`.
+
 ## Open Questions
 
 - None blocking. L-1 is settled in task 3.1 under the strict rule.

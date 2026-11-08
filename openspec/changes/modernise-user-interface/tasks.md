@@ -34,14 +34,19 @@ scenarios and asked to implement them (2026-11-08, `inputs/mockups.md`).
 | Spec · scenario | Tier · file |
 |---|---|
 | job-console · Jobs in every state are listed / An empty console says so | unit · `tests/unit/ui/test_jobs_page.py` |
+| job-console · A filter lists its states | unit · `tests/unit/ui/test_jobs_page.py` (`test_each_filter_lists_its_states`) |
+| job-console · Updates pause while the service is down | unit · `tests/unit/ui/test_jobs_page.py` (`test_a_poll_while_the_service_is_down_pauses_and_keeps_polling`) |
+| job-console · A file over the limit is refused | unit · `tests/unit/ui/test_new_job.py` (`test_the_api_refusing_a_large_file_names_the_limit`, `test_a_request_beyond_the_limit_plus_a_megabyte_never_reaches_the_api`) |
+| job-console · A delete without the token is refused / A return address to another site is ignored / Pages are not framed by other sites | unit · `tests/unit/ui/test_confirmations.py`, `tests/unit/ui/test_layout.py` |
 | job-console · A running job reaches completion / Finished jobs do not poll | unit · `tests/unit/ui/test_jobs_page.py`; e2e · `tests/e2e/ui/test_journeys.py` |
 | job-console · An endpoint job is started / An invalid URL is refused / An unsupported file is refused | unit · `tests/unit/ui/test_new_job.py` |
 | job-console · Two graphs are chosen / The endpoint cannot be reached for its graphs | unit · `tests/unit/ui/test_new_job.py`; integration · `tests/integration/test_fingerprint_library.py` (named_graphs) |
 | job-console · A running job is cancelled / A delete is abandoned / A finished job offers no cancel | unit · `tests/unit/ui/test_confirmations.py`; e2e journey (delete) |
 | report-viewer · The report is read in the page / The diagram is shown / The diagram failed to render / Downloads are listed / An unreachable endpoint | unit · `tests/unit/ui/test_job_page.py` |
+| report-viewer · The header names the job | unit · `tests/unit/ui/test_job_page.py` (`test_the_header_names_the_source_the_state_the_time_the_duration_and_the_short_id`) |
 | report-viewer · No external assets / Both themes pass | e2e · `tests/e2e/ui/test_accessibility.py` |
 | class-diagram · A diagram is rendered | unit · `tests/unit/services/test_jobs.py` (fake renderer); integration · `tests/integration/test_plantuml.py` (real renderer); e2e · `tests/e2e/test_jobs.py` (svg files) |
-| class-diagram · The PlantUML server is down | unit · `tests/unit/services/test_jobs.py` |
+| class-diagram · The PlantUML server is down / One diagram cannot be drawn | unit · `tests/unit/services/test_jobs.py` (`test_a_diagram_that_cannot_be_drawn_leaves_the_others_and_the_library_failures`); `tests/unit/test_plantuml_stack.py` (the SANDBOX profile) |
 | class-diagram · One diagram is fetched / An unknown diagram is not found | unit · `tests/unit/api/test_api.py` |
 
 ## Roadmap

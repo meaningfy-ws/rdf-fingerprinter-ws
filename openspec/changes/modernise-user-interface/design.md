@@ -305,6 +305,23 @@ Sentences live in `labels.py`; the upgrade's design, section *Error matrix*, is 
 - **Cropped diagrams** above 16384 px: accepted; the PlantUML file is still downloadable.
 - **Polling load**: 3 s per open page, only while something is active.
 
+## Beyond the original specs (recorded 2026-11-08)
+
+Behaviour built and tested in stages 1 and 2 that the specs did not state, now written into them:
+
+- `job-console`: the requirement "The console filters jobs by state" (U-3); "Updates pause while the
+  service is down" (S1-7); the upload limit named on the form and "A file over the limit is
+  refused"; only a final job offers delete; the requirement "Forms and pages are safe from other
+  sites" (S1-1, S1-2).
+- `report-viewer`: the report's and diagrams' CSP headers (U-4); the requirement "A job page says what
+  ran and when" (U-3, U-6, S2-4); the warnings panel that counts the failures.
+- `class-diagram`: the PlantUML `SANDBOX` profile (S2-1); the `svg` format only when a diagram was
+  drawn (U-8); failures named by file stem, fail-fast once the server is down, an undecodable file
+  failing only its diagram (S2-2), with "One diagram cannot be drawn".
+- API changes that belong to the upgrade's `report-access` (`finished_at`, `files`, `409` on deleting
+  an active job) are written into that change's spec, since this change cannot modify a capability
+  before the upgrade is archived. The one non-additive API change is that `409`.
+
 ## Open Questions
 
 None.
