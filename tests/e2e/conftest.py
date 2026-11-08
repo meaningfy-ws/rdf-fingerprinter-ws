@@ -1,6 +1,7 @@
 """The e2e stack: the bootstrapped API app in-process, a real worker, Fuseki and Redis (design D-11)."""
 
 import importlib
+import socket
 import sys
 import time
 from collections.abc import Iterator
@@ -17,6 +18,12 @@ WAIT_SECONDS = 180
 FINAL_STATES = {state for state in JobState if not state.is_active}
 
 
+def free_port() -> int:
+    with socket.socket() as probe:
+        probe.bind(("127.0.0.1", 0))
+        return int(probe.getsockname()[1])
+
+
 @pytest.fixture(scope="session")
 def stack(
     fuseki: FusekiServer, redis_server: RedisServer, tmp_path_factory
@@ -28,6 +35,9 @@ def stack(
     environment = {
         "RDF_FINGERPRINTER_API_SECRET_KEY": "e2e-api",
         "RDF_FINGERPRINTER_UI_SECRET_KEY": "e2e-ui",
+        # the UI talks to the API on this port (design U-12: set before bootstrap is imported)
+        "RDF_FINGERPRINTER_API_LOCATION": "http://127.0.0.1",
+        "RDF_FINGERPRINTER_API_PORT": str(free_port()),
         "RDF_FINGERPRINTER_REDIS_LOCATION": f"redis://{redis_server.host}",
         "RDF_FINGERPRINTER_REDIS_PORT": str(redis_server.port),
         "RDF_FINGERPRINTER_FUSEKI_LOCATION": f"http://{fuseki.host}",
