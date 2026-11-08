@@ -71,6 +71,7 @@ class Settings:
     max_upload_bytes: int
     show_swagger_ui: bool
     log_level: str
+    ui_secure_cookies: bool
     input_mime_types: Mapping[str, str] = field(default_factory=lambda: INPUT_MIME_TYPES)
     output_mime_types: Mapping[str, str] = field(default_factory=lambda: OUTPUT_MIME_TYPES)
 
@@ -91,4 +92,5 @@ class Settings:
             max_upload_bytes=int(env.get("RDF_FINGERPRINTER_MAX_UPLOAD_MB", 512)) * BYTES_PER_MB,
             show_swagger_ui=strtobool(env.get("SHOW_SWAGGER_UI", "true")),
             log_level=env.get("RDF_FINGERPRINTER_LOG_LEVEL", "info"),
+            ui_secure_cookies=strtobool(env.get("RDF_FINGERPRINTER_UI_SECURE_COOKIES", "false")),
         )

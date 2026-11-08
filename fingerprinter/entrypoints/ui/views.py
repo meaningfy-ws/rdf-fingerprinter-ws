@@ -1,13 +1,13 @@
 """UI pages: each asks the API and renders what it answers (design U-3, U-4)."""
 
-import io
 from collections.abc import Callable
 from datetime import UTC, datetime
+from functools import partial
 from http import HTTPStatus
 from operator import attrgetter
 from typing import Any
+from urllib.parse import urlsplit
 
-import requests
 from flask import (
     Flask,
     current_app,
@@ -15,30 +15,28 @@ from flask import (
     redirect,
     render_template,
     request,
-    send_file,
     url_for,
 )
-from werkzeug.http import parse_options_header
+from flask_wtf.csrf import CSRFError
 from werkzeug.wrappers import Response
 
 from fingerprinter.entrypoints.ui import labels
-from fingerprinter.entrypoints.ui.api_wrapper import ApiClient
+from fingerprinter.entrypoints.ui.api_client import ApiClient
+from fingerprinter.entrypoints.ui.api_model import ApiFile, ApiJob
+from fingerprinter.entrypoints.ui.exceptions import ApiError
 from fingerprinter.entrypoints.ui.forms import FingerprintFileForm, FingerprintSPARQLEndpointForm
-from fingerprinter.entrypoints.ui.helpers import FLASH_ERROR, FLASH_SUCCESS
-from fingerprinter.entrypoints.ui.presenters import JobView, present, source_name
+from fingerprinter.entrypoints.ui.presenters import JobView, present
 
 BYTES_PER_MB = 1024 * 1024
+FLASH_ERROR = "error"
+FLASH_SUCCESS = "success"
+API_EXTENSION = "api"
+CONFIG_ACCEPTED_EXTENSIONS = "ACCEPTED_EXTENSIONS"
+CONFIG_MAX_UPLOAD_BYTES = "MAX_UPLOAD_BYTES"
+REPORT_FILE_NAME = "main.html"
 NO_SNIFF = {"X-Content-Type-Options": "nosniff"}
 REPORT_HEADERS = NO_SNIFF | {"Content-Security-Policy": "sandbox allow-scripts"}
-
-
-class ApiError(Exception):
-    """The API refused a request or could not be reached; ``sentence`` says so to the user."""
-
-    def __init__(self, sentence: str, status: int | None = None):
-        super().__init__(sentence)
-        self.sentence = sentence
-        self.status = status
+FRAME_ANCESTORS = "frame-ancestors 'self'"
 
 
 def utcnow() -> datetime:
@@ -46,54 +44,49 @@ def utcnow() -> datetime:
 
 
 def _api() -> ApiClient:
-    api: ApiClient = current_app.extensions["api"]
+    api: ApiClient = current_app.extensions[API_EXTENSION]
     return api
 
 
 def _upload_limit_mb() -> int:
-    limit: int = current_app.config["MAX_UPLOAD_BYTES"]
+    limit: int = current_app.config[CONFIG_MAX_UPLOAD_BYTES]
     return max(1, limit // BYTES_PER_MB)
 
 
-def _call(name: str, *args: Any) -> Any:
-    """Ask the API; an unreachable or refusing API raises ``ApiError``."""
-    try:
-        response = getattr(_api(), name)(*args)
-    except requests.RequestException as error:
-        raise ApiError(labels.UNREACHABLE) from error
-    if response.status_code >= HTTPStatus.BAD_REQUEST:
-        try:
-            body = response.json()
-        except ValueError:
-            body = None
-        sentence = labels.problem_sentence(
-            body if isinstance(body, dict) else None, upload_limit_mb=_upload_limit_mb()
-        )
-        raise ApiError(sentence, response.status_code)
-    return response
+def _sentence(error: ApiError) -> str:
+    if error.unreachable:
+        return labels.UNREACHABLE
+    return labels.problem_sentence(error.problem, upload_limit_mb=_upload_limit_mb())
 
 
-def _job_call(name: str, job_id: str, *args: Any) -> Any:
+def _about_job(call: Callable[..., Any], job_id: str, *args: Any) -> Any:
     """A call about one job: an id the API does not accept is a job it does not have."""
     try:
-        return _call(name, job_id, *args)
+        return call(job_id, *args)
     except ApiError as error:
         if error.status == HTTPStatus.BAD_REQUEST:
-            raise ApiError(labels.PROBLEMS["JobNotFound"], HTTPStatus.NOT_FOUND) from error
+            not_found = {"type": f"{labels.PROBLEM_TYPE_PREFIX}JobNotFound"}
+            raise ApiError(not_found, HTTPStatus.NOT_FOUND) from error
         raise
 
 
 def _error_page(error: ApiError) -> tuple[str, int]:
     status = error.status or HTTPStatus.BAD_GATEWAY
     title = labels.NOT_FOUND_TITLE if status == HTTPStatus.NOT_FOUND else labels.FAILED_TITLE
-    return render_template("error.html", title=title, message=error.sentence), status
+    return render_template("error.html", title=title, message=_sentence(error)), status
 
 
 def _local_path(target: str | None) -> str:
-    """``target`` when it is a path on this site, else the Jobs page (no open redirect)."""
-    if target and target.startswith("/") and not target.startswith(("//", "/\\")):
-        return target
-    return url_for("index")
+    """``target`` when it is a path on this site, else the Jobs page (no open redirect).
+
+    A browser drops tabs and line breaks from a URL, so ``/<tab>/host`` would read ``//host``:
+    any control character or whitespace refuses the whole target.
+    """
+    if not target or not all(c.isprintable() and not c.isspace() for c in target):
+        return url_for("index")
+    parts = urlsplit(target)
+    local = target.startswith("/") and not target.startswith(("//", "/\\"))
+    return target if local and not (parts.scheme or parts.netloc) else url_for("index")
 
 
 # --- Jobs -----------------------------------------------------------------------------------------
@@ -107,7 +100,7 @@ def _filter() -> labels.Filter:
 def _all_jobs() -> list[JobView]:
     """Every job, newest first."""
     now = utcnow()
-    jobs = (present(job, now) for job in _call("get_reports").json())
+    jobs = (present(job, now) for job in _api().list_jobs())
     return sorted(jobs, key=attrgetter("created_at"), reverse=True)
 
 
@@ -121,7 +114,7 @@ def _rows_context(chosen: labels.Filter, jobs: list[JobView]) -> dict[str, Any]:
         "rows": rows,
         "polling": bool(active),
         "was": ",".join(active),
-        "paused": False,
+        "paused": "",
         "announce": None,
     }
 
@@ -131,7 +124,7 @@ def index() -> str:
     try:
         context = _rows_context(chosen, _all_jobs())
     except ApiError as error:
-        flash(error.sentence, FLASH_ERROR)
+        flash(_sentence(error), FLASH_ERROR)
         context = {"show": chosen.id, "total": None}
     return render_template("jobs/index.html", filters=labels.FILTERS, **context)
 
@@ -141,8 +134,10 @@ def job_rows() -> str:
     chosen, was = _filter(), request.args.get("was", "")
     try:
         jobs = _all_jobs()
-    except ApiError:
-        context = {"show": chosen.id, "rows": [], "polling": True, "was": was, "paused": True}
+    except ApiError as error:
+        # only an API that gave no answer is "paused"; an error answer is said as such
+        paused = labels.UPDATES_PAUSED if error.unreachable else labels.SERVER_ERROR
+        context = {"show": chosen.id, "rows": [], "polling": True, "was": was, "paused": paused}
         return render_template("jobs/_rows.html", announce="", **context)
     ended = [job for job in jobs if job.id in was.split(",") and not job.active]
     context = _rows_context(chosen, jobs)
@@ -153,31 +148,33 @@ def job_rows() -> str:
 # --- New job --------------------------------------------------------------------------------------
 
 
-def _new_job_page(tab: str, form: Any, status: int = HTTPStatus.OK) -> tuple[str, int]:
+def _new_job_page(tab: labels.Tab, form: Any, status: int = HTTPStatus.OK) -> tuple[str, int]:
     config = current_app.config
     page = render_template(
         "jobs/new.html",
         tab=tab,
         form=form,
-        accepted=[f".{extension}" for extension in config["ACCEPTED_EXTENSIONS"]],
+        accepted=[f".{extension}" for extension in config[CONFIG_ACCEPTED_EXTENSIONS]],
         limit_mb=_upload_limit_mb(),
-        formats=labels.FORMATS,
+        formats=labels.LISTED_FORMATS,
     )
     return page, status
 
 
 def new_job() -> tuple[str, int]:
-    if request.args.get("from") == "file":
-        return _new_job_page("file", FingerprintFileForm(formdata=None))
-    return _new_job_page("endpoint", FingerprintSPARQLEndpointForm(formdata=None))
+    if request.args.get("from") == labels.Tab.FILE:
+        return _new_job_page(labels.Tab.FILE, FingerprintFileForm(formdata=None))
+    return _new_job_page(labels.Tab.ENDPOINT, FingerprintSPARQLEndpointForm(formdata=None))
 
 
-def _started(form: Any, field: Any, tab: str, *call: Any) -> Response | tuple[str, int]:
+def _started(
+    form: Any, field: Any, tab: labels.Tab, start: Callable[[], None]
+) -> Response | tuple[str, int]:
     """Start the job; on success back to the console, else the form with the sentence at the field."""
     try:
-        _call(*call)
+        start()
     except ApiError as error:
-        field.errors = [error.sentence]
+        field.errors = [_sentence(error)]
         return _new_job_page(tab, form)
     flash(labels.JOB_STARTED, FLASH_SUCCESS)
     return redirect(url_for("index"))
@@ -187,47 +184,37 @@ def start_endpoint_job() -> Response | tuple[str, int]:
     form = FingerprintSPARQLEndpointForm()
     if form.validate_on_submit():
         graphs = (form.graphs.data or "").split()
-        return _started(
-            form,
-            form.sparql_endpoint_url,
-            "endpoint",
-            "fingerprint_sparql_endpoint",
-            form.sparql_endpoint_url.data,
-            graphs,
-        )
-    return _new_job_page("endpoint", form)
+        start = partial(_api().start_endpoint_job, form.sparql_endpoint_url.data or "", graphs)
+        return _started(form, form.sparql_endpoint_url, labels.Tab.ENDPOINT, start)
+    return _new_job_page(labels.Tab.ENDPOINT, form)
 
 
 def start_file_job() -> Response | tuple[str, int]:
     form = FingerprintFileForm()
     if form.validate_on_submit():
-        return _started(form, form.data_file, "file", "fingerprint_file", form.data_file.data)
-    return _new_job_page("file", form)
+        start = partial(_api().start_file_job, form.data_file.data)
+        return _started(form, form.data_file, labels.Tab.FILE, start)
+    return _new_job_page(labels.Tab.FILE, form)
 
 
 def upload_too_large(_error: Exception) -> tuple[str, int]:
     """The request was cut off at the UI's own limit, before it reached the API."""
     form = FingerprintFileForm(formdata=None)
-    form.data_file.errors = [labels.problem_sentence(
-        {"type": f"{labels.PROBLEM_TYPE_PREFIX}UploadTooLarge"}, upload_limit_mb=_upload_limit_mb()
-    )]  # fmt: skip
-    return _new_job_page("file", form, HTTPStatus.REQUEST_ENTITY_TOO_LARGE)
+    too_large = {"type": f"{labels.PROBLEM_TYPE_PREFIX}UploadTooLarge"}
+    form.data_file.errors = [labels.problem_sentence(too_large, upload_limit_mb=_upload_limit_mb())]
+    return _new_job_page(labels.Tab.FILE, form, HTTPStatus.REQUEST_ENTITY_TOO_LARGE)
 
 
 # --- Files and the report -------------------------------------------------------------------------
 
 
-def _served(response: Any, *, attachment: bool, name: str, headers: dict[str, str]) -> Response:
-    """The API's file, as the UI serves it: the name and type are the API's."""
-    _, disposition = parse_options_header(response.headers.get("Content-Disposition", ""))
-    mimetype, _ = parse_options_header(
-        response.headers.get("Content-Type", "")
-    )  # Flask adds the charset
-    served = send_file(
-        io.BytesIO(response.content),
-        mimetype=mimetype or None,
-        download_name=disposition.get("filename") or name,
-        as_attachment=attachment,
+def _served(file: ApiFile, *, attachment: bool, name: str, headers: dict[str, str]) -> Response:
+    """The API's file, as the UI serves it as it arrives: the name and type are the API's."""
+    served = Response(file.chunks, mimetype=file.mimetype or "application/octet-stream")
+    served.headers.add(
+        "Content-Disposition",
+        "attachment" if attachment else "inline",
+        filename=file.filename or name,
     )
     served.headers.update(headers)
     return served
@@ -235,20 +222,20 @@ def _served(response: Any, *, attachment: bool, name: str, headers: dict[str, st
 
 def job_report(job_id: str) -> Response | tuple[str, int]:
     try:
-        response = _job_call("get_file", job_id, "html")
+        file = _about_job(_api().file, job_id, labels.FormatId.HTML)
     except ApiError as error:
         return _error_page(error)
-    return _served(response, attachment=False, name="main.html", headers=REPORT_HEADERS)
+    return _served(file, attachment=False, name=REPORT_FILE_NAME, headers=REPORT_HEADERS)
 
 
 def job_download(
     job_id: str, report_format: str, name: str | None = None
 ) -> Response | tuple[str, int]:
     try:
-        response = _job_call("get_file", job_id, report_format, *([name] if name else []))
+        file = _about_job(_api().file, job_id, report_format, name)
     except ApiError as error:
         return _error_page(error)
-    return _served(response, attachment=True, name=name or report_format, headers=NO_SNIFF)
+    return _served(file, attachment=True, name=name or report_format, headers=NO_SNIFF)
 
 
 # --- Delete and cancel ----------------------------------------------------------------------------
@@ -256,14 +243,14 @@ def job_download(
 
 def _confirmation(job_id: str, dialog: labels.Confirmation, action: str) -> str | tuple[str, int]:
     try:
-        job = _job_call("get_job", job_id).json()
+        job: ApiJob = _about_job(_api().job, job_id)
     except ApiError as error:
         return _error_page(error)
     keep = _local_path(request.args.get("next"))
     return render_template(
         "confirm.html",
         dialog=dialog,
-        source=source_name(job),
+        source=job.source_name,
         action=url_for(action, job_id=job_id, next=keep),
         keep=keep,
     )
@@ -277,22 +264,64 @@ def confirm_cancel(job_id: str) -> str | tuple[str, int]:
     return _confirmation(job_id, labels.CANCEL_CONFIRMATION, "cancel_job")
 
 
-def _acted(call: str, job_id: str, done: str, then: str) -> Response:
+def _acted(call: Callable[[str], None], job_id: str, done: str, then: str) -> Response:
     try:
-        _job_call(call, job_id)
+        _about_job(call, job_id)
         flash(done, FLASH_SUCCESS)
     except ApiError as error:
-        flash(error.sentence, FLASH_ERROR)
+        flash(_sentence(error), FLASH_ERROR)
+        if error.status == HTTPStatus.NOT_FOUND:  # the page it came from may be that job's own
+            then = url_for("index")
     return redirect(then)
 
 
 def delete_job(job_id: str) -> Response:
-    return _acted("delete_report", job_id, labels.REPORT_DELETED, url_for("index"))
+    return _acted(_api().delete_job, job_id, labels.REPORT_DELETED, url_for("index"))
 
 
 def cancel_job(job_id: str) -> Response:
     then = _local_path(request.args.get("next"))
-    return _acted("cancel_task", job_id, labels.JOB_CANCELLED, then)
+    return _acted(_api().cancel_job, job_id, labels.JOB_CANCELLED, then)
+
+
+# --- Every response, and an expired form ----------------------------------------------------------
+
+
+def refuse_framing(response: Response) -> Response:
+    """No other site may frame a page of the UI (clickjacking of the confirmations)."""
+    response.headers["X-Frame-Options"] = "SAMEORIGIN"
+    policy = response.headers.get("Content-Security-Policy")
+    response.headers["Content-Security-Policy"] = (
+        f"{policy}; {FRAME_ANCESTORS}" if policy else FRAME_ANCESTORS
+    )
+    return response
+
+
+def _expired_endpoint_form() -> tuple[str, int]:
+    form = FingerprintSPARQLEndpointForm(formdata=request.form)  # what was typed is kept
+    return _new_job_page(labels.Tab.ENDPOINT, form, HTTPStatus.BAD_REQUEST)
+
+
+def _expired_file_form() -> tuple[str, int]:
+    form = FingerprintFileForm(formdata=None)
+    return _new_job_page(labels.Tab.FILE, form, HTTPStatus.BAD_REQUEST)
+
+
+def form_expired(_error: CSRFError) -> tuple[str, int]:
+    """The form that was posted, shown again with a new token and the sentence."""
+    flash(labels.FORM_EXPIRED, FLASH_ERROR)
+    again: dict[str, Callable[..., str | tuple[str, int]]] = {
+        start_endpoint_job.__name__: _expired_endpoint_form,
+        start_file_job.__name__: _expired_file_form,
+        delete_job.__name__: confirm_delete,
+        cancel_job.__name__: confirm_cancel,
+    }
+    show = again.get(request.endpoint or "")
+    if show is None:
+        page = render_template("error.html", title=labels.FAILED_TITLE, message=labels.FORM_EXPIRED)
+        return page, HTTPStatus.BAD_REQUEST
+    body = show(**(request.view_args or {}))
+    return body if isinstance(body, tuple) else (body, HTTPStatus.BAD_REQUEST)
 
 
 ROUTES: tuple[tuple[str, Callable[..., Any], tuple[str, ...]], ...] = (
@@ -315,3 +344,5 @@ def register(app: Flask) -> None:
     for rule, view, methods in ROUTES:
         app.add_url_rule(rule, view_func=view, methods=list(methods))
     app.register_error_handler(HTTPStatus.REQUEST_ENTITY_TOO_LARGE, upload_too_large)
+    app.register_error_handler(CSRFError, form_expired)
+    app.after_request(refuse_framing)

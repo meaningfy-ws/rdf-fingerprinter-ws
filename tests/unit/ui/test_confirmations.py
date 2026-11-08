@@ -3,9 +3,8 @@
 from urllib.parse import quote
 
 import pytest
-import requests
 
-from tests.unit.ui.fake_api import FakeResponse, make_app, page, problem, record
+from tests.unit.ui.fake_api import make_app, page, problem, record, served, unreachable
 
 NOT_FOUND = "No such job or report."
 
@@ -68,6 +67,12 @@ def test_a_confirmation_for_an_unknown_job_is_the_not_found_page(client, api, ac
         ("https://evil.example/x", "/"),
         ("//evil.example/x", "/"),
         ("/\\evil.example", "/"),
+        ("/\t/evil.example", "/"),
+        ("/\n/evil", "/"),
+        ("/\r/evil", "/"),
+        (" /jobs/abc", "/"),
+        ("/jobs/a bc", "/"),
+        ("/\x00/evil", "/"),
         ("javascript:alert(1)", "/"),
         ("jobs/abc", "/"),
         ("", "/"),
@@ -92,7 +97,7 @@ def test_a_delete_is_abandoned(client, api):
 
     assert keep.status_code == 200
     assert page(keep).find("tbody", id="job-rows").find("tr", id="job-j1") is not None
-    assert not [call for call in api.calls if call[0] == "delete_report"]
+    assert not [call for call in api.calls if call[0] == "delete_job"]
 
 
 def test_a_report_is_deleted_and_the_jobs_page_says_so(client, api):
@@ -100,7 +105,7 @@ def test_a_report_is_deleted_and_the_jobs_page_says_so(client, api):
 
     response = client.post("/jobs/j1/delete", follow_redirects=True)
 
-    assert ("delete_report", "j1") in api.calls
+    assert ("delete_job", "j1") in api.calls
     assert response.request.path == "/"
     assert flash_of(response, "success") == "Report deleted."
 
@@ -110,11 +115,11 @@ def test_a_report_is_deleted_and_the_jobs_page_says_so(client, api):
     [
         (problem(404, "JobNotFound"), NOT_FOUND),
         (problem(409, "JobIsActive"), "Cancel the job before deleting it."),
-        (requests.ConnectionError("down"), "The service is not reachable. Try again in a moment."),
+        (unreachable(), "The service is not reachable. Try again in a moment."),
     ],
 )
 def test_a_refused_delete_flashes_the_sentence_on_the_jobs_page(client, api, answer, sentence):
-    api.answers["delete_report"] = answer
+    api.answers["delete_job"] = answer
 
     response = client.post("/jobs/j1/delete?next=/jobs/j1", follow_redirects=True)
 
@@ -129,7 +134,7 @@ def test_a_running_job_is_cancelled(client, api):
     api.jobs = [record("j1", "running")]
 
     response = client.post("/jobs/j1/cancel?next=/", follow_redirects=True)
-    assert ("cancel_task", "j1") in api.calls
+    assert ("cancel_job", "j1") in api.calls
     assert flash_of(response, "success") == "Job cancelled."
 
     api.jobs = [record("j1", "cancelled")]
@@ -141,6 +146,21 @@ def test_cancelling_returns_to_the_page_it_came_from(client, api):
     response = client.post("/jobs/j1/cancel?next=/%3Fshow%3Dactive")
 
     assert response.headers["Location"] == "/?show=active"
+
+
+@pytest.mark.parametrize("next_url", ["/%09/evil.example", "/%0A/evil", "/%0D/evil"])
+def test_a_next_a_browser_would_read_as_another_site_lands_on_the_jobs_page(client, api, next_url):
+    response = client.post(f"/jobs/j1/cancel?next={next_url}")
+
+    assert response.headers["Location"] == "/"
+
+
+def test_a_job_that_is_gone_sends_the_user_to_the_jobs_page_not_back_to_it(client, api):
+    api.answers["cancel_job"] = problem(404, "JobNotFound")
+
+    response = client.post("/jobs/j1/cancel", query_string={"next": "/jobs/j1"})
+
+    assert response.headers["Location"] == "/"
 
 
 def test_cancelling_never_redirects_away_from_the_site(client, api):
@@ -163,7 +183,7 @@ def test_a_finished_job_offers_no_cancel(client, api, state):
 
 
 def test_cancelling_a_finished_job_says_it_has_already_finished(client, api):
-    api.answers["cancel_task"] = problem(409, "JobNotCancellable")
+    api.answers["cancel_job"] = problem(409, "JobNotCancellable")
 
     response = client.post("/jobs/j1/cancel?next=/", follow_redirects=True)
 
@@ -171,7 +191,7 @@ def test_cancelling_a_finished_job_says_it_has_already_finished(client, api):
 
 
 def test_cancelling_an_unknown_job_is_not_found(client, api):
-    api.answers["cancel_task"] = problem(404, "JobNotFound")
+    api.answers["cancel_job"] = problem(404, "JobNotFound")
 
     response = client.post("/jobs/j1/cancel?next=/", follow_redirects=True)
 
@@ -179,11 +199,12 @@ def test_cancelling_an_unknown_job_is_not_found(client, api):
 
 
 def test_a_delete_or_cancel_without_the_csrf_token_is_refused(api):
+    api.jobs = [record("j1", "running")]
     client = make_app(api, csrf=True).test_client()
 
     assert client.post("/jobs/j1/delete").status_code == 400
     assert client.post("/jobs/j1/cancel").status_code == 400
-    assert api.calls == []
+    assert not [call for call in api.calls if call[0] in ("delete_job", "cancel_job")]
 
 
 def test_the_confirmation_form_carries_a_csrf_token(api):
@@ -194,18 +215,13 @@ def test_the_confirmation_form_carries_a_csrf_token(api):
     token = form.find("input", attrs={"name": "csrf_token"})["value"]
 
     assert client.post(form["action"], data={"csrf_token": token}).status_code == 302
-    assert ("delete_report", "j1") in api.calls
+    assert ("delete_job", "j1") in api.calls
 
 
 # --- downloads --------------------------------------------------------------------------------------------
 
 
-def file_answer(name, content_type, content=b"content"):
-    return FakeResponse(
-        200,
-        content=content,
-        headers={"Content-Disposition": f"inline; filename={name}", "Content-Type": content_type},
-    )
+file_answer = served
 
 
 @pytest.mark.parametrize(
@@ -220,38 +236,57 @@ def file_answer(name, content_type, content=b"content"):
 def test_a_download_is_an_attachment_with_the_api_name_and_type(
     client, api, report_format, name, content_type
 ):
-    api.answers["get_file"] = file_answer(name, content_type)
+    api.answers["file"] = file_answer(name, content_type)
 
     response = client.get(f"/jobs/uid-1/files/{report_format}")
 
-    assert ("get_file", "uid-1", report_format) in api.calls
+    assert ("file", "uid-1", report_format) in api.calls
     assert response.data == b"content"
     assert response.headers["Content-Disposition"] == f"attachment; filename={name}"
     assert response.headers["Content-Type"].startswith(content_type)
     assert response.headers["X-Content-Type-Options"] == "nosniff"
 
 
+def test_a_download_is_passed_on_as_it_arrives_and_the_api_connection_is_closed(client, api):
+    closed = []
+
+    def chunks():
+        try:
+            yield b"first "
+            yield b"second"
+        finally:
+            closed.append(True)
+
+    api.answers["file"] = served("big.zip", "application/zip", chunks=chunks())
+
+    response = client.get("/jobs/uid-1/files/zip", buffered=False)
+
+    assert not closed  # nothing has been read yet: the body is not held in memory
+    assert b"".join(response.response) == b"first second"
+    assert closed
+
+
 def test_one_file_of_a_format_is_an_attachment_too(client, api):
-    api.answers["get_file"] = file_answer("diagram-x.svg", "image/svg+xml", b"<svg/>")
+    api.answers["file"] = file_answer("diagram-x.svg", "image/svg+xml", b"<svg/>")
 
     response = client.get("/jobs/uid-1/files/svg/diagram-x.svg")
 
-    assert ("get_file", "uid-1", "svg", "diagram-x.svg") in api.calls
+    assert ("file", "uid-1", "svg", "diagram-x.svg") in api.calls
     assert response.headers["Content-Disposition"] == "attachment; filename=diagram-x.svg"
     assert response.headers["X-Content-Type-Options"] == "nosniff"
 
 
 def test_a_download_with_unwanted_markup_is_still_an_attachment(client, api):
-    api.answers["get_file"] = file_answer("evil.html", "text/html", b"<script>alert(1)</script>")
+    api.answers["file"] = file_answer("evil.html", "text/html", b"<script>alert(1)</script>")
 
     response = client.get("/jobs/uid-1/files/html")
 
     assert response.headers["Content-Disposition"].startswith("attachment")
-    assert "Content-Security-Policy" not in response.headers
+    assert "sandbox" not in response.headers["Content-Security-Policy"]
 
 
 def test_a_download_the_api_does_not_have_is_the_not_found_page(client, api):
-    api.answers["get_file"] = problem(404, "FormatNotAvailable")
+    api.answers["file"] = problem(404, "FormatNotAvailable")
 
     response = client.get("/jobs/uid-1/files/shacl")
 
@@ -260,7 +295,7 @@ def test_a_download_the_api_does_not_have_is_the_not_found_page(client, api):
 
 
 def test_an_id_the_api_does_not_accept_is_not_found(client, api):
-    api.answers["get_file"] = problem(400)
+    api.answers["file"] = problem(400)
 
     response = client.get("/jobs/not-a-uuid/files/shacl")
 
@@ -269,7 +304,7 @@ def test_an_id_the_api_does_not_accept_is_not_found(client, api):
 
 
 def test_a_download_while_the_service_is_down_says_so(client, api):
-    api.answers["get_file"] = requests.ConnectionError("down")
+    api.answers["file"] = unreachable()
 
     response = client.get("/jobs/uid-1/files/zip")
 
@@ -281,32 +316,34 @@ def test_a_download_while_the_service_is_down_says_so(client, api):
 
 
 def test_the_report_is_inline_in_a_sandbox(client, api):
-    api.answers["get_file"] = file_answer("main.html", "text/html; charset=utf-8", b"<h1>R</h1>")
+    api.answers["file"] = file_answer("main.html", "text/html; charset=utf-8", b"<h1>R</h1>")
 
     response = client.get("/jobs/uid-1/report")
 
-    assert ("get_file", "uid-1", "html") in api.calls
+    assert ("file", "uid-1", "html") in api.calls
     assert response.data == b"<h1>R</h1>"
     assert response.headers["Content-Type"] == "text/html; charset=utf-8"
     assert not response.headers["Content-Disposition"].startswith("attachment")
-    assert response.headers["Content-Security-Policy"] == "sandbox allow-scripts"
+    assert response.headers["Content-Security-Policy"] == (
+        "sandbox allow-scripts; frame-ancestors 'self'"
+    )
     assert response.headers["X-Content-Type-Options"] == "nosniff"
 
 
 def test_a_report_the_api_does_not_have_is_the_not_found_page(client, api):
-    api.answers["get_file"] = problem(404, "JobNotFound")
+    api.answers["file"] = problem(404, "JobNotFound")
 
     response = client.get("/jobs/uid-1/report")
 
     assert response.status_code == 404
     soup = page(response)
     assert NOT_FOUND in soup.find("main").text
-    assert "Content-Security-Policy" not in response.headers
+    assert "sandbox" not in response.headers["Content-Security-Policy"]
 
 
 def test_ids_and_names_are_quoted_in_the_api_path(client, api):
-    api.answers["get_file"] = file_answer("x", "text/plain")
+    api.answers["file"] = file_answer("x", "text/plain")
 
     client.get(f"/jobs/uid-1/files/svg/{quote('a b.svg')}")
 
-    assert ("get_file", "uid-1", "svg", "a b.svg") in api.calls
+    assert ("file", "uid-1", "svg", "a b.svg") in api.calls

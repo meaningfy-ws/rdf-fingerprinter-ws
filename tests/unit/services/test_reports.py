@@ -60,11 +60,6 @@ def test_report_download_of_one_listed_file_by_name(store):
     assert path == Path("main.html")
 
 
-def test_report_download_of_a_file_the_record_does_not_list_is_not_available(store):
-    with pytest.raises(FormatNotAvailable):
-        reports.report_download("a", ReportFormat.HTML, "other.html", job_store=store)
-
-
 @pytest.mark.parametrize("state", [JobState.QUEUED, JobState.RUNNING])
 def test_an_active_job_is_not_deleted(store, state):
     store.set_state("b", state)
@@ -85,3 +80,21 @@ def test_a_job_in_a_final_state_is_deleted(store, state):
     reports.delete_report("b", job_store=store)
 
     assert [r.id for r in store.list()] == ["a"]
+
+
+@pytest.mark.parametrize(
+    ("report_format", "name"),
+    [
+        (ReportFormat.HTML, "other.html"),
+        (ReportFormat.HTML, "../meta.json"),
+        (ReportFormat.HTML, "html/main.html"),
+        (ReportFormat.HTML, ""),
+        (ReportFormat.JSON, "main.html"),
+        (ReportFormat.ZIP, "report.zip"),
+    ],
+)
+def test_report_download_of_a_file_the_record_does_not_list_is_not_available(
+    store, report_format, name
+):
+    with pytest.raises(FormatNotAvailable):
+        reports.report_download("a", report_format, name, job_store=store)

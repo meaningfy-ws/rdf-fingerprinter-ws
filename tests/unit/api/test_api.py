@@ -156,7 +156,7 @@ def test_a_queue_that_is_down_is_a_503_and_the_job_is_failed(client, services, p
 
 
 def test_reports_lists_the_job_records(client, services):
-    seed(services, J1, failures=("m failed",), formats=(ReportFormat.HTML,))
+    seed(services, J1, failures=("m failed",), files={ReportFormat.HTML: ("main.html",)})
     seed(services, J2, JobState.QUEUED)
 
     response = client.get("/reports")

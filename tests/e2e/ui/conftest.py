@@ -110,6 +110,19 @@ class _Api:
         return requests.get(self.base + path, timeout=30)
 
 
+@pytest.fixture
+def quiet_console(api_url: str) -> None:
+    """No job is queued or running: the Jobs page polls only for the jobs a test starts.
+
+    The job store outlives each module's worker, so an earlier module may have left a job that
+    nothing will ever finish; cancelling it through the API is what a user would do.
+    """
+    jobs = requests.get(f"{api_url}/reports", timeout=30).json()
+    for job in jobs:
+        if job["state"] in ("queued", "running"):
+            requests.delete(f"{api_url}/tasks/{job['id']}", timeout=30)
+
+
 @pytest.fixture(scope="session")
 def browser() -> Iterator[Browser]:
     with sync_playwright() as playwright:

@@ -87,6 +87,16 @@ def test_the_ui_app_is_given_the_accepted_extensions_and_the_upload_limit(bootst
     assert app.config["MAX_UPLOAD_BYTES"] == 512 * 1024 * 1024
 
 
+@pytest.mark.parametrize(("value", "secure"), [("true", True), ("false", False)])
+def test_the_ui_session_cookie_is_secure_when_the_setting_says_so(
+    bootstrap, monkeypatch, value, secure
+):
+    monkeypatch.setenv("RDF_FINGERPRINTER_UI_SECURE_COOKIES", value)
+    bootstrap = importlib.reload(bootstrap)
+
+    assert bootstrap.ui_app().config["SESSION_COOKIE_SECURE"] is secure
+
+
 def test_the_ui_process_builds_no_adapters(bootstrap):
     bootstrap.ui_app()
 

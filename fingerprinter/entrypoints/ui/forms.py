@@ -10,16 +10,14 @@ from fingerprinter.entrypoints.ui import labels
 
 class FingerprintSPARQLEndpointForm(FlaskForm):
     sparql_endpoint_url = StringField(
-        "SPARQL endpoint URL",
-        description="The query endpoint, for example http://localhost:3030/dataset/sparql.",
+        labels.ENDPOINT_URL_LABEL,
+        description=labels.ENDPOINT_URL_HELP,
         validators=[DataRequired(message=labels.PROBLEMS["InvalidSource"])],
     )
-    graphs = TextAreaField(
-        "Named graphs (optional)",
-        description="One graph IRI per line, or separated by spaces. "
-        "Leave empty to profile every graph, including the default graph.",
-    )
+    graphs = TextAreaField(labels.GRAPHS_LABEL, description=labels.GRAPHS_HELP)
 
 
 class FingerprintFileForm(FlaskForm):
-    data_file = FileField("RDF file", validators=[FileRequired(message=labels.CHOOSE_A_FILE)])
+    data_file = FileField(
+        labels.FILE_LABEL, validators=[FileRequired(message=labels.CHOOSE_A_FILE)]
+    )

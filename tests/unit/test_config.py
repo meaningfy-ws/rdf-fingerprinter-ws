@@ -49,6 +49,7 @@ def test_the_defaults_are_todays(env):
     assert settings.api_secret_key == "api-secret"
     assert settings.ui_secret_key == "ui-secret"
     assert settings.max_upload_bytes == 512 * 1024 * 1024
+    assert settings.ui_secure_cookies is False
 
 
 def test_the_environment_overrides_the_defaults(env):
@@ -65,6 +66,7 @@ def test_the_environment_overrides_the_defaults(env):
     env.setenv("RDF_FINGERPRINTER_LOG_LEVEL", "debug")
     env.setenv("SHOW_SWAGGER_UI", "false")
     env.setenv("RDF_FINGERPRINTER_MAX_UPLOAD_MB", "5")
+    env.setenv("RDF_FINGERPRINTER_UI_SECURE_COOKIES", "true")
 
     settings = Settings.from_env()
 
@@ -76,6 +78,7 @@ def test_the_environment_overrides_the_defaults(env):
     assert settings.log_level == "debug"
     assert settings.show_swagger_ui is False
     assert settings.max_upload_bytes == 5 * 1024 * 1024
+    assert settings.ui_secure_cookies is True
 
 
 def test_trix_uploads_are_sent_as_application_trix_xml(env):

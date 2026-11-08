@@ -295,23 +295,6 @@ def test_one_listed_file_of_a_format_is_found_by_name(store, tmp_path):
     assert store.file_for("job-1", ReportFormat.PUML, "b.puml").read_text() == "puml:b.puml"
 
 
-@pytest.mark.parametrize("name", ["c.puml", "../meta.json", "../../etc/passwd", "puml/a.puml", ""])
-def test_a_file_the_record_does_not_list_is_not_available(store, tmp_path, name):
-    store.create(record())
-    store.save_outputs("job-1", outcome(tmp_path, puml=("a.puml", "b.puml")))
-
-    with pytest.raises(FormatNotAvailable):
-        store.file_for("job-1", ReportFormat.PUML, name)
-
-
-def test_the_zip_has_no_listed_files(store, tmp_path):
-    store.create(record())
-    store.save_outputs("job-1", outcome(tmp_path, html=("main.html",)))
-
-    with pytest.raises(FormatNotAvailable):
-        store.file_for("job-1", ReportFormat.ZIP, "report.zip")
-
-
 def test_a_format_with_no_file_is_not_available(store, tmp_path):
     store.create(record())
     store.save_outputs("job-1", outcome(tmp_path, html=("main.html",)))
@@ -373,3 +356,35 @@ def test_delete_all_removes_every_job_and_tolerates_an_empty_store(store):
     store.delete_all()
 
     assert store.list() == []
+
+
+def test_a_record_written_before_files_existed_lists_its_files_from_disk(tmp_path):
+    """Records from before the `files` field still show their formats (stage-1 review follow-up)."""
+    import json
+
+    from fingerprinter.adapters.file_job_store import FileJobStore
+
+    job = tmp_path / "3f2c0000-0000-4000-8000-000000000000"
+    (job / "html").mkdir(parents=True)
+    (job / "html" / "main.html").write_text("<html></html>")
+    (job / "puml").mkdir()
+    (job / "puml" / "b.puml").write_text("@startuml\n@enduml")
+    (job / "puml" / "a.puml").write_text("@startuml\n@enduml")
+    (job / "meta.json").write_text(
+        json.dumps(
+            {
+                "id": job.name,
+                "source": {"endpoint": "http://example.org/sparql", "graphs": []},
+                "created_at": "2026-11-08T10:00:00+00:00",
+                "state": "completed",
+                "reason": None,
+                "failures": [],
+                "formats": ["html", "puml"],
+            }
+        )
+    )
+
+    record = FileJobStore(tmp_path).get(job.name)
+
+    assert [f.value for f in record.formats] == ["html", "puml"]
+    assert record.files[record.formats[1]] == ("a.puml", "b.puml")

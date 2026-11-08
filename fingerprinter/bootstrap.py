@@ -81,4 +81,5 @@ def ui_app() -> Flask:
         settings.ui_secret_key,
         accepted_extensions=tuple(sorted(settings.input_mime_types)),
         max_upload_bytes=settings.max_upload_bytes,
+        secure_cookies=settings.ui_secure_cookies,
     )

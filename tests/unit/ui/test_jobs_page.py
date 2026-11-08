@@ -6,18 +6,21 @@ from datetime import UTC, datetime
 from urllib.parse import parse_qs, urlsplit
 
 import pytest
-import requests
 
-from tests.unit.ui.fake_api import FakeResponse, page, problem, record
+from fingerprinter.entrypoints.ui.exceptions import ApiError
+from tests.unit.ui.fake_api import page, problem, record, unreachable
 
 NOW = datetime(2026, 11, 8, 14, 30, tzinfo=UTC)
 
 
 @pytest.fixture(autouse=True)
 def fixed_clock(monkeypatch):
-    monkeypatch.setenv("TZ", "UTC")
-    time.tzset()
-    monkeypatch.setattr("fingerprinter.entrypoints.ui.views.utcnow", lambda: NOW)
+    with monkeypatch.context() as patched:
+        patched.setenv("TZ", "UTC")
+        time.tzset()
+        patched.setattr("fingerprinter.entrypoints.ui.views.utcnow", lambda: NOW)
+        yield
+    time.tzset()  # the zone of the environment again, now that TZ is restored
 
 
 def rows_of(soup):
@@ -226,6 +229,14 @@ def test_a_running_job_reaches_completion(client, api):
     assert page(client.get("/jobs/rows?show=all&was=")).find(id="announce").get_text() == ""
 
 
+def test_the_poll_after_a_change_names_only_the_jobs_still_active(client, api):
+    api.jobs = [record("a", "running"), record("b", "completed")]
+
+    body = page(client.get("/jobs/rows?show=all&was=a,b")).find("tbody", id="job-rows")
+
+    assert json.loads(body["hx-vals"]) == {"was": "a"}
+
+
 def test_every_job_that_ended_is_announced_once_with_its_label(client, api):
     api.jobs = [
         record("a", "failed", source={"file": "a.rdf", "graphs": []}),
@@ -268,7 +279,7 @@ def test_an_active_job_that_the_filter_hides_is_not_polled(client, api):
 
 
 def test_a_page_says_when_the_service_is_not_reachable(client, api):
-    api.answers["get_reports"] = requests.ConnectionError("down")
+    api.answers["list_jobs"] = unreachable()
 
     response = client.get("/")
 
@@ -279,7 +290,7 @@ def test_a_page_says_when_the_service_is_not_reachable(client, api):
 
 
 def test_a_poll_while_the_service_is_down_pauses_and_keeps_polling(client, api):
-    api.answers["get_reports"] = requests.ConnectionError("down")
+    api.answers["list_jobs"] = unreachable()
 
     response = client.get("/jobs/rows?show=active&was=a,b")
 
@@ -294,7 +305,7 @@ def test_a_poll_while_the_service_is_down_pauses_and_keeps_polling(client, api):
 
 
 def test_an_error_answer_from_the_api_is_shown_as_its_sentence(client, api):
-    api.answers["get_reports"] = problem(503, "QueueUnavailable")
+    api.answers["list_jobs"] = problem(503, "QueueUnavailable")
 
     soup = page(client.get("/"))
 
@@ -302,15 +313,54 @@ def test_an_error_answer_from_the_api_is_shown_as_its_sentence(client, api):
 
 
 def test_an_answer_that_is_not_json_is_a_server_error(client, api):
-    class Html(FakeResponse):
-        def json(self):
-            raise ValueError("not json")
-
-    api.answers["get_reports"] = Html(502)
+    api.answers["list_jobs"] = ApiError(None, 502)
 
     soup = page(client.get("/"))
 
     assert "Something went wrong on the server. Try again." in soup.find(class_="flash-error").text
+
+
+def test_a_poll_answered_with_an_error_says_so_in_the_row_and_keeps_polling(client, api):
+    api.answers["list_jobs"] = problem(500)
+
+    response = client.get("/jobs/rows?show=active&was=a")
+
+    body = page(response).find("tbody", id="job-rows")
+    assert [row.get_text(strip=True) for row in body.find_all("tr")] == [
+        "Something went wrong on the server. Try again."
+    ]
+    assert body["hx-trigger"] == "every 3s"
+    assert json.loads(body["hx-vals"]) == {"was": "a"}
+
+
+# --- one odd record cannot break the page ----------------------------------------------------------
+
+
+def test_a_state_the_ui_does_not_know_is_shown_as_it_came_with_a_neutral_badge(client, api):
+    api.jobs = [record("odd", "paused-by-ops"), record("ok", "completed")]
+
+    response = client.get("/")
+
+    assert response.status_code == 200
+    odd, ok = (page(response).find("tr", id=f"job-{name}") for name in ("odd", "ok"))
+    badge = odd.find(class_="badge")
+    assert badge.get_text(strip=True) == "paused-by-ops"
+    assert "badge-unknown" in badge["class"]
+    assert not [a for a in odd.find_all("a") if "/report" in a["href"]]  # no outputs, not active
+    assert ok.find(class_="badge").get_text(strip=True) == "Done"
+    assert page(client.get("/?show=active")).find("tr", id="job-odd") is None
+
+
+def test_a_record_without_graphs_is_a_row_like_any_other(client, api):
+    odd = record("odd", "completed")
+    odd["source"] = {"endpoint": "http://e/sparql"}
+    del odd["failures"]
+    api.jobs = [odd]
+
+    row = page(client.get("/")).find("tr", id="job-odd")
+
+    assert "SPARQL endpoint · all graphs" in row.get_text(" ", strip=True)
+    assert row.find(class_="badge").get_text(strip=True) == "Done"
 
 
 def test_the_page_says_it_updates_by_itself(client, api):

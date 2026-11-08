@@ -2,9 +2,9 @@
 
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any
 
 from fingerprinter.entrypoints.ui import labels
+from fingerprinter.entrypoints.ui.api_model import ApiJob
 from fingerprinter.entrypoints.ui.times import Shown, took, when
 
 
@@ -23,34 +23,24 @@ class JobView:
     has_outputs: bool
 
 
-def source_name(job: dict[str, Any]) -> str:
-    """The endpoint URL or the uploaded file's name."""
-    source = job["source"]
-    return str(source.get("endpoint") or source.get("file") or "")
-
-
-def present(job: dict[str, Any], now: datetime) -> JobView:
-    source = job["source"]
-    created = datetime.fromisoformat(job["created_at"])
-    finished = datetime.fromisoformat(job["finished_at"]) if job.get("finished_at") else None
-    state = job["state"]
+def present(job: ApiJob, now: datetime) -> JobView:
+    # a state this UI does not know shows as it came, with a neutral badge
+    known = labels.STATES.get(job.state) or labels.State(str(job.state), labels.UNKNOWN_BADGE)
     return JobView(
-        id=job["id"],
-        source=source_name(job),
-        kind=labels.source_kind(
-            endpoint=bool(source.get("endpoint")), graphs=len(source["graphs"])
-        ),
-        created_at=created,
-        started=when(created, now),
-        state=state,
-        label=labels.STATES[state].label,
-        badge_class=labels.STATES[state].badge_class,
+        id=job.id,
+        source=job.source_name,
+        kind=labels.source_kind(endpoint=bool(job.endpoint), graphs=len(job.graphs)),
+        created_at=job.created_at,
+        started=when(job.created_at, now),
+        state=job.state,
+        label=known.label,
+        badge_class=known.badge_class,
         note=labels.state_note(
-            state,
-            failures=len(job.get("failures", [])),
-            reason=job.get("reason"),
-            took=took(created, finished),
+            job.state,
+            failures=len(job.failures),
+            reason=job.reason,
+            took=took(job.created_at, job.finished_at),
         ),
-        active=state in labels.ACTIVE_STATES,
-        has_outputs=state in labels.OUTPUT_STATES,
+        active=job.state in labels.ACTIVE_STATES,
+        has_outputs=job.state in labels.OUTPUT_STATES,
     )

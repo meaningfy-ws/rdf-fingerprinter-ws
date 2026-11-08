@@ -1,36 +1,32 @@
 """A stand-in for the API behind the UI: canned job records and responses, and a log of the calls."""
 
+from collections.abc import Iterable
 from datetime import datetime, timedelta
 from typing import Any
 
 from bs4 import BeautifulSoup
 
 from fingerprinter.entrypoints.ui import create_app
+from fingerprinter.entrypoints.ui.api_model import ApiFile, ApiJob
+from fingerprinter.entrypoints.ui.exceptions import ApiError
 
 
-class FakeResponse:
-    """The part of ``requests.Response`` the UI reads."""
-
-    def __init__(
-        self,
-        status_code: int = 200,
-        payload: Any = None,
-        content: bytes = b"",
-        headers: dict[str, str] | None = None,
-    ) -> None:
-        self.status_code = status_code
-        self._payload = payload
-        self.content = content
-        self.headers = headers or {}
-
-    def json(self) -> Any:
-        return self._payload
-
-
-def problem(status: int, kind: str | None = None, **fields: Any) -> FakeResponse:
-    """An RFC 7807 answer as the API sends it."""
+def problem(status: int, kind: str | None = None, **fields: Any) -> ApiError:
+    """An RFC 7807 refusal as the API sends it."""
     body = {"status": status, "type": f"urn:fingerprinter:{kind}" if kind else "about:blank"}
-    return FakeResponse(status, body | fields)
+    return ApiError(body | fields, status)
+
+
+def unreachable() -> ApiError:
+    return ApiError()
+
+
+def served(
+    name: str, content_type: str, content: bytes = b"content", chunks: Iterable[bytes] | None = None
+) -> ApiFile:
+    """A file the API serves; the client keeps the media type without its parameters."""
+    media_type = content_type.split(";")[0]
+    return ApiFile(chunks if chunks is not None else iter([content]), media_type, name)
 
 
 def record(job_id: str = "job-1", state: str = "completed", **fields: Any) -> dict[str, Any]:
@@ -57,55 +53,54 @@ ACTIVE = ("queued", "running")
 
 
 class FakeApi:
-    """Answers each client call from ``jobs`` unless ``answers`` holds a response or an exception."""
+    """Answers each client call from ``jobs`` unless ``answers`` holds a value or an ``ApiError``."""
 
     def __init__(self) -> None:
         self.jobs: list[dict[str, Any]] = []
-        self.answers: dict[str, FakeResponse | Exception] = {}
+        self.answers: dict[str, Any] = {}
         self.calls: list[tuple[Any, ...]] = []
 
-    def _answer(self, name: str, *args: Any, default: FakeResponse) -> FakeResponse:
+    def _answer(self, name: str, *args: Any, default: Any = None) -> Any:
         self.calls.append((name, *args))
         answer = self.answers.get(name, default)
         if isinstance(answer, Exception):
             raise answer
         return answer
 
-    def get_reports(self) -> FakeResponse:
-        return self._answer("get_reports", default=FakeResponse(200, self.jobs))
+    def _parsed(self) -> list[ApiJob]:
+        return [ApiJob.from_dict(job) for job in self.jobs]
 
-    def get_job(self, job_id: str) -> FakeResponse:
-        found = next((job for job in self.jobs if job["id"] == job_id), None)
-        default = FakeResponse(200, found) if found else problem(404, "JobNotFound")
-        return self._answer("get_job", job_id, default=default)
+    def list_jobs(self) -> list[ApiJob]:
+        return self._answer("list_jobs", default=self._parsed())
 
-    def get_file(self, job_id: str, report_format: str, name: str | None = None) -> FakeResponse:
+    def job(self, job_id: str) -> ApiJob:
+        found = next((job for job in self._parsed() if job.id == job_id), None)
+        return self._answer("job", job_id, default=found or problem(404, "JobNotFound"))
+
+    def file(self, job_id: str, report_format: str, name: str | None = None) -> ApiFile:
         args = (job_id, report_format, *([name] if name else []))
-        return self._answer("get_file", *args, default=problem(404, "FormatNotAvailable"))
+        return self._answer("file", *args, default=problem(404, "FormatNotAvailable"))
 
-    def delete_report(self, job_id: str) -> FakeResponse:
-        return self._answer("delete_report", job_id, default=FakeResponse(200, {"message": "ok"}))
+    def delete_job(self, job_id: str) -> None:
+        self._answer("delete_job", job_id)
 
-    def cancel_task(self, task_id: str) -> FakeResponse:
-        return self._answer("cancel_task", task_id, default=FakeResponse(200, {"message": "ok"}))
+    def cancel_job(self, job_id: str) -> None:
+        self._answer("cancel_job", job_id)
 
-    def fingerprint_sparql_endpoint(self, url: str, graphs: list[str]) -> FakeResponse:
-        return self._answer(
-            "fingerprint_sparql_endpoint", url, graphs, default=FakeResponse(202, {"task_id": "j1"})
-        )
+    def start_endpoint_job(self, url: str, graphs: list[str]) -> None:
+        self._answer("start_endpoint_job", url, graphs)
 
-    def fingerprint_file(self, data_file: Any) -> FakeResponse:
-        return self._answer(
-            "fingerprint_file", data_file.filename, default=FakeResponse(202, {"task_id": "j1"})
-        )
+    def start_file_job(self, data_file: Any) -> None:
+        self._answer("start_file_job", data_file.filename)
 
 
-def make_app(api: FakeApi, *, csrf: bool = False):
+def make_app(api: FakeApi, *, csrf: bool = False, secure_cookies: bool = False):
     app = create_app(
         "http://api.test",
         "ui-secret",
         accepted_extensions=("rdf", "ttl"),
         max_upload_bytes=2 * 1024 * 1024,
+        secure_cookies=secure_cookies,
     )
     app.config["WTF_CSRF_ENABLED"] = csrf
     app.extensions["api"] = api

@@ -4,13 +4,17 @@ import re
 from pathlib import Path
 
 import pytest
+import yaml
 from bs4 import BeautifulSoup
 
 from fingerprinter.domain.model import JobState, ReportFormat
+from fingerprinter.entrypoints.api import PROBLEM_STATUS
 from fingerprinter.entrypoints.ui import labels
-from tests.unit.ui.fake_api import make_app
+from fingerprinter.entrypoints.ui.api_model import ApiState
+from tests.unit.ui.fake_api import make_app, record
 
 UI = Path(__file__).parents[3] / "fingerprinter" / "entrypoints" / "ui"
+OPENAPI = UI.parent / "api" / "openapi" / "fingerprinter.yml"
 CSS = (UI / "static" / "app.css").read_text()
 PAGES = ["/", "/jobs/new?from=endpoint", "/jobs/new?from=file"]
 
@@ -94,7 +98,7 @@ def test_a_flashed_message_is_shown_in_the_flash_area(client):
 def test_the_icons_are_inline_decorative_svg_macros():
     macros = (UI / "templates" / "icons.html").read_text()
 
-    for name in ("logo", "plus", "download", "more", "warning", "trash", "upload", "check"):
+    for name in ("logo", "plus", "download", "more", "upload"):
         assert f"macro {name}(" in macros
     assert "aria-hidden" in macros
 
@@ -167,6 +171,26 @@ def test_labels_name_every_job_state():
         "failed": "Failed",
         "cancelled": "Cancelled",
     }
+
+
+def test_the_ui_states_are_the_states_of_the_openapi_contract():
+    enum = yaml.safe_load(OPENAPI.read_text())["components"]["schemas"]["JobState"]["enum"]
+    stopped = next(f.states for f in labels.FILTERS if f.id == "stopped")
+
+    assert {state.value for state in ApiState} == set(enum)
+    assert set(labels.STATES) == set(ApiState)
+    assert (labels.ACTIVE_STATES | labels.OUTPUT_STATES | stopped) == set(ApiState)
+
+
+def test_there_is_a_sentence_for_each_problem_the_api_sends_and_for_no_other():
+    assert set(labels.PROBLEMS) == {problem.__name__ for problem in PROBLEM_STATUS}
+
+
+def test_what_you_get_lists_a_format_from_the_stage_that_produces_it():
+    listed = {f.id for f in labels.LISTED_FORMATS}
+
+    assert labels.FormatId.SVG not in listed
+    assert listed == {f.id for f in labels.FORMATS if f.listed_from_stage <= labels.CURRENT_STAGE}
 
 
 def test_labels_name_every_format_in_display_order():
@@ -248,8 +272,6 @@ def test_the_flash_messages_of_the_actions():
          None, "This job has already finished."),
         ({"type": "urn:fingerprinter:JobIsActive"},
          None, "Cancel the job before deleting it."),
-        ({"type": "urn:fingerprinter:GraphListingFailed", "detail": "timed out"},
-         None, "Could not list the graphs: timed out."),
         ({"type": "urn:other:Teapot", "detail": "I am a teapot."}, None, "I am a teapot."),
         (None, None, "Something went wrong on the server. Try again."),
         ({"type": "about:blank"}, None, "Something went wrong on the server. Try again."),
@@ -262,3 +284,86 @@ def test_one_sentence_per_problem_type(problem, limit, sentence):
 def test_the_unreachable_service_sentences():
     assert labels.UNREACHABLE == "The service is not reachable. Try again in a moment."
     assert labels.UPDATES_PAUSED == "Status updates paused: the service is not reachable."
+
+
+# --- framing, cookies, expired forms (stage-1 review S1-2) ---------------------------------------
+
+
+@pytest.mark.parametrize("path", [*PAGES, "/jobs/nope/delete", "/static/app.css"])
+def test_every_response_refuses_to_be_framed_by_another_site(client, path):
+    headers = client.get(path).headers
+
+    assert headers["X-Frame-Options"] == "SAMEORIGIN"
+    assert "frame-ancestors 'self'" in headers["Content-Security-Policy"]
+
+
+def test_the_session_cookie_is_same_site_lax_and_secure_only_when_asked(api):
+    plain = make_app(api)
+    secure = make_app(api, secure_cookies=True)
+
+    assert plain.config["SESSION_COOKIE_SAMESITE"] == "Lax"
+    assert plain.config["SESSION_COOKIE_SECURE"] is False
+    assert secure.config["SESSION_COOKIE_SECURE"] is True
+    assert secure.config["SESSION_COOKIE_HTTPONLY"] is True
+
+
+EXPIRED = "This form expired. Please try again."
+
+
+def expired_client(api):
+    app = make_app(api, csrf=True)
+    app.config["WTF_CSRF_TIME_LIMIT"] = -1  # every token is already too old
+    return app.test_client()
+
+
+def test_an_expired_endpoint_form_is_shown_again_with_what_was_typed(api):
+    client = expired_client(api)
+    token = soup(client.get("/jobs/new")).find("input", attrs={"name": "csrf_token"})["value"]
+
+    response = client.post(
+        "/jobs/endpoint",
+        data={"csrf_token": token, "sparql_endpoint_url": "http://e/sparql", "graphs": "g1"},
+    )
+
+    page = soup(response)
+    assert response.status_code == 400
+    assert page.find(class_="flash-error").get_text(strip=True) == EXPIRED
+    assert page.find("input", id="sparql_endpoint_url")["value"] == "http://e/sparql"
+    assert page.find("input", attrs={"name": "csrf_token"})["value"]
+    assert api.calls == []
+
+
+def test_an_expired_file_form_is_shown_again(api):
+    client = expired_client(api)
+
+    response = client.post("/jobs/file", data={}, content_type="multipart/form-data")
+
+    page = soup(response)
+    assert response.status_code == 400
+    assert page.find(class_="flash-error").get_text(strip=True) == EXPIRED
+    assert page.find("input", type="file") is not None
+
+
+@pytest.mark.parametrize(("action", "title"), [("delete", "Delete this report?"),
+                                               ("cancel", "Cancel this job?")])  # fmt: skip
+def test_an_expired_confirmation_is_shown_again(api, action, title):
+    api.jobs = [record("j1", "running" if action == "cancel" else "completed")]
+    client = expired_client(api)
+
+    response = client.post(f"/jobs/j1/{action}")
+
+    page = soup(response)
+    assert response.status_code == 400
+    assert page.find(class_="flash-error").get_text(strip=True) == EXPIRED
+    assert page.find(attrs={"role": "alertdialog"}).find("h1").text == title
+    assert not [call for call in api.calls if call[0] in ("delete_job", "cancel_job")]
+
+
+def test_an_expired_post_to_a_route_without_a_form_says_the_form_expired(api):
+    app = make_app(api, csrf=True)
+    app.add_url_rule("/probe", "probe", lambda: "never", methods=["POST"])
+
+    response = app.test_client().post("/probe")
+
+    assert response.status_code == 400
+    assert EXPIRED in soup(response).find("main").text

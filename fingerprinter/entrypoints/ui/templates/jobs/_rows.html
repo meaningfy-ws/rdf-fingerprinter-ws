@@ -2,12 +2,12 @@
 {# The table body; the page includes it and /jobs/rows answers it (design, live status). #}
 <tbody id="job-rows"{% if polling %} hx-get="{{ url_for('job_rows', show=show) }}" hx-trigger="every 3s" hx-swap="outerHTML" hx-vals='{{ {"was": was}|tojson }}'{% endif %}>
 {% if paused %}
-    <tr><td colspan="5" class="muted">{{ labels.UPDATES_PAUSED }}</td></tr>
+    <tr><td colspan="5" class="muted">{{ paused }}</td></tr>
 {% elif not rows %}
     <tr><td colspan="5" class="empty">
         {% if total %}
-            <p><strong>No jobs here.</strong></p>
-            <a class="btn" href="{{ url_for('index') }}">Show all</a>
+            <p><strong>{{ labels.NO_JOBS_HERE }}</strong></p>
+            <a class="btn" href="{{ url_for('index') }}">{{ labels.SHOW_ALL }}</a>
         {% else %}
             {% include "jobs/_none.html" %}
         {% endif %}
@@ -28,7 +28,7 @@
             {% if job.has_outputs %}
             <div class="actions">
                 <a href="{{ url_for('job_report', job_id=job.id) }}" target="_blank" rel="noopener">{{ labels.OPEN_REPORT }}<span class="visually-hidden"> (opens in a new tab)</span></a>
-                <a href="{{ url_for('job_download', job_id=job.id, report_format='zip') }}">{{ icons.download(16) }} {{ labels.FORMAT_NAMES['zip'] }}</a>
+                <a href="{{ url_for('job_download', job_id=job.id, report_format=labels.FormatId.ZIP) }}">{{ icons.download(16) }} {{ labels.FORMAT_NAMES[labels.FormatId.ZIP] }}</a>
             </div>
             {% endif %}
         </td>

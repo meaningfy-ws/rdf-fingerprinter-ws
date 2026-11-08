@@ -118,7 +118,7 @@ main { flex: 1 0 auto; width: 100%; max-width: 72rem; margin: 0 auto; padding: 1
 .badge-done { background: var(--done-bg); color: var(--done-fg); }
 .badge-warnings { background: var(--warnings-bg); color: var(--warnings-fg); }
 .badge-failed { background: var(--failed-bg); color: var(--failed-fg); }
-.badge-cancelled { background: var(--cancelled-bg); color: var(--cancelled-fg); }
+.badge-cancelled, .badge-unknown { background: var(--cancelled-bg); color: var(--cancelled-fg); }
 
 /* cards and tables */
 .card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 1rem 1.25rem; margin-bottom: 1rem; }

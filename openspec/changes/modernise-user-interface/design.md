@@ -192,6 +192,13 @@ Recorded before the fixes (Rule of Divergence).
   announcement once and that no `/jobs/rows` request follows "Done"; the `hx-vals` after a change;
   the `TZ` fixture restores `time.tzset()`.
 
+As built (S1 fixes): `next` checks, framing headers, CSRF expiry and cookies as listed;
+`RDF_FINGERPRINTER_UI_SECURE_COOKIES` (default false) added to the settings and `docker/.env`; an
+unknown state shows its raw text with a neutral badge; a record written before `files` existed gets
+its `files` from its format folders when `FileJobStore` reads it, so older jobs keep their outputs;
+the e2e journey cancels leftover active jobs first (`quiet_console`), since the job store outlives a
+test module's worker.
+
 ## Algorithm — live status
 
 The rows fragment is the same template as the page's table body (`templates/jobs/_rows.html`).

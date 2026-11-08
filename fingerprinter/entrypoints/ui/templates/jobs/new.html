@@ -7,19 +7,19 @@
     <h1>New job</h1>
     <nav aria-label="Where the data comes from">
         <ul class="tabs">
-            <li><a href="{{ url_for('new_job', **{'from': 'endpoint'}) }}"{% if tab == 'endpoint' %} aria-current="page"{% endif %}>From an endpoint</a></li>
-            <li><a href="{{ url_for('new_job', **{'from': 'file'}) }}"{% if tab == 'file' %} aria-current="page"{% endif %}>From a file</a></li>
+            <li><a href="{{ url_for('new_job', **{'from': labels.Tab.ENDPOINT}) }}"{% if tab == labels.Tab.ENDPOINT %} aria-current="page"{% endif %}>{{ labels.TAB_NAMES[labels.Tab.ENDPOINT] }}</a></li>
+            <li><a href="{{ url_for('new_job', **{'from': labels.Tab.FILE}) }}"{% if tab == labels.Tab.FILE %} aria-current="page"{% endif %}>{{ labels.TAB_NAMES[labels.Tab.FILE] }}</a></li>
         </ul>
     </nav>
     <div class="split">
-        {% if tab == 'file' %}
+        {% if tab == labels.Tab.FILE %}
         <form class="card" method="post" action="{{ url_for('start_file_job') }}" enctype="multipart/form-data" novalidate>
             {{ form.csrf_token }}
             <div class="field">
                 {{ form.data_file.label }}
                 <div class="dropzone">
                     {{ icons.upload(28) }}
-                    <p>Drop a file here, or choose one.</p>
+                    <p>{{ labels.DROP_A_FILE }}</p>
                     {{ form.data_file(accept=accepted|join(","), **{"aria-describedby": "data_file-hint data_file-error"}) }}
                 </div>
                 <p class="help" id="data_file-hint">Accepted: {{ accepted|join(", ") }}. Up to {{ limit_mb }} MB.</p>
@@ -28,8 +28,8 @@
                 </div>
             </div>
             <div class="form-actions">
-                <button type="submit" class="btn btn-primary">Start fingerprinting</button>
-                <a class="btn" href="{{ url_for('index') }}">Cancel</a>
+                <button type="submit" class="btn btn-primary">{{ labels.START_FINGERPRINTING }}</button>
+                <a class="btn" href="{{ url_for('index') }}">{{ labels.CANCEL }}</a>
             </div>
         </form>
         {% else %}
@@ -38,15 +38,15 @@
             {{ macros.field(form.sparql_endpoint_url, type="url", autocomplete="url") }}
             {{ macros.field(form.graphs, rows=4) }}
             <div class="form-actions">
-                <button type="submit" class="btn btn-primary">Start fingerprinting</button>
-                <a class="btn" href="{{ url_for('index') }}">Cancel</a>
+                <button type="submit" class="btn btn-primary">{{ labels.START_FINGERPRINTING }}</button>
+                <a class="btn" href="{{ url_for('index') }}">{{ labels.CANCEL }}</a>
             </div>
         </form>
         {% endif %}
         <aside class="card" aria-labelledby="what-you-get">
             <h2 id="what-you-get">What you get</h2>
             <dl class="outputs">
-                {% for format in formats if format.id != 'svg' %}{# SVG pictures arrive with the Job page (stage 2) #}
+                {% for format in formats %}
                 <dt>{{ format.name }}</dt>
                 <dd>{{ format.description }}</dd>
                 {% endfor %}

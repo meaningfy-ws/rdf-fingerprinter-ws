@@ -57,11 +57,19 @@ class FileJobStore:
         self._write(record)
 
     def get(self, job_id: str) -> JobRecord:
-        meta = self._folder(job_id) / META_FILE
+        folder = self._folder(job_id)
         try:
-            return JobRecord.from_dict(json.loads(meta.read_text()))
+            data = json.loads((folder / META_FILE).read_text())
         except FileNotFoundError:
             raise JobNotFound(job_id) from None
+        if "files" not in data:
+            # a record written before `files` existed: its format folders on disk are the listing
+            data["files"] = {
+                fmt: sorted(p.name for p in (folder / fmt).iterdir() if p.is_file())
+                for fmt in data.get("formats", [])
+                if (folder / fmt).is_dir()
+            }
+        return JobRecord.from_dict(data)
 
     def list(self) -> list[JobRecord]:
         if not self.reports_folder.is_dir():
@@ -81,13 +89,7 @@ class FileJobStore:
         reason: str | None = None,
         failures: tuple[str, ...] = (),
     ) -> None:
-        record = self.get(job_id)
-        finished_at = None if state.is_active else self.clock()
-        self._write(
-            dataclasses.replace(
-                record, state=state, reason=reason, failures=failures, finished_at=finished_at
-            )
-        )
+        self._write(self.get(job_id).with_state(state, reason, failures, self.clock()))
 
     def save_outputs(self, job_id: str, outcome: FingerprintOutcome) -> None:
         record = self.get(job_id)
@@ -102,25 +104,19 @@ class FileJobStore:
             if len(paths) > 1:
                 _zip(folder / report_format.value, _format_zip(folder, report_format), ["."])
         _zip(folder, folder / REPORT_ZIP, folder_names=[f.value for f in outcome.formats])
-        files = {
-            fmt: tuple(sorted(path.name for path in outcome.files[fmt])) for fmt in outcome.formats
-        }
-        self._write(dataclasses.replace(record, formats=outcome.formats, files=files))
+        self._write(dataclasses.replace(record, files=outcome.file_names))
 
     def discard_outputs(self, job_id: str) -> None:
         record = self.get(job_id)
         for entry in self._folder(job_id).iterdir():
             if entry.name != META_FILE:
                 shutil.rmtree(entry) if entry.is_dir() else entry.unlink()
-        self._write(dataclasses.replace(record, formats=(), files={}))
+        self._write(dataclasses.replace(record, files={}))
 
     def file_for(self, job_id: str, report_format: ReportFormat, name: str | None = None) -> Path:
-        record = self.get(job_id)
+        self.get(job_id)
         folder = self._folder(job_id)
-        if name is not None:
-            # only a name the record lists reaches the file system
-            if name not in record.files.get(report_format, ()):
-                raise FormatNotAvailable(job_id, report_format)
+        if name is not None:  # the service has checked that the record lists the name
             return folder / report_format.value / name
         if report_format is ReportFormat.ZIP:
             if not (folder / REPORT_ZIP).is_file():

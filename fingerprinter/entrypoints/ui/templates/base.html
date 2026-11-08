@@ -18,7 +18,7 @@
         <a class="brand" href="{{ url_for('index') }}">{{ icons.logo() }} RDF Fingerprinter</a>
         <nav class="nav" aria-label="Main">
             <a href="{{ url_for('index') }}"{% if active_page|default('') == 'index' %} aria-current="page"{% endif %}>Jobs</a>
-            <a class="btn btn-primary" href="{{ url_for('new_job') }}">{{ icons.plus() }} New job</a>
+            <a class="btn btn-primary" href="{{ url_for('new_job') }}">{{ icons.plus() }} {{ labels.NEW_JOB }}</a>
         </nav>
     </div>
 </header>

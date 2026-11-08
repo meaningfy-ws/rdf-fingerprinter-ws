@@ -3,11 +3,11 @@
 from io import BytesIO
 
 import pytest
-import requests
 from werkzeug.datastructures import FileStorage
 
 from fingerprinter.entrypoints.ui import create_app
-from tests.unit.ui.fake_api import FakeResponse, make_app, page, problem
+from fingerprinter.entrypoints.ui.exceptions import ApiError
+from tests.unit.ui.fake_api import make_app, page, problem, record, unreachable
 
 URL_REFUSED = "Enter an http or https SPARQL endpoint URL, without a user name or password."
 
@@ -91,16 +91,22 @@ def test_the_forms_carry_a_csrf_token(api):
 
 
 def test_an_endpoint_job_is_started(client, api):
+    api.jobs = [
+        record("j1", "queued", source={"endpoint": "http://example.org/sparql", "graphs": []})
+    ]
     response = client.post(
         "/jobs/endpoint",
         data={"sparql_endpoint_url": "http://example.org/sparql", "graphs": ""},
         follow_redirects=True,
     )
 
-    assert ("fingerprint_sparql_endpoint", "http://example.org/sparql", []) in api.calls
+    assert ("start_endpoint_job", "http://example.org/sparql", []) in api.calls
     soup = page(response)
     assert soup.find(class_="flash-success").text.strip() == "Job started."
     assert soup.find("h1").text == "Jobs"
+    row = soup.find("tr", id="job-j1")
+    assert "http://example.org/sparql" in row.get_text()
+    assert row.find(class_="badge").get_text(strip=True) == "Queued"
 
 
 def test_named_graphs_are_split_on_lines_and_spaces(client, api):
@@ -111,7 +117,7 @@ def test_named_graphs_are_split_on_lines_and_spaces(client, api):
 
     assert api.calls == [
         (
-            "fingerprint_sparql_endpoint",
+            "start_endpoint_job",
             "http://e/sparql",
             ["http://g/1", "http://g/2", "http://g/3"],
         )
@@ -122,7 +128,7 @@ def test_named_graphs_are_split_on_lines_and_spaces(client, api):
 
 
 def test_an_invalid_url_is_refused(client, api):
-    api.answers["fingerprint_sparql_endpoint"] = problem(400, "InvalidSource")
+    api.answers["start_endpoint_job"] = problem(400, "InvalidSource")
 
     soup = page(
         client.post("/jobs/endpoint", data={"sparql_endpoint_url": "not a url", "graphs": "g1"})
@@ -147,11 +153,11 @@ def test_an_empty_url_is_refused_without_asking_the_api(client, api):
     [
         (problem(503, "QueueUnavailable"), "The job queue is unavailable. Try again later."),
         (problem(500), "Something went wrong on the server. Try again."),
-        (requests.ConnectionError("down"), "The service is not reachable. Try again in a moment."),
+        (unreachable(), "The service is not reachable. Try again in a moment."),
     ],
 )
 def test_other_refusals_of_an_endpoint_job_are_said_next_to_the_url(client, api, answer, sentence):
-    api.answers["fingerprint_sparql_endpoint"] = answer
+    api.answers["start_endpoint_job"] = answer
 
     soup = page(client.post("/jobs/endpoint", data={"sparql_endpoint_url": "http://e/sparql"}))
 
@@ -165,12 +171,12 @@ def test_other_refusals_of_an_endpoint_job_are_said_next_to_the_url(client, api,
 def test_a_file_job_is_started(client, api):
     response = post_file(client, follow_redirects=True)
 
-    assert ("fingerprint_file", "data.ttl") in api.calls
+    assert ("start_file_job", "data.ttl") in api.calls
     assert page(response).find(class_="flash-success").text.strip() == "Job started."
 
 
 def test_an_unsupported_file_is_refused(client, api):
-    api.answers["fingerprint_file"] = problem(415, "UnsupportedFileType", accepted=["rdf", "ttl"])
+    api.answers["start_file_job"] = problem(415, "UnsupportedFileType", accepted=["rdf", "ttl"])
 
     soup = page(post_file(client, "notes.docx"))
 
@@ -188,7 +194,7 @@ def test_a_missing_file_is_refused_without_asking_the_api(client, api):
 
 
 def test_the_api_refusing_a_large_file_names_the_limit(client, api):
-    api.answers["fingerprint_file"] = problem(413, "UploadTooLarge")
+    api.answers["start_file_job"] = problem(413, "UploadTooLarge")
 
     soup = page(post_file(client))
 
@@ -224,11 +230,7 @@ def test_a_post_without_the_csrf_token_is_refused(api):
 
 
 def test_a_response_with_no_json_is_still_a_sentence(client, api):
-    class NotJson(FakeResponse):
-        def json(self):
-            raise ValueError
-
-    api.answers["fingerprint_sparql_endpoint"] = NotJson(502)
+    api.answers["start_endpoint_job"] = ApiError(None, 502)
 
     soup = page(client.post("/jobs/endpoint", data={"sparql_endpoint_url": "http://e/sparql"}))
 

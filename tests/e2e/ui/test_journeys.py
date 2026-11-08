@@ -1,10 +1,13 @@
 """Journeys in a browser: a user starts a job and watches it finish, and deletes a report (job-console)."""
 
+import re
 from collections.abc import Callable
 
 from playwright.sync_api import Page, expect
 
 JOB_WAIT_MS = 180_000
+POLL_INTERVAL_MS = 3_000
+SETTLE_MS = 500
 
 
 def row_for(page: Page, source: str):
@@ -12,9 +15,14 @@ def row_for(page: Page, source: str):
 
 
 def test_start_an_endpoint_job_and_watch_it_finish(
-    ui_url: str, continents_endpoint: str, open_page: Callable[..., Page]
+    ui_url: str, continents_endpoint: str, quiet_console: None, open_page: Callable[..., Page]
 ):
     page = open_page()
+    polls: list[str] = []
+    page.on(
+        "request",
+        lambda request: polls.append(request.url) if "/jobs/rows" in request.url else None,
+    )
     page.goto(f"{ui_url}/jobs/new")
 
     page.get_by_label("SPARQL endpoint URL").fill(continents_endpoint)
@@ -27,7 +35,12 @@ def test_start_an_endpoint_job_and_watch_it_finish(
     expect(row).to_contain_text("Done", timeout=JOB_WAIT_MS)
     assert page.evaluate("window.sameDocument") is True
     expect(row.get_by_role("link", name="Open report")).to_be_visible()
-    expect(page.locator("#announce")).to_contain_text("Done")
+    ended = rf"^{re.escape(continents_endpoint)}: Done( with warnings)?\.$"
+    expect(page.locator("#announce")).to_have_text(re.compile(ended))  # said once, not repeated
+    page.wait_for_timeout(SETTLE_MS)  # the browser's last request events reach this test
+    polls_when_done = len(polls)
+    page.wait_for_timeout(POLL_INTERVAL_MS + 1_500)  # longer than one polling interval
+    assert len(polls) == polls_when_done, "the page kept polling after the job was done"
 
 
 def test_delete_with_confirmation(
