@@ -34,4 +34,7 @@ Job ids: endpoint `3cbe1c65-4521-4701-925f-7799cd5763c2`, file `bb492693-842e-44
 The stack is still running: open http://localhost:8020 (UI) and http://localhost:4020/ui (Swagger).
 Start a job of your own, download a format, and reply with your verdict.
 
-- [ ] Accepted by the developer (date, remarks):
+- [x] Accepted by the developer (2026-11-08): as the working base — the API, jobs and outputs.
+  The UI is not accepted as it looks: the developer asked for a proper revamp with clearer labels
+  (the label analysis is in `modernise-user-interface/inputs/ui-analysis.md`), which the UI EPIC
+  delivers next, before stage 4.
