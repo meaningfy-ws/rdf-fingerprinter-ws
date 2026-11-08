@@ -2,16 +2,14 @@
 
 import dataclasses
 import io
-import zipfile
 from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
 
-from fingerprinter.adapters.file_job_store import FileJobStore
+from fingerprinter.config import OUTPUT_MIME_TYPES
 from fingerprinter.domain.exceptions import QueueUnavailable, UploadTooLarge
 from fingerprinter.domain.model import (
-    FingerprintOutcome,
     JobRecord,
     JobState,
     ReportFormat,
@@ -42,6 +40,7 @@ def services() -> Services:
         dataset_store=FakeDatasetStore(),
         fingerprinter=FakeFingerprinter(),
         supported_extensions=frozenset({"ttl", "rdf"}),
+        output_mime_types=OUTPUT_MIME_TYPES,
     )
 
 
@@ -220,26 +219,32 @@ def test_a_format_is_served_as_a_file(
     assert response.text == "content"
 
 
-def test_a_multi_file_format_is_served_as_a_zip_named_after_the_job(services, tmp_path):
-    services = dataclasses.replace(services, job_store=FileJobStore(tmp_path / "reports"))
+def test_a_download_is_not_sniffed_into_another_type(client, services, tmp_path):
     seed(services, J1)
-    work = tmp_path / "work"
-    work.mkdir()
-    for name in ("diagram-x.puml", "diagram-x--m.puml"):
-        (work / name).write_text(name)
-    services.job_store.save_outputs(
-        J1,
-        FingerprintOutcome(
-            files={ReportFormat.PUML: (work / "diagram-x.puml", work / "diagram-x--m.puml")}
-        ),
+    (tmp_path / "main.html").write_text("content")
+    seed_output(services, J1, ReportFormat.HTML, tmp_path / "main.html")
+
+    response = client.get(f"/reports/{J1}/html")
+
+    assert response.headers["x-content-type-options"] == "nosniff"
+
+
+def test_the_media_type_of_a_download_comes_from_the_table_then_from_the_extension(
+    services, tmp_path
+):
+    services = dataclasses.replace(services, output_mime_types={"html": "text/x-from-the-table"})
+    seed(services, J1)
+    for report_format, name in ((ReportFormat.HTML, "main.html"), (ReportFormat.JSON, "p.json")):
+        (tmp_path / name).write_text("content")
+        seed_output(services, J1, report_format, tmp_path / name)
+    client = create_app(services).test_client()
+
+    assert (
+        client.get(f"/reports/{J1}/html")
+        .headers["content-type"]
+        .startswith("text/x-from-the-table")
     )
-
-    response = create_app(services).test_client().get(f"/reports/{J1}/puml")
-
-    assert response.headers["content-type"].startswith("application/zip")
-    assert f"filename={J1}-puml.zip" in response.headers["content-disposition"]
-    with zipfile.ZipFile(io.BytesIO(response.content)) as archive:
-        assert sorted(archive.namelist()) == ["diagram-x--m.puml", "diagram-x.puml"]
+    assert client.get(f"/reports/{J1}/json").headers["content-type"].startswith("application/json")
 
 
 def test_a_format_with_no_file_is_a_404(client, services):

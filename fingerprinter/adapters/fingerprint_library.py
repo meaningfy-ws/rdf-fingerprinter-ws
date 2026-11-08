@@ -5,6 +5,7 @@ job service turns them into a failed job (design D-15).
 """
 
 import shutil
+from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
@@ -33,14 +34,27 @@ def _move_into(report_format: ReportFormat, source: Path, work_folder: Path) -> 
     return Path(shutil.move(source, folder / source.name))
 
 
-# the formats the library generates after profiling, each into its own folder (design D-3)
-GENERATED_FORMATS = (
-    ReportFormat.SHACL,
-    ReportFormat.PUML,
-    ReportFormat.PATTERN,
-    ReportFormat.SHEX,
-    ReportFormat.PITFALLS,
-)
+# The formats the library generates after profiling, each into its own folder (design D-3), with
+# the id the library's generator registry knows it by.
+GENERATOR_IDS: Mapping[ReportFormat, str] = {
+    ReportFormat.SHACL: "shacl",
+    ReportFormat.PUML: "puml",
+    ReportFormat.PATTERN: "pattern",
+    ReportFormat.SHEX: "shex",
+    ReportFormat.PITFALLS: "pitfalls",
+}
+# the pitfall findings reach the report page and the pitfalls output only with the scan on
+PITFALL_SCAN = True
+
+
+def _generate(run: Any, work_folder: Path) -> dict[ReportFormat, tuple[Path, ...]]:
+    """Render every generated format of the run, each into its own folder of ``work_folder``."""
+    return {
+        report_format: tuple(
+            generate_representations(run, work_folder / report_format.value, [generator_id])
+        )
+        for report_format, generator_id in GENERATOR_IDS.items()
+    }
 
 
 class LibraryFingerprinter:
@@ -49,24 +63,17 @@ class LibraryFingerprinter:
     ) -> FingerprintOutcome:
         # env={}: collection settings never come from the worker's environment (D-15)
         settings = resolve_settings(
-            env={}, selected_graphs=list(graphs) or None, config={"pitfall_scan": True}
+            env={}, selected_graphs=list(graphs) or None, config={"pitfall_scan": PITFALL_SCAN}
         )
         report, run = fingerprint_report(
             endpoint_url, work_folder, settings, formats=(), prefix_list=None
         )
+        profile = work_folder / library_config.profile_file
         files: dict[ReportFormat, tuple[Path, ...]] = {
             ReportFormat.HTML: (_move_into(ReportFormat.HTML, report, work_folder),),
-            ReportFormat.JSON: (
-                _move_into(
-                    ReportFormat.JSON, work_folder / library_config.profile_file, work_folder
-                ),
-            ),
+            ReportFormat.JSON: (_move_into(ReportFormat.JSON, profile, work_folder),),
+            **_generate(run, work_folder),
         }
-        for report_format in GENERATED_FORMATS:
-            written = generate_representations(
-                run, work_folder / report_format.value, [report_format.value]
-            )
-            files[report_format] = tuple(written)
         return FingerprintOutcome(
             files=files,
             failures=tuple(describe_failure(failure) for failure in run.failures or ()),

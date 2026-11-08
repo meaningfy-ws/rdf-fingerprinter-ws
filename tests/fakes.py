@@ -11,16 +11,20 @@ from fingerprinter.domain.model import (
     JobState,
     ReportFormat,
 )
+from fingerprinter.services import jobs
 
 
 class JobFailed(Exception):
     """A test-only failure raised by FakeFingerprinter."""
 
 
+# One file per format the library writes (the file store adds the zip itself).
+_FILE_NAMES = {ReportFormat.HTML: "main.html", ReportFormat.JSON: "profile.json"}
 DEFAULT_OUTCOME = FingerprintOutcome(
     files={
-        ReportFormat.HTML: (Path("main.html"),),
-        ReportFormat.JSON: (Path("profile.json"),),
+        report_format: (Path(_FILE_NAMES.get(report_format, f"{report_format.value}.txt")),)
+        for report_format in ReportFormat
+        if report_format is not ReportFormat.ZIP
     }
 )
 
@@ -41,10 +45,13 @@ class FakeFingerprinter:
 
 
 class FakeDatasetStore:
-    def __init__(self) -> None:
+    def __init__(self, job_store: "InMemoryJobStore | None" = None) -> None:
         self.datasets: dict[str, Path | None] = {}
         self.actions: list[tuple[str, str]] = []
         self.fail_on_create: Exception | None = None
+        self.job_store = job_store
+        # the state of the dataset's job when the dataset was deleted (needs a job store)
+        self.state_at_delete: dict[str, JobState] = {}
 
     def create(self, name: str) -> None:
         self.actions.append(("create", name))
@@ -58,6 +65,12 @@ class FakeDatasetStore:
 
     def delete(self, name: str) -> None:
         self.actions.append(("delete", name))
+        if self.job_store:
+            self.state_at_delete[name] = next(
+                record.state
+                for record in self.job_store.list()
+                if jobs.dataset_name(record.id) == name
+            )
         self.datasets.pop(name, None)
 
     def sparql_url(self, name: str) -> str:

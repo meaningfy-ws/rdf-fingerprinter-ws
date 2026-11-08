@@ -10,27 +10,28 @@ import pytest
 import requests
 from celery.contrib.testing.worker import start_worker
 
-from tests.containers import FusekiServer
+from fingerprinter.domain.model import JobState
+from tests.containers import FusekiServer, RedisServer
 
 WAIT_SECONDS = 180
-FINAL_STATES = {"completed", "completed_with_failures", "failed", "cancelled"}
+FINAL_STATES = {state for state in JobState if not state.is_active}
 
 
 @pytest.fixture(scope="session")
-def stack(fuseki: FusekiServer, redis_url: str, tmp_path_factory) -> Iterator[ModuleType]:
+def stack(
+    fuseki: FusekiServer, redis_server: RedisServer, tmp_path_factory
+) -> Iterator[ModuleType]:
     """``fingerprinter.bootstrap`` imported afresh with the environment pointing at the containers."""
     folders = tmp_path_factory.mktemp("e2e")
     (folders / "db").mkdir()
     (folders / "reports").mkdir()
-    redis_location, _, redis_port = redis_url.removesuffix("/0").rpartition(":")
-    fuseki_location, _, fuseki_port = fuseki.url.rpartition(":")
     environment = {
         "RDF_FINGERPRINTER_API_SECRET_KEY": "e2e-api",
         "RDF_FINGERPRINTER_UI_SECRET_KEY": "e2e-ui",
-        "RDF_FINGERPRINTER_REDIS_LOCATION": redis_location,
-        "RDF_FINGERPRINTER_REDIS_PORT": redis_port,
-        "RDF_FINGERPRINTER_FUSEKI_LOCATION": fuseki_location,
-        "RDF_FINGERPRINTER_FUSEKI_PORT": fuseki_port,
+        "RDF_FINGERPRINTER_REDIS_LOCATION": f"redis://{redis_server.host}",
+        "RDF_FINGERPRINTER_REDIS_PORT": str(redis_server.port),
+        "RDF_FINGERPRINTER_FUSEKI_LOCATION": f"http://{fuseki.host}",
+        "RDF_FINGERPRINTER_FUSEKI_PORT": str(fuseki.port),
         "RDF_FINGERPRINTER_FUSEKI_USERNAME": fuseki.user,
         "RDF_FINGERPRINTER_FUSEKI_PASSWORD": fuseki.password,
         "RDF_FINGERPRINTER_FILE_DB": str(folders / "db"),
@@ -73,7 +74,7 @@ def dataset_names(fuseki: FusekiServer):
     return names
 
 
-def wait_for(api, job_id: str, states: set[str] = FINAL_STATES) -> tuple[dict, float]:
+def wait_for(api, job_id: str, states: set[JobState] = FINAL_STATES) -> tuple[dict, float]:
     """Poll the job until it is in one of ``states``; return its status and the seconds waited."""
     started = time.monotonic()
     while time.monotonic() - started < WAIT_SECONDS:

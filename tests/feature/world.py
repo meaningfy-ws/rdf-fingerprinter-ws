@@ -10,12 +10,13 @@ from http import HTTPStatus
 from pathlib import Path
 from typing import Any
 
-from fingerprinter.config import INPUT_MIME_TYPES
-from fingerprinter.domain.model import FingerprintOutcome, ReportFormat
+from fingerprinter.config import INPUT_MIME_TYPES, OUTPUT_MIME_TYPES
+from fingerprinter.domain.model import FingerprintOutcome
 from fingerprinter.entrypoints.api import create_app
 from fingerprinter.services import jobs
 from fingerprinter.services.ports import Services
 from tests.fakes import (
+    DEFAULT_OUTCOME,
     FakeDatasetStore,
     FakeFingerprinter,
     FakeJobQueue,
@@ -24,16 +25,6 @@ from tests.fakes import (
 )
 
 RESOURCES = Path(__file__).parent.parent / "resources"
-# the file each format gets from the library (the file store adds the zip format itself)
-LIBRARY_FILE_NAMES = {
-    ReportFormat.HTML: "main.html",
-    ReportFormat.JSON: "profile.json",
-    ReportFormat.SHACL: "shapes-x.ttl",
-    ReportFormat.PUML: "diagram-x.puml",
-    ReportFormat.PATTERN: "patterns-x.md",
-    ReportFormat.SHEX: "shex-x.shex",
-    ReportFormat.PITFALLS: "pitfalls-x.tsv",
-}
 FILE_CONTENT = {"notes.txt": b"just some notes"}
 
 
@@ -42,7 +33,7 @@ class World:
         self.store = InMemoryJobStore()
         self.queue = FakeJobQueue()
         self.uploads = FakeUploadStore()
-        self.datasets = FakeDatasetStore()
+        self.datasets = FakeDatasetStore(self.store)
         self.library = FakeFingerprinter(self._outcome(folder))
         self.client = create_app(
             Services(
@@ -52,6 +43,7 @@ class World:
                 dataset_store=self.datasets,
                 fingerprinter=self.library,
                 supported_extensions=frozenset(INPUT_MIME_TYPES),
+                output_mime_types=OUTPUT_MIME_TYPES,
             )
         ).test_client()
         self.job_id: str | None = None
@@ -64,8 +56,8 @@ class World:
     def _outcome(folder: Path) -> FingerprintOutcome:
         """The files a run writes (one per format), which exist so that a download can serve them."""
         files = {}
-        for report_format, name in LIBRARY_FILE_NAMES.items():
-            path = folder / name
+        for report_format, (planned,) in DEFAULT_OUTCOME.files.items():
+            path = folder / planned.name
             path.write_text("content")
             files[report_format] = (path,)
         return FingerprintOutcome(files=files)

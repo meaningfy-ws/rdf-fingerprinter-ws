@@ -17,8 +17,8 @@ DEFAULT_QUEUE = "celery"
 
 
 @pytest.fixture
-def broker(redis_url) -> Iterator[redis.Redis]:
-    client = redis.Redis.from_url(redis_url)
+def broker(redis_server) -> Iterator[redis.Redis]:
+    client = redis.Redis.from_url(redis_server.url)
     client.delete(DEFAULT_QUEUE)
     yield client
     client.delete(DEFAULT_QUEUE)
@@ -32,8 +32,8 @@ def sent_message(broker: redis.Redis) -> tuple[str, str, list]:
     return message["headers"]["task"], message["headers"]["id"], args
 
 
-def test_submit_endpoint_sends_the_endpoint_task_under_the_job_id(redis_url, broker):
-    CeleryJobQueue(Celery(broker=redis_url)).submit_endpoint(
+def test_submit_endpoint_sends_the_endpoint_task_under_the_job_id(redis_server, broker):
+    CeleryJobQueue(Celery(broker=redis_server.url)).submit_endpoint(
         "job-e", "http://example.org/sparql", ("g1", "g2")
     )
 
@@ -44,14 +44,14 @@ def test_submit_endpoint_sends_the_endpoint_task_under_the_job_id(redis_url, bro
     )
 
 
-def test_submit_file_sends_the_file_task_under_the_job_id(redis_url, broker):
-    CeleryJobQueue(Celery(broker=redis_url)).submit_file("job-f", Path("db/job-f/data.ttl"))
+def test_submit_file_sends_the_file_task_under_the_job_id(redis_server, broker):
+    CeleryJobQueue(Celery(broker=redis_server.url)).submit_file("job-f", Path("db/job-f/data.ttl"))
 
     assert sent_message(broker) == ("fingerprint_file", "job-f", ["job-f", "db/job-f/data.ttl"])
 
 
-def test_cancel_revokes_the_task(redis_url, broker):
-    app = Celery(broker=redis_url)
+def test_cancel_revokes_the_task(redis_server, broker):
+    app = Celery(broker=redis_server.url)
     with start_worker(app, perform_ping_check=False, shutdown_timeout=30):
         CeleryJobQueue(app).cancel("job-c")
 

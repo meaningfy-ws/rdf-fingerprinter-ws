@@ -3,6 +3,7 @@ from pathlib import Path
 
 import pytest
 import requests
+from bs4 import BeautifulSoup
 from fingerprint.adapters.exceptions import EndpointUnreachable
 from fingerprint.service_layer.handlers import fingerprint_report
 from fingerprint.service_layer.representations import generate_representations
@@ -85,15 +86,7 @@ def test_pattern_shex_and_pitfalls_render_through_generate_representations(
 
 
 def test_an_endpoint_job_writes_all_formats(continents_outcome):
-    assert continents_outcome.formats == (
-        ReportFormat.HTML,
-        ReportFormat.JSON,
-        ReportFormat.SHACL,
-        ReportFormat.PUML,
-        ReportFormat.PATTERN,
-        ReportFormat.SHEX,
-        ReportFormat.PITFALLS,
-    )
+    assert set(continents_outcome.formats) == set(ReportFormat) - {ReportFormat.ZIP}
     for report_format, paths in continents_outcome.files.items():
         assert all(p.parent.name == report_format.value and p.stat().st_size for p in paths)
     assert continents_outcome.files[ReportFormat.HTML][0].name == "main.html"
@@ -107,7 +100,12 @@ def test_the_pitfall_findings_reach_the_report_page(pitfall_endpoint, tmp_path):
 
     tsv = outcome.files[ReportFormat.PITFALLS][0].read_text()
     assert "p34_untyped_class" in tsv
-    assert "p34_untyped_class" in outcome.files[ReportFormat.HTML][0].read_text()
+    # the check id also appears among the clean checks of 3.6.0: assert the finding itself
+    page = BeautifulSoup(outcome.files[ReportFormat.HTML][0].read_text(), "html.parser")
+    finding = page.select_one(
+        '#pitfalls details#pitfall-default-p34_untyped_class a[href="http://example.org/Person"]'
+    )
+    assert finding is not None
 
 
 def test_named_graphs_are_profiled_when_none_is_selected(two_graphs_endpoint, tmp_path):

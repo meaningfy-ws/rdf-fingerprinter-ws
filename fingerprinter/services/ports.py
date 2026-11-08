@@ -1,6 +1,6 @@
 """The ports the services depend on (design D-2); adapters implement them."""
 
-from collections.abc import Collection
+from collections.abc import Collection, Mapping
 from dataclasses import dataclass
 from pathlib import Path
 from typing import IO, Protocol
@@ -87,3 +87,4 @@ class Services:
     dataset_store: DatasetStore
     fingerprinter: Fingerprinter
     supported_extensions: Collection[str]
+    output_mime_types: Mapping[str, str]

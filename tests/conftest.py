@@ -10,7 +10,7 @@ from pathlib import Path
 
 import pytest
 
-from tests.containers import fuseki, redis_url  # noqa: F401  (fixtures shared by two tiers)
+pytest_plugins = ["tests.containers"]  # Fuseki and Redis containers, shared by two tiers
 
 
 @pytest.fixture(autouse=True)

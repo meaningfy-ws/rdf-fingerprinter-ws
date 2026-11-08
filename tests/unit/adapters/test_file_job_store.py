@@ -230,6 +230,18 @@ def test_a_multi_file_format_is_zipped_on_download(store, tmp_path):
         assert sorted(archive.namelist()) == ["a.puml", "b.puml"]
 
 
+def test_the_zip_of_a_multi_file_format_is_built_when_the_outputs_are_saved(store, tmp_path):
+    store.create(record())
+
+    store.save_outputs("job-1", outcome(tmp_path, puml=("a.puml", "b.puml"), html=("main.html",)))
+
+    assert sorted(p.name for p in (tmp_path / "reports" / "job-1").iterdir()) == [
+        "html", "job-1-puml.zip", "meta.json", "puml", "report.zip",
+    ]  # fmt: skip
+    with zipfile.ZipFile(tmp_path / "reports" / "job-1" / "report.zip") as archive:
+        assert sorted(archive.namelist()) == ["html/main.html", "puml/a.puml", "puml/b.puml"]
+
+
 def test_a_format_with_no_file_is_not_available(store, tmp_path):
     store.create(record())
     store.save_outputs("job-1", outcome(tmp_path, html=("main.html",)))

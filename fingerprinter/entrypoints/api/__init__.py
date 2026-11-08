@@ -1,6 +1,5 @@
 """The API: a Connexion 3 app over the OpenAPI contract, calling the services (design D-4, D-8)."""
 
-import mimetypes
 from collections.abc import Callable
 from http import HTTPStatus
 
@@ -46,15 +45,6 @@ def _problem_handler(
         )
 
     return handle
-
-
-# The library's output types, so downloads carry them whatever the Python version's own table holds.
-for _type, _extension in (
-    ("text/turtle", ".ttl"),
-    ("text/shex", ".shex"),
-    ("text/tab-separated-values", ".tsv"),
-):
-    mimetypes.add_type(_type, _extension)
 
 
 def create_app(services: Services, *, swagger_ui: bool = True) -> FlaskApp:

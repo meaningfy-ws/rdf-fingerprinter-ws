@@ -8,6 +8,7 @@ from pytest_bdd import given, parsers, scenario, then, when
 
 from fingerprinter.config import INPUT_MIME_TYPES
 from fingerprinter.domain.model import JobRecord, JobState, Source
+from fingerprinter.services import jobs
 
 FEATURE = "fingerprinting_jobs.feature"
 ENDPOINT = "http://example.org/sparql"
@@ -131,9 +132,11 @@ def job_fails(world):
 
 @then("its temporary dataset is deleted")
 def dataset_deleted(world):
-    name = f"fp-{world.job_id}"
+    name = jobs.dataset_name(world.job_id)
     assert ("delete", name) in world.datasets.actions
     assert name not in world.datasets.datasets
+    # deleted while the job still ran: no client sees a finished job whose dataset exists
+    assert world.datasets.state_at_delete[name] is JobState.RUNNING
 
 
 @then("its upload folder is removed")

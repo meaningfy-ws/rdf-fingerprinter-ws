@@ -37,6 +37,7 @@ def services() -> Services:
         dataset_store=RecordingDatasetStore(),
         fingerprinter=FakeFingerprinter(),
         supported_extensions=frozenset({"ttl"}),
+        output_mime_types={},
     )
 
 
