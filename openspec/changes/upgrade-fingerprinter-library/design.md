@@ -285,6 +285,18 @@ Recorded before the fixes (Rule of Divergence):
 - **R1-7** Tests write only to their own temporary folders (an autouse fixture), never to the
   repository's `db/` and `reports/`.
 
+### As built in stage 2 (task 2.4, 2026-11-08)
+
+- **D-13** The adapter tests use `stain/jena-fuseki:5.1.0`: on 4.0.0, deleting a dataset nobody
+  queried answers 500 ("Already closed") although the dataset goes. Task 4.2 pins 5.1.0 in `infra/`.
+- **D-15** `LibraryFingerprinter` lets `ValueError` and `EndpointUnreachable` propagate; the job
+  service turns any exception into `failed` with its message, so the adapter catches nothing. The
+  pitfall scan stays off until task 3.2.
+- `FileJobStore` writes `meta.json` through a temporary file and `os.replace` (the API reads while
+  the worker writes); `save_outputs` on a job that already holds outputs raises `FileExistsError`.
+- The Celery app of `bootstrap` has no result backend, and short publish retries, so a downed Redis
+  fails a submission in about a second (task 2.5).
+
 Deferred: action pins by SHA and the deprecated `uvicorn.workers` module (stage 4 images).
 
 ## Risks / Trade-offs
