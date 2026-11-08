@@ -22,7 +22,7 @@ Each stage ends in one PR into `develop`, run through the stage loop of
 
 ## 2. Stage 2 — Structure (DEC-8, D-1, D-2, D-5, D-6, D-7, D-16)
 
-- [ ] 2.1 Write `tests/feature/fingerprinting_jobs.feature` and `tests/feature/report_access.feature` from the spec scenarios (one Gherkin scenario per spec scenario, same name) and get the developer's sign-off.
+- [x] 2.1 Write `tests/feature/fingerprinting_jobs.feature` and `tests/feature/report_access.feature` from the spec scenarios (one Gherkin scenario per spec scenario, same name) and get the developer's sign-off. *(signed off by the developer, 2026-11-08)*
 - [ ] 2.2 `fingerprinter/domain/model.py` and `fingerprinter/domain/exceptions.py` (D-1), test-first.
 - [ ] 2.3 `fingerprinter/services/ports.py` (D-2) with in-memory fakes in `tests/fakes.py`; `fingerprinter/services/jobs.py` and `fingerprinter/services/reports.py` (the algorithm of `design.md`), test-first through the fakes; the feature steps for the scenarios the test map marks *feature*.
 - [ ] 2.4 Adapters `fuseki.py`, `file_job_store.py` (D-3, D-5), `file_upload_store.py`, `celery_queue.py` (D-6), `fingerprint_library.py` (stage-1 outputs: `html` and `json` only); integration tests in `tests/integration/` against Fuseki (`stain/jena-fuseki`) and Redis containers through testcontainers; add `make test-containers` (no coverage floor, D-12).
@@ -91,7 +91,7 @@ live in `tests/resources/`.
 ## Roadmap
 
 - [x] 1.1 · [x] 1.2 · [x] 1.3 · [x] 1.4 · [x] 1.5 · [x] 1.6 · [x] 1.7 · [x] 1.8 · [x] 1.9
-- [ ] 2.1 · [ ] 2.2 · [ ] 2.3 · [ ] 2.4 · [ ] 2.5 · [ ] 2.6 · [ ] 2.7
+- [x] 2.1 · [ ] 2.2 · [ ] 2.3 · [ ] 2.4 · [ ] 2.5 · [ ] 2.6 · [ ] 2.7 *(signed off by the developer, 2026-11-08)*
 - [ ] 3.1 · [ ] 3.2 · [ ] 3.3 · [ ] 3.4 · [ ] 3.5 · [ ] 3.6 · [ ] 3.7
 - [ ] 4.1 · [ ] 4.2 · [ ] 4.3 · [ ] 4.4 · [ ] 4.5 · [ ] 4.6 · [ ] 4.7
 
