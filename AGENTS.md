@@ -198,7 +198,10 @@ parallel epic files under `.claude/`.
 - **Make targets today:** `make install-dev`, `make test`, `make start-services` /
   `stop-services`; docs: `make install-antora`, `build-docs`, `preview-docs`, `check-docs`.
 - **CI:** `tests.yml` (pytest on Python 3.8, every push), `package.yml` (images on release).
-- **In-flight changes:** `data-profiling-tool` (parked; blocked on the library upgrade, its DEC-4).
+- **In-flight changes:** `upgrade-fingerprinter-library` (PLAN gated, next to implement);
+  `modernise-user-interface` (EPIC shaped; PLAN derived once the upgrade is archived; stage 3
+  blocked by `meaningfy-ws/rdf-fingerprinter#63`); `data-profiling-tool` (parked; blocked on the
+  library upgrade, its DEC-4).
 - **Library quirks (0.3.1):** `import fingerprint` needs a `logging.conf` in the working
   directory; 0.3.1 installs only on Python ≤3.11. 3.x needs Python ≥3.12 and no longer configures
   logging on import.
