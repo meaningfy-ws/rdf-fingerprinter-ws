@@ -1,19 +1,24 @@
-#!/usr/bin/python3
+"""The messages the UI flashes when the API refuses a request (design, Error matrix)."""
 
-# helpers.py
-# Date:  05/11/2020
-# Author: Mihai Coșleț
-# Email: coslet.mihai@gmail.com
+from http import HTTPStatus
+from typing import Any
 
-"""
-Misfit methods
-"""
+FLASH_ERROR = "error"
+FLASH_SUCCESS = "success"
+MESSAGES = {
+    HTTPStatus.BAD_REQUEST: "Enter an http or https SPARQL endpoint URL.",
+    HTTPStatus.NOT_FOUND: "No such job or report.",
+    HTTPStatus.CONFLICT: "This job has already finished.",
+    HTTPStatus.REQUEST_ENTITY_TOO_LARGE: "The file is too large.",
+    HTTPStatus.SERVICE_UNAVAILABLE: "The job queue is unavailable. Try again later.",
+}
 
-from json import loads
 
-
-def get_error_message_from_response(response):
-    return (
-        f"Status: {loads(response).get('status')}. Title: {loads(response).get('title')}"
-        f" Detail: {loads(response).get('detail')}"
+def error_message(response: Any) -> str:
+    """The flash message for an API response that is not a success."""
+    if response.status_code == HTTPStatus.UNSUPPORTED_MEDIA_TYPE:
+        accepted = ", ".join(response.json().get("accepted", []))
+        return f"This file type is not supported. Accepted: {accepted}."
+    return MESSAGES.get(
+        response.status_code, f"The request failed (status {response.status_code})."
     )

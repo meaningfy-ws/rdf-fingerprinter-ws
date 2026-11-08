@@ -1,198 +1,86 @@
-#!/usr/bin/python3
+"""OpenAPI method handlers: parse the request, call a service, shape the answer (design D-4, D-8)."""
 
-# handlers.py
-# Date:  15/10/2020
-# Author: Mihai Coșleț
-# Email: coslet.mihai@gmail.com
+from http import HTTPStatus
+from typing import Any
 
-"""
-OpenAPI method handlers.
-"""
-
-import logging
-from json import dumps
-
-from flask import Response, send_file
+from flask import Response, current_app, send_file
 from werkzeug.datastructures import FileStorage
-from werkzeug.exceptions import NotAcceptable, NotFound, UnsupportedMediaType
 
-from fingerprinter.adapters.celery import async_fingerprint_file, async_fingerprint_sparql_endpoint
-from fingerprinter.config import config
-from fingerprinter.entrypoints.api.helpers import (
-    _guess_file_type,
-    check_is_url,
-    check_report_extension,
-)
-from fingerprinter.services.db import create_db_entry
-from fingerprinter.services.file import save_file
-from fingerprinter.services.report_handling import (
-    delete_all_reports,
-    delete_report,
-    get_available_fingerprintings,
-    get_report,
-)
-from fingerprinter.services.tasks import (
-    flatten_active_tasks,
-    kill_task,
-    retrieve_active_tasks,
-    retrieve_task,
-)
-
-logger = logging.getLogger(__name__)
+from fingerprinter.domain.model import ReportFormat
+from fingerprinter.services import jobs, reports
+from fingerprinter.services.ports import Services
 
 
-def fingerprint_sparql_endpoint(body: dict) -> tuple:
-    """
-    API method to handle SPARQL endpoint fingerprinting and return report.
-    :param body: the json body that comes from the request
-        sparql_endpoint_url: SPARQL url to fingerprint
-        graphs: a list of named graphs to restrict the fingerprint calculation to
-    :return:
-    :rtype:
-    """
-    logger.debug("start fingerprinting sparql endpoint")
-    sparql_endpoint_url = body["sparql_endpoint_url"]  # required by the OpenAPI contract
-    check_is_url(sparql_endpoint_url)
+def _services() -> Services:
+    services: Services = current_app.extensions["fingerprinter"]
+    return services
 
-    graphs = body.get("graphs", [])
 
-    db_location = create_db_entry()
-    task = async_fingerprint_sparql_endpoint.delay(
-        sparql_endpoint_url=sparql_endpoint_url, db_cleanup_location=db_location, graphs=graphs
+def fingerprint_sparql_endpoint(body: dict[str, Any]) -> tuple[dict[str, str], HTTPStatus]:
+    services = _services()
+    job_id = jobs.submit_endpoint_job(
+        body["sparql_endpoint_url"],
+        tuple(body.get("graphs", [])),
+        job_store=services.job_store,
+        queue=services.queue,
     )
-
-    logger.debug(f"task executed with id: {task.id}")
-    return {"task_id": task.id}, 200
+    return {"task_id": job_id}, HTTPStatus.ACCEPTED
 
 
-def fingerprint_file(data_file: FileStorage) -> tuple:
-    """
-    API method to handle file fingerprinting.
-    :param data_file: the file to be fingerprinted
-    :return: the fingerprinting report in the requested format
-    :rtype: report file (html), int
-    """
-    logger.debug("start fingerprinting file")
-
-    if not _guess_file_type(data_file.filename):
-        exception_text = (
-            f"File type errors: {data_file.filename}. Acceptable types: "
-            + ", ".join([f"{key}({value})" for (key, value) in config.INPUT_MIME_TYPES.items()])
-            + "."
-        )
-        logger.exception(exception_text)
-        raise UnsupportedMediaType(exception_text)  # 415
-
-    db_location = create_db_entry()
-    file_to_fingerprint = save_file(data_file, db_location)
-
-    task = async_fingerprint_file.delay(
-        file_path=file_to_fingerprint, db_cleanup_location=db_location
+def fingerprint_file(data_file: FileStorage) -> tuple[dict[str, str], HTTPStatus]:
+    services = _services()
+    job_id = jobs.submit_file_job(
+        data_file.stream,
+        data_file.filename or "",
+        supported_extensions=services.supported_extensions,
+        job_store=services.job_store,
+        upload_store=services.upload_store,
+        queue=services.queue,
     )
-
-    logger.debug(f"task executed with id: {task.id}")
-    return {"task_id": task.id}, 200
+    return {"task_id": job_id}, HTTPStatus.ACCEPTED
 
 
-def get_fingerprintings() -> tuple:
-    """
-    API method to return all fingerprinting reports.
-    :return: all fingerprinting reports
-    :rtype: list of fingerprinting reports meta
-    """
-    logger.debug("getting fingerprinting reports")
-    fingerprintings = get_available_fingerprintings(config.RDF_FINGERPRINTER_REPORTS_DB)
-    return fingerprintings, 200
+def get_fingerprintings() -> tuple[list[dict[str, Any]], HTTPStatus]:
+    records = reports.list_reports(job_store=_services().job_store)
+    return [record.to_dict() for record in records], HTTPStatus.OK
 
 
-def get_fingerprinting_report(uid: str, report_type: str = config.DEFAULT_REPORT_TYPE) -> Response:
-    """
-    API method to return a fingerprinting report.
-    :param uid: the uid of the fingerprinting report
-    :param report_type: type of file to be returned. Can be `html` or `json`. Defaults to `html`
-    :return: the fingerprinting report in the requested format
-    :rtype: report file, int
-    """
-    check_report_extension(report_type)
-    logger.debug(f"get fingerprinting report: {uid}")
-    try:
-        location, filename = get_report(
-            uid=uid, extension=report_type, reports_location=config.RDF_FINGERPRINTER_REPORTS_DB
-        )
-        return send_file(location, download_name=filename)
-    except FileNotFoundError:
-        raise NotFound("Fingerprinting doesn't exist.") from None
+def get_fingerprinting(uid: str) -> tuple[dict[str, Any], HTTPStatus]:
+    return jobs.job_status(uid, job_store=_services().job_store).to_dict(), HTTPStatus.OK
 
 
-def delete_fingerprinting(uid: str) -> tuple:
-    """
-    API method to delete a fingerprinting report.
-    :param uid: the uid of the fingerprinting report
-    """
-    logger.debug(f"delete fingerprinting report: {uid}")
-    removed = delete_report(uid=uid, reports_location=config.RDF_FINGERPRINTER_REPORTS_DB)
-    if removed:
-        return {"message": f"Fingerprinting with {uid} successfully removed"}, 200
-    else:
-        raise NotFound(f"Fingerprinting with uid {uid} doesn't exist.")
+def get_report_file(uid: str, format: str) -> Response:
+    path = reports.report_download(uid, ReportFormat(format), job_store=_services().job_store)
+    return send_file(path)
 
 
-def delete_all_fingerprintings() -> tuple:
-    """
-    API method to delete all fingerprinting reports.
-    """
-    logger.debug("delete all fingerprinting reports")
-    removed = delete_all_reports(reports_location=config.RDF_FINGERPRINTER_REPORTS_DB)
-    if removed:
-        return {"message": "All fingerprintings successfully removed"}, 200
-    else:
-        raise NotFound("No fingerprintings found.")
+def delete_fingerprinting(uid: str) -> tuple[dict[str, str], HTTPStatus]:
+    reports.delete_report(uid, job_store=_services().job_store)
+    return {"message": f"Report {uid} deleted."}, HTTPStatus.OK
 
 
-def get_active_tasks() -> tuple:
-    """
-    Get all active celery tasks
-    :return: dict of celery workers and their active tasks
-    """
-    logger.debug("get active tasks")
-    try:
-        tasks = flatten_active_tasks(retrieve_active_tasks())
-    except AttributeError:
-        return [], 200
-    return tasks, 200
+def delete_all_fingerprintings() -> tuple[dict[str, str], HTTPStatus]:
+    reports.delete_all_reports(job_store=_services().job_store)
+    return {"message": "All reports deleted."}, HTTPStatus.OK
 
 
-def get_task_status(task_id: str) -> tuple:
-    """
-    Get specified task status data
-    :param task_id: Id of task to get status for
-    :return: dict
-    """
-    logger.debug(f"get task status: {task_id}")
-    task = retrieve_task(task_id)
-    if task:
-        try:
-            result = dumps(task.result)
-        except TypeError:
-            result = ""
-
-        data = {"task_id": task.id, "status": task.status, "result": result}
-        return data, 200
-
-    raise NotFound(f"Task with {task_id} doesn't exist")  # 404
+def get_active_tasks() -> tuple[list[dict[str, Any]], HTTPStatus]:
+    return [
+        record.to_dict() for record in jobs.active_jobs(job_store=_services().job_store)
+    ], HTTPStatus.OK
 
 
-def stop_running_task(task_id: str) -> tuple:
-    """
-    Revoke a task
-    :param task_id: Id of task to revoke
-    """
-    logger.debug(f"stop task: {task_id}")
-    try:
-        tasks = flatten_active_tasks(retrieve_active_tasks())
-        task = next(task for task in tasks if task["id"] == task_id)
-        kill_task(task, config.RDF_FINGERPRINTER_REPORTS_DB)
-    except Exception as error:
-        raise NotAcceptable("task already finished executing or does not exist") from error  # 406
+def get_task_status(task_id: str) -> tuple[dict[str, Any], HTTPStatus]:
+    record = jobs.job_status(task_id, job_store=_services().job_store)
+    return record.to_status_dict(), HTTPStatus.OK
 
-    return {"message": f"task {task_id} set for revoking."}, 200
+
+def stop_running_task(task_id: str) -> tuple[dict[str, str], HTTPStatus]:
+    services = _services()
+    jobs.cancel_job(
+        task_id,
+        job_store=services.job_store,
+        queue=services.queue,
+        upload_store=services.upload_store,
+    )
+    return {"message": f"Job {task_id} cancelled."}, HTTPStatus.OK

@@ -9,53 +9,6 @@ module). The markers are registered in ``pytest.ini``.
 from pathlib import Path
 
 import pytest
-import requests
-
-from fingerprinter.adapters.sparql_adapter import AbstractSPARQLAdapter, FusekiSPARQLAdapter
-from fingerprinter.config import TestingConfig
-from fingerprinter.entrypoints.api import app as api_app
-from fingerprinter.entrypoints.api import connexion_app
-from fingerprinter.entrypoints.ui import app as ui_app
-
-
-class FakeRequests:
-    def __init__(self):
-        self.text = None
-        self.status_code = None
-        self.url = None
-
-    def get(self, url, **kwargs):
-        self.url = url
-        return self
-
-    def post(self, url, data=None, json=None, **kwargs):
-        self.url = url
-        self.sent_body = data.read() if hasattr(data, "read") else data
-        self.sent_headers = kwargs.get("headers", {})
-        return self
-
-    def json(self):
-        return self.text
-
-
-class FakeSPARQLAdapter(AbstractSPARQLAdapter):
-    def __init__(self, fuseki_service_location: str, requests: requests):
-        self.fuseki_service_location = fuseki_service_location
-        self.requests = requests
-        self.actions = list()
-
-    def create_dataset(self, dataset_name: str):
-        self.actions.append(("CREATE", dataset_name))
-
-    def delete_dataset(self, dataset_name: str):
-        self.actions.append(("DELETE", dataset_name))
-
-    def get_dataset(self, dataset_name: str) -> dict:
-        self.actions.append(("GET", dataset_name))
-        return {"name": dataset_name}
-
-    def upload_file(self, dataset_name: str, file_path: str):
-        self.actions.append(("UPLOAD", (dataset_name, file_path)))
 
 
 @pytest.fixture(autouse=True)
@@ -67,41 +20,6 @@ def isolated_folders(tmp_path, monkeypatch):
     ):
         (tmp_path / folder).mkdir()
         monkeypatch.setenv(variable, str(tmp_path / folder))
-
-
-@pytest.fixture(scope="function")
-def fake_requests():
-    return FakeRequests()
-
-
-# used for testing the adapter
-def helper_sparql_wrapper(triplestore_service_url: str = "http://localhost:3030", http_client=None):
-    return FusekiSPARQLAdapter(
-        triplestore_service_url=triplestore_service_url, http_client=http_client or FakeRequests()
-    )
-
-
-# used for testing the services where the adapter is used
-@pytest.fixture(scope="function")
-def fake_sparql_adapter():
-    return FakeSPARQLAdapter("http://localhost:3030", requests)
-
-
-@pytest.fixture
-def api_client():
-    api_app.config.from_object(TestingConfig())
-    return connexion_app.test_client()
-
-
-@pytest.fixture
-def ui_client():
-    ui_app.config.from_object(TestingConfig())
-    return ui_app.test_client()
-
-
-@pytest.fixture(scope="session")
-def scenario_context():
-    return {}
 
 
 TESTS_ROOT_DIR = Path(__file__).parent

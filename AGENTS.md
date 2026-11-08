@@ -205,7 +205,7 @@ parallel epic files under `.claude/`.
   `modernise-user-interface` (EPIC shaped; PLAN derived once the upgrade is archived; stage 3
   blocked by `meaningfy-ws/rdf-fingerprinter#63`); `data-profiling-tool` (parked; blocked on the
   library upgrade, its DEC-4).
-- **Library quirks (3.5.0):** no `py.typed` (mypy override, `meaningfy-ws/rdf-fingerprinter#64`);
-  it configures no logging on import; `resolve_settings` lives in
+- **Library quirks (3.6.0):** typed (`py.typed`); `list_named_graphs` lists an endpoint's named
+  graphs (for the UI EPIC's graph picker); it configures no logging on import; `resolve_settings` lives in
   `fingerprint.service_layer.settings`.
 - **Scratch:** `temp/` for throwaway files; `site/` for the prototype (both git-ignored).

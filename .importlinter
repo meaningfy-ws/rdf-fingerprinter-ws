@@ -1,19 +1,69 @@
 ; =============================================================================
-; Import Linter — architecture guardrails for rdf-fingerprinter-ws
+; Import Linter — architecture guardrails for rdf-fingerprinter-ws (design D-16)
 ; =============================================================================
 ; Run with:  make check-architecture   (wraps `uv run lint-imports`)
+; Spec: openspec/changes/upgrade-fingerprinter-library/specs/package-boundaries/spec.md
 ;
-; Stage 1 (task 1.6): one contract that today's code meets. Stage 2 replaces this file with the
-; layered contracts of design D-16 (bootstrap > entrypoints | adapters > services > domain).
+;   bootstrap  >  entrypoints | adapters  >  services  >  domain
 
 [importlinter]
 root_package = fingerprinter
+include_external_packages = True
 
-[importlinter:contract:no-upward-imports]
-name = services and adapters do not import entrypoints
+[importlinter:contract:layers]
+name = Layers: bootstrap > entrypoints | adapters > services > domain
+type = layers
+layers =
+    fingerprinter.bootstrap
+    fingerprinter.entrypoints | fingerprinter.adapters
+    fingerprinter.services
+    fingerprinter.domain
+
+[importlinter:contract:config-in-bootstrap]
+name = config is read only by the composition root
 type = forbidden
 source_modules =
+    fingerprinter.domain
     fingerprinter.services
     fingerprinter.adapters
-forbidden_modules =
     fingerprinter.entrypoints
+forbidden_modules =
+    fingerprinter.config
+
+[importlinter:contract:domain-pure]
+name = the domain imports no framework and not the library
+type = forbidden
+source_modules =
+    fingerprinter.domain
+forbidden_modules =
+    flask
+    connexion
+    celery
+    requests
+    fingerprint
+
+[importlinter:contract:ui-is-an-api-client]
+name = the UI imports no other fingerprinter module
+type = forbidden
+source_modules =
+    fingerprinter.entrypoints.ui
+forbidden_modules =
+    fingerprinter.domain
+    fingerprinter.services
+    fingerprinter.adapters
+    fingerprinter.entrypoints.api
+    fingerprinter.entrypoints.worker
+    fingerprinter.bootstrap
+    fingerprinter.config
+
+[importlinter:contract:one-library-adapter]
+name = only adapters.fingerprint_library imports the fingerprint library
+; a direct import is what counts: bootstrap reaches the library only through the adapter
+allow_indirect_imports = True
+type = forbidden
+source_modules =
+    fingerprinter
+forbidden_modules =
+    fingerprint
+ignore_imports =
+    fingerprinter.adapters.fingerprint_library -> fingerprint

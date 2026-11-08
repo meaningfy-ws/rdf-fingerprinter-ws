@@ -187,7 +187,8 @@ Library 3.5.0 facts this plan relies on (checked in `/home/lps/work/repos/rdf-fi
   `[mypy-fingerprint.*] ignore_missing_imports = True`, named and scoped to that package; it changes
   no behaviour, only what mypy can check at the library boundary. The section is removed in the PR
   that raises the pin to a release that ships the marker. *Leader's choice:* the gate does not wait
-  for the fix, since nothing in the service compensates for the gap.
+  for the fix, since nothing in the service compensates for the gap. *Resolved:* the library
+  released 3.6.0 with `py.typed` (#64); the pin is 3.6.0 and the `mypy.ini` section is gone.
 
 ## Algorithm / approach
 
@@ -284,6 +285,79 @@ Recorded before the fixes (Rule of Divergence):
   on Connexion 3 and pointed at the removed `requirements/`.
 - **R1-7** Tests write only to their own temporary folders (an autouse fixture), never to the
   repository's `db/` and `reports/`.
+
+### Stage-2 review (five lenses, 2026-11-08): accepted fixes
+
+Recorded before the fixes (Rule of Divergence). *Leader's choices* are marked.
+
+- **R2-1** *(leader's choice)* An endpoint URL with user info (`https://user:pw@host/…`) is refused
+  at the boundary (`InvalidSource`, 400), because records are readable by every client and the
+  library redacts user info as secret. Query strings are kept as given (endpoints use them, e.g.
+  `default-graph-uri`).
+- **R2-2** Uploads are capped: `Settings.max_upload_bytes` (`RDF_FINGERPRINTER_MAX_UPLOAD_MB`,
+  default 512); `FileUploadStore.save` counts the bytes it writes and raises `UploadTooLarge`
+  (413), discarding the partial file.
+- **R2-3** A worker runs a job only from `queued` (a duplicate delivery or a cancelled record is
+  logged and left alone); a failed run discards any saved outputs before recording `failed`.
+- **R2-4** Only broker errors are `QueueUnavailable` (503): `CeleryJobQueue` translates kombu and
+  connection errors; any other exception while queueing propagates as the bug it is.
+- **R2-5** `LibraryFingerprinter` reads the profile name from the library's public
+  `fingerprint.config.profile_file` (D-15: the service still sets none of the library's variables).
+- **R2-6** The `one-library-adapter` contract covers the whole package with one ignored import
+  (`fingerprinter.adapters.fingerprint_library -> fingerprint`); `bootstrap` builds the API's and the
+  worker's adapters only when those are asked for, so the UI process builds none.
+- **R2-7** Feature scenarios run through the API's test client (`create_app` with the fakes), so
+  status codes come from the real error handlers and Connexion's validation; the `@unit` scenarios'
+  tests carry their scenario names; the in-memory `JobStore` refuses a second save like the real one.
+- **R2-8** Clean-up: `job_store=`/`upload_store=`/`dataset_store=` keyword names; `http.HTTPStatus`
+  for status codes; the UI's flash categories defined once; the task-state body built by the domain
+  (`JobRecord`); `FileJobStore.list` skips a record deleted while listing; one `file_extension`
+  helper; the UI quotes path values sent to the API; `uid`/`task_id` are `format: uuid` in the
+  contract; `redis_url` is hidden from `repr`; Fuseki errors carry a plain message.
+
+As built: Connexion 3.3 does not validate `format: uuid` on path values, so `uid` and `task_id`
+carry a uuid `pattern` (400 on a bad id); a duplicate delivery of a running file job leaves that
+job's dataset and upload alone; the UI flashes "The file is too large." on 413.
+
+Deferred, with their home:
+- Delete and cancel as `POST` with confirmation: the UI EPIC (`modernise-user-interface` DEC-8).
+- Restricting the worker's outgoing traffic (SSRF): stage 4 `infra/` and `SECURITY.md`.
+- The Gherkin tightened where stage 2 allowed less ("its seven formats"; failures "in the report's
+  metadata"): task 3.4.
+- A public one-line failure description in the library: not filed; the adapter's own formatting of
+  `Failure` fields is presentation, not a correction.
+
+### As built in stage 2 (task 2.4, 2026-11-08)
+
+- **D-13** The adapter tests use `stain/jena-fuseki:5.1.0`: on 4.0.0, deleting a dataset nobody
+  queried answers 500 ("Already closed") although the dataset goes. Task 4.2 pins 5.1.0 in `infra/`.
+- **D-15** `LibraryFingerprinter` lets `ValueError` and `EndpointUnreachable` propagate; the job
+  service turns any exception into `failed` with its message, so the adapter catches nothing. The
+  pitfall scan stays off until task 3.2.
+- `FileJobStore` writes `meta.json` through a temporary file and `os.replace` (the API reads while
+  the worker writes); `save_outputs` on a job that already holds outputs raises `FileExistsError`.
+- The Celery app of `bootstrap` has no result backend, and short publish retries, so a downed Redis
+  fails a submission in about a second (task 2.5; measured 0.18 s, a 503 problem response).
+
+### As built in stage 2 (task 2.5, 2026-11-08)
+
+- **D-1** `services/ports.py` also holds `Services`, a frozen dataclass of the ports plus the
+  supported upload extensions, and the task names `ENDPOINT_TASK`/`FILE_TASK` shared by the queue
+  adapter and the worker. `JobRecord.to_dict()`/`from_dict()` in the domain is the one serialiser of
+  the D-4 record, used by `FileJobStore` and the API.
+- **D-1, D-8** No `run.py` modules: an entrypoint may not import `bootstrap` (D-16), so the process
+  targets are `bootstrap:api_app()` (gunicorn, uvicorn worker), `bootstrap:ui_app()` and
+  `bootstrap:celery_app`. `bootstrap` reads `Settings.from_env()` on import, so a missing secret key
+  stops every process at start.
+- **D-8** `create_app(services, *, swagger_ui)`; the Flask app sets `PROPAGATE_EXCEPTIONS`, so each
+  domain exception reaches its own Connexion handler (problem `type` `urn:fingerprinter:<Name>`; 415
+  adds `accepted`). Error responses in the OpenAPI file declare no `content`, since Connexion cannot
+  pick between `application/json` and `application/problem+json` for one operation.
+- **D-7** *Leader's choice:* `RDF_FINGERPRINTER_TIMEZONE` and `TIME_FORMAT` are dropped: job times
+  are UTC ISO strings and nothing read them. `RDF_FINGERPRINTER_DEBUG` and the Flask config classes
+  went with the `run.py` modules.
+- **D-6** No `task_revoked` handler yet: *Risks* makes it conditional on the stage-3 e2e
+  cancellation test.
 
 Deferred: action pins by SHA and the deprecated `uvicorn.workers` module (stage 4 images).
 

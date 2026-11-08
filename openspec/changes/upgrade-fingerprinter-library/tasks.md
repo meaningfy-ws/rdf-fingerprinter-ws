@@ -18,24 +18,24 @@ Each stage ends in one PR into `develop`, run through the stage loop of
 - [x] 1.6 Add `ruff.toml`, `mypy.ini`, `.coveragerc` (D-12), `.pre-commit-config.yaml` from the reference repository's files, and `.importlinter` with one stage-1 contract (`fingerprinter.services` and `fingerprinter.adapters` do not import `fingerprinter.entrypoints`, which today's code meets). Add the Makefile targets of `/home/lps/work/repos/rdf-persistence/Makefile`: `install`, `lock`, `format`, `lint`, `lint-fix`, `typecheck`, `check-architecture`, `check-spec`, `test`, `test-unit`, `test-feature`, `check-quality` (= `lint typecheck check-architecture check-spec check-docs`; the reference's generation and freshness targets do not apply), `check-all`; remove the pip targets. Fix the Ruff and mypy findings in their own commits.
 - [x] 1.7 Raise the unit and feature lane to ≥ 80 % coverage, test-first on the code stage 2 keeps (the API handlers and helpers, the UI views and forms). Check: `make check-all` green.
 - [x] 1.8 Replace `.github/workflows/tests.yml` with `.github/workflows/ci.yml`: Python 3.13, `astral-sh/setup-uv`, Node 20 (for `make check-spec`'s `npx`), `make install` and `make check-all` on PRs into and pushes to `develop`; remove Codecov.
-- [ ] 1.9 Stage 1 PR into `develop` (stage loop; no use case changes, so no acceptance demo).
+- [x] 1.9 Stage 1 PR into `develop` (stage loop; no use case changes, so no acceptance demo).
 
 ## 2. Stage 2 — Structure (DEC-8, D-1, D-2, D-5, D-6, D-7, D-16)
 
-- [ ] 2.1 Write `tests/feature/fingerprinting_jobs.feature` and `tests/feature/report_access.feature` from the spec scenarios (one Gherkin scenario per spec scenario, same name) and get the developer's sign-off.
-- [ ] 2.2 `fingerprinter/domain/model.py` and `fingerprinter/domain/exceptions.py` (D-1), test-first.
-- [ ] 2.3 `fingerprinter/services/ports.py` (D-2) with in-memory fakes in `tests/fakes.py`; `fingerprinter/services/jobs.py` and `fingerprinter/services/reports.py` (the algorithm of `design.md`), test-first through the fakes; the feature steps for the scenarios the test map marks *feature*.
-- [ ] 2.4 Adapters `fuseki.py`, `file_job_store.py` (D-3, D-5), `file_upload_store.py`, `celery_queue.py` (D-6), `fingerprint_library.py` (stage-1 outputs: `html` and `json` only); integration tests in `tests/integration/` against Fuseki (`stain/jena-fuseki`) and Redis containers through testcontainers; add `make test-containers` (no coverage floor, D-12).
-- [ ] 2.5 `fingerprinter/config.py` `Settings.from_env()` (D-7), `fingerprinter/bootstrap.py` (D-1, D-6), `fingerprinter/entrypoints/worker/tasks.py`; the API handlers call the services from `flask.current_app.extensions["fingerprinter"]` (D-8); the UI stays an HTTP client and gets its settings from `bootstrap.ui_app()` (D-9). The routes of D-17 serve the job record; the UI's job page shows its state, reason and failures. Delete `fingerprinter/adapters/{celery,sparql_adapter,helpers}.py` and `fingerprinter/services/{report_handling,handlers,db,file,tasks,time}.py` and their tests once replaced.
-- [ ] 2.6 Replace the stage-1 `.importlinter` with the contracts of D-16; add `tests/unit/test_architecture.py`, which runs `lint-imports` on a temporary copy of the package with one forbidden import per `package-boundaries` scenario and expects a failure naming it.
-- [ ] 2.7 Stage 2 PR into `develop` (stage loop; the PR notes the API break of D-17; no new use case, so no acceptance demo).
+- [x] 2.1 Write `tests/feature/fingerprinting_jobs.feature` and `tests/feature/report_access.feature` from the spec scenarios (one Gherkin scenario per spec scenario, same name) and get the developer's sign-off. *(signed off by the developer, 2026-11-08)*
+- [x] 2.2 `fingerprinter/domain/model.py` and `fingerprinter/domain/exceptions.py` (D-1), test-first.
+- [x] 2.3 `fingerprinter/services/ports.py` (D-2) with in-memory fakes in `tests/fakes.py`; `fingerprinter/services/jobs.py` and `fingerprinter/services/reports.py` (the algorithm of `design.md`), test-first through the fakes; the feature steps for the scenarios the test map marks *feature*.
+- [x] 2.4 Adapters `fuseki.py`, `file_job_store.py` (D-3, D-5), `file_upload_store.py`, `celery_queue.py` (D-6), `fingerprint_library.py` (stage-1 outputs: `html` and `json` only); integration tests in `tests/integration/` against Fuseki (`stain/jena-fuseki`) and Redis containers through testcontainers; add `make test-containers` (no coverage floor, D-12).
+- [x] 2.5 `fingerprinter/config.py` `Settings.from_env()` (D-7), `fingerprinter/bootstrap.py` (D-1, D-6), `fingerprinter/entrypoints/worker/tasks.py`; the API handlers call the services from `flask.current_app.extensions["fingerprinter"]` (D-8); the UI stays an HTTP client and gets its settings from `bootstrap.ui_app()` (D-9). The routes of D-17 serve the job record; the UI's job page shows its state, reason and failures. Delete `fingerprinter/adapters/{celery,sparql_adapter,helpers}.py` and `fingerprinter/services/{report_handling,handlers,db,file,tasks,time}.py` and their tests once replaced.
+- [x] 2.6 Replace the stage-1 `.importlinter` with the contracts of D-16; add `tests/unit/test_architecture.py`, which runs `lint-imports` on a temporary copy of the package with one forbidden import per `package-boundaries` scenario and expects a failure naming it.
+- [x] 2.7 Stage 2 PR into `develop` (stage loop; the PR notes the API break of D-17; no new use case, so no acceptance demo).
 
 ## 3. Stage 3 — Outputs and API (DEC-1 to DEC-5, DEC-10, DEC-11, DEC-15, D-3, D-4, D-9, L-1)
 
 - [ ] 3.1 Settle L-1: in `tests/integration/test_fingerprint_library.py`, render `pattern`, `shex` and `pitfalls` with `generate_representations` from a profile of `tests/resources/continents-source-ap.rdf`. If all render, the leader files the `documentation` issue; if one fails, stop and file a `bug` issue (strict rule).
 - [ ] 3.2 Add `tests/resources/pitfall-untyped-class.ttl`, a small graph that makes the packaged check `p34_untyped_class` report at least one finding when scanned as the default graph (if `p34` does not run on a default graph without schema graphs, choose another packaged check that does, and name it in the commit). `LibraryFingerprinter`: pitfall scan on, the seven formats in their folders (D-3), failures as strings; integration tests per the test map.
 - [ ] 3.3 `FileJobStore`: per-format files, multi-file formats zipped on download, `report.zip`, the job record; unit tests per the test map.
-- [ ] 3.4 The OpenAPI contract and handlers of D-4 (routes, `202`, the job record, problem responses per the error matrix); feature tests per the test map, with the fake `Fingerprinter` returning failures for "Failed measurements are listed".
+- [ ] 3.4 The OpenAPI contract and handlers of D-4 (routes, `202`, the job record, problem responses per the error matrix); feature tests per the test map, with the fake `Fingerprinter` returning failures for "Failed measurements are listed". Restore in the Gherkin what stage 2 relaxed: "its seven formats" (A completed job appears in the list) and the failures "in the report's metadata" (Failed measurements are listed), with a `FileJobStore` test that `set_state(..., failures=...)` writes them to `meta.json`.
 - [ ] 3.5 UI: the report and job pages show the state, reason and failures and one link per available format; the download route proxies `GET /reports/{uid}/{format}`; flash messages per the error matrix's UI column; unit tests with BeautifulSoup per the test map.
 - [ ] 3.6 E2E tests in `tests/e2e/` (the API app, a real worker, Fuseki, Redis) per the test map; record each job's duration in the durations table.
 - [ ] 3.7 Stage 3 PR into `develop`, with the acceptance demo of an endpoint job and a file job, from the API and the UI, recorded in `evidence/acceptance-stage-3.md`.
@@ -90,8 +90,8 @@ live in `tests/resources/`.
 
 ## Roadmap
 
-- [x] 1.1 · [x] 1.2 · [x] 1.3 · [x] 1.4 · [x] 1.5 · [x] 1.6 · [x] 1.7 · [x] 1.8 · [ ] 1.9
-- [ ] 2.1 · [ ] 2.2 · [ ] 2.3 · [ ] 2.4 · [ ] 2.5 · [ ] 2.6 · [ ] 2.7
+- [x] 1.1 · [x] 1.2 · [x] 1.3 · [x] 1.4 · [x] 1.5 · [x] 1.6 · [x] 1.7 · [x] 1.8 · [x] 1.9
+- [x] 2.1 · [x] 2.2 · [x] 2.3 · [x] 2.4 · [x] 2.5 · [x] 2.6 · [x] 2.7
 - [ ] 3.1 · [ ] 3.2 · [ ] 3.3 · [ ] 3.4 · [ ] 3.5 · [ ] 3.6 · [ ] 3.7
 - [ ] 4.1 · [ ] 4.2 · [ ] 4.3 · [ ] 4.4 · [ ] 4.5 · [ ] 4.6 · [ ] 4.7
 

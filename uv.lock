@@ -1663,7 +1663,7 @@ wheels = [
 
 [[package]]
 name = "rdf-fingerprinter"
-version = "3.5.0"
+version = "3.6.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "click" },
@@ -1671,9 +1671,9 @@ dependencies = [
     { name = "pydantic" },
     { name = "rdflib" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/c4/e3/ca108b5b17c966d972b6226a4bd261584016114dfb1734fbc73d5396a574/rdf_fingerprinter-3.5.0.tar.gz", hash = "sha256:613fc4ac2c2ff0815e3cf19de160b8b8619af7f9ebad5fee236016a8a51617fe", size = 165441, upload-time = "2026-11-03T21:58:59.849Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/56/2a/3be709a859f03724ca99f7a0fd78f4c0b41e57c0442bab57f00c6f5b11a4/rdf_fingerprinter-3.6.0.tar.gz", hash = "sha256:87f485ba08ebc25e174a2e95b0a13cc75002b94a5f91ad791f6f4827ebf3af21", size = 165810, upload-time = "2026-11-08T10:26:40.554Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/fa/b3/7717f6322bb42b2047e38d655b622d3dd64f1ea4ac160223b50e8fa3d5ca/rdf_fingerprinter-3.5.0-py3-none-any.whl", hash = "sha256:78ea76e4e6f3355b778e60ddb640a80090d2cfe9762a75ca4d7d575e9040bc4f", size = 222200, upload-time = "2026-11-03T21:58:58.23Z" },
+    { url = "https://files.pythonhosted.org/packages/bc/f2/b41a169bee468bc9f82fe5f14ea85d2b908b44be47d498edfdab04a3f8cf/rdf_fingerprinter-3.6.0-py3-none-any.whl", hash = "sha256:287c7fe96ccdb9f10aed03514757de9342317c46e01619242c1d8bacf8adf215", size = 222860, upload-time = "2026-11-08T10:26:39.105Z" },
 ]
 
 [[package]]
@@ -1719,7 +1719,7 @@ requires-dist = [
     { name = "flask-wtf", specifier = "==1.3.0" },
     { name = "flower", specifier = "==2.2.0" },
     { name = "gunicorn", specifier = "==26.2.0" },
-    { name = "rdf-fingerprinter", specifier = "==3.5.0" },
+    { name = "rdf-fingerprinter", specifier = "==3.6.0" },
     { name = "requests", specifier = "==2.34.2" },
 ]
 

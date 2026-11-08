@@ -1,161 +1,108 @@
-#!/usr/bin/python3
+"""UI pages: each asks the API and renders what it answers."""
 
-# views.py
-# Date:  15/10/2020
-# Author: Mihai Coșleț
-# Email: coslet.mihai@gmail.com
-
-"""
-UI pages
-"""
-
+import io
 import logging
-import tempfile
-from pathlib import Path
+from collections.abc import Callable
+from http import HTTPStatus
+from typing import Any
 
-from flask import flash, render_template, send_from_directory, url_for
-from werkzeug.utils import redirect
+from flask import Flask, current_app, flash, redirect, render_template, send_file, url_for
+from werkzeug.http import parse_options_header
+from werkzeug.wrappers import Response
 
-from fingerprinter.entrypoints.ui import app
-from fingerprinter.entrypoints.ui.api_wrapper import (
-    delete_fingerprinting as api_delete_fingerprinting,
-)
-from fingerprinter.entrypoints.ui.api_wrapper import (
-    fingerprint_file as api_fingerprint_file,
-)
-from fingerprinter.entrypoints.ui.api_wrapper import (
-    fingerprint_sparql_endpoint as api_fingerprint_sparql_endpoint,
-)
-from fingerprinter.entrypoints.ui.api_wrapper import (
-    get_active_tasks as api_get_active_tasks,
-)
-from fingerprinter.entrypoints.ui.api_wrapper import (
-    get_fingerprintings as api_get_fingerprintings,
-)
-from fingerprinter.entrypoints.ui.api_wrapper import (
-    get_report,
-)
-from fingerprinter.entrypoints.ui.api_wrapper import (
-    revoke_task as api_revoke_task,
-)
+from fingerprinter.entrypoints.ui.api_wrapper import ApiClient
 from fingerprinter.entrypoints.ui.forms import FingerprintFileForm, FingerprintSPARQLEndpointForm
-from fingerprinter.entrypoints.ui.helpers import get_error_message_from_response
+from fingerprinter.entrypoints.ui.helpers import FLASH_ERROR, FLASH_SUCCESS, error_message
 
 logger = logging.getLogger(__name__)
 
 
-@app.route("/", methods=["GET"])
-def index():
-    logger.debug("request index view")
-    fingerprintings, _ = api_get_fingerprintings()
-
-    return render_template("index.html", fingerprintings=fingerprintings)
+def _api() -> ApiClient:
+    api: ApiClient = current_app.extensions["api"]
+    return api
 
 
-@app.route("/fingerprint-sparql-endpoint", methods=["GET", "POST"])
-def fingerprint_sparql_endpoint():
-    logger.debug("request fingerprint sparql endpoint view")
+def index() -> str:
+    return render_template("index.html", fingerprintings=_api().get_reports().json())
 
+
+def _started_or_flash(response: Any) -> Response | None:
+    """Redirect to the active tasks when the API accepted the job, else flash why it did not."""
+    if response.status_code != HTTPStatus.ACCEPTED:
+        flash(error_message(response), FLASH_ERROR)
+        return None
+    flash("fingerprinting successfully started", FLASH_SUCCESS)
+    return redirect(url_for("get_active_tasks"))
+
+
+def fingerprint_sparql_endpoint() -> str | Response:
     form = FingerprintSPARQLEndpointForm()
-
     if form.validate_on_submit():
-        response, status = api_fingerprint_sparql_endpoint(
-            sparql_endpoint_url=form.sparql_endpoint_url.data or "",
-            graphs=(form.graphs.data or "").split(),
+        response = _api().fingerprint_sparql_endpoint(
+            form.sparql_endpoint_url.data or "", (form.graphs.data or "").split()
         )
-
-        if status != 200:
-            exception_text = get_error_message_from_response(response)
-            logger.exception(exception_text)
-            flash(exception_text, "error")
-        else:
-            flash("fingerprinting successfully started", "success")
-            logger.debug("render active tasks view")
-            return redirect(url_for("get_active_tasks"))
-
-    logger.debug("return fingerprint sparql endpoint clean view")
+        started = _started_or_flash(response)
+        if started:
+            return started
     return render_template(
         "fingerprint/sparql_endpoint_url.html", form=form, title="Fingerprint SPARQL Endpoint"
     )
 
 
-@app.route("/fingerprint-file", methods=["GET", "POST"])
-def fingerprint_file():
-    logger.debug("request fingerprint file clean view")
-
+def fingerprint_file() -> str | Response:
     form = FingerprintFileForm()
-
     if form.validate_on_submit():
-        response, status = api_fingerprint_file(data_file=form.data_file.data)
-
-        if status != 200:
-            exception_text = get_error_message_from_response(response)
-            logger.exception(exception_text)
-            flash(exception_text, "error")
-        else:
-            flash("fingerprinting successfully started", "success")
-            logger.debug("render active tasks view")
-            return redirect(url_for("get_active_tasks"))
-
-    logger.debug("return fingerprint file clean view")
+        started = _started_or_flash(_api().fingerprint_file(form.data_file.data))
+        if started:
+            return started
     return render_template("fingerprint/file.html", form=form, title="Fingerprint File")
 
 
-@app.route("/fingerprintings/<fingerprinting_id>/<report_type>", methods=["GET"])
-def download_report(fingerprinting_id: str, report_type: str):
-    logger.debug(
-        f"request fingerprinting report download view for fingerprinting id {fingerprinting_id}, report type: {report_type}"
-    )
-    try:
-        with tempfile.TemporaryDirectory() as temp_folder:
-            report_content, _ = get_report(
-                fingerprinting_id=fingerprinting_id, report_type=report_type
-            )
-            file_name = f"{fingerprinting_id}_{report_type}.{report_type}"
-            report = Path(temp_folder) / file_name
-            report.write_bytes(report_content)
-            logger.debug(f"report file {report} successfully written")
-            return send_from_directory(Path(temp_folder), file_name, as_attachment=True)
-    except Exception as e:
-        logger.exception(str(e))
-        flash(str(e), "error")
+def download_report(job_id: str, report_format: str) -> Response:
+    response = _api().get_report(job_id, report_format)
+    if response.status_code != HTTPStatus.OK:
+        flash(error_message(response), FLASH_ERROR)
         return redirect(url_for("index"))
-
-
-@app.route("/reports/<fingerprinting_id>")
-def delete_fingerprinting(fingerprinting_id: str):
-    logger.debug(
-        f"request fingerprinting report delete view for fingerprinting id {fingerprinting_id}"
+    _, disposition = parse_options_header(response.headers.get("Content-Disposition", ""))
+    name = disposition.get("filename") or report_format
+    return send_file(
+        io.BytesIO(response.content), download_name=f"{job_id}-{name}", as_attachment=True
     )
-    response, status = api_delete_fingerprinting(fingerprinting_id=fingerprinting_id)
 
-    if status != 200:
-        exception_text = get_error_message_from_response(response)
-        logger.exception(exception_text)
-        flash(exception_text, "error")
+
+def delete_fingerprinting(job_id: str) -> Response:
+    response = _api().delete_report(job_id)
+    if response.status_code == HTTPStatus.OK:
+        flash("fingerprinting successfully deleted", FLASH_SUCCESS)
     else:
-        flash("fingerprinting successfully deleted", "success")
-
+        flash(error_message(response), FLASH_ERROR)
     return redirect(url_for("index"))
 
 
-@app.route("/tasks")
-def get_active_tasks():
-    logger.debug("request active tasks view")
-    active_tasks, _ = api_get_active_tasks()
-    logger.debug("render active tasks view")
-    return render_template("tasks/view_active_tasks.html", tasks=active_tasks)
+def get_active_tasks() -> str:
+    return render_template("tasks/view_active_tasks.html", tasks=_api().get_active_tasks().json())
 
 
-@app.route("/revoke-task/<task_id>")
-def revoke_task(task_id: str):
-    logger.debug(f"request revoke task view for task id {task_id}")
-    response, status = api_revoke_task(task_id=task_id)
-
-    if status == 200:
-        flash(response, "success")
+def revoke_task(task_id: str) -> Response:
+    response = _api().cancel_task(task_id)
+    if response.status_code == HTTPStatus.OK:
+        flash("Job cancelled.", FLASH_SUCCESS)
     else:
-        logger.exception(response)
-        flash(response, "error")
-
+        flash(error_message(response), FLASH_ERROR)
     return redirect(url_for("get_active_tasks"))
+
+
+ROUTES: tuple[tuple[str, Callable[..., Any], tuple[str, ...]], ...] = (
+    ("/", index, ("GET",)),
+    ("/fingerprint-sparql-endpoint", fingerprint_sparql_endpoint, ("GET", "POST")),
+    ("/fingerprint-file", fingerprint_file, ("GET", "POST")),
+    ("/reports/<job_id>/<report_format>", download_report, ("GET",)),
+    ("/reports/<job_id>", delete_fingerprinting, ("GET",)),
+    ("/tasks", get_active_tasks, ("GET",)),
+    ("/revoke-task/<task_id>", revoke_task, ("GET",)),
+)
+
+
+def register(app: Flask) -> None:
+    for rule, view, methods in ROUTES:
+        app.add_url_rule(rule, view_func=view, methods=list(methods))

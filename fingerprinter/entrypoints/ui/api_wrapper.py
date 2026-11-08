@@ -1,112 +1,56 @@
-#!/usr/bin/python3
+"""The UI's HTTP client of the fingerprinter API; each call answers the API's response."""
 
-# api_wrapper.py
-# Date:  15/10/2020
-# Author: Mihai Coșleț
-# Email: coslet.mihai@gmail.com
-
-"""
-Service to consume fingerprinter API.
-"""
+from urllib.parse import quote
 
 import requests
 from werkzeug.datastructures import FileStorage
 
-from fingerprinter.config import config
+REQUEST_TIMEOUT_SECONDS = 60
 
 
-def fingerprint_sparql_endpoint(sparql_endpoint_url: str, graphs: list) -> tuple:
-    """
-    Method to connect to the fingerprinter api to fingerprint a SPARQL endpoint.
-    :param sparql_endpoint_url: The endpoint to fingerprint
-    :param graphs: a list of named graphs to restrict the fingerprint calculation to
-    :return: file, int
-    """
-    data: dict[str, str | list[str]] = {
-        "sparql_endpoint_url": sparql_endpoint_url,
-    }
-
-    if graphs:
-        data["graphs"] = graphs
-
-    response = requests.post(
-        f"{config.RDF_FINGERPRINTER_API_SERVICE}/fingerprint-sparql-endpoint", json=data
-    )
-
-    return response.content, response.status_code
+def _segment(value: str) -> str:
+    """A value as one URL path segment: no slash, query or fragment can escape it."""
+    return quote(value, safe="")
 
 
-def fingerprint_file(data_file: FileStorage) -> tuple:
-    """
-    Method to connect to the fingerprinter api to fingerprint an RDF file.
-    :param data_file: the file to be fingerprinted
-    :return: file, int
-    """
-    files = {
-        "data_file": (data_file.filename, data_file.stream, data_file.mimetype),
-    }
+class ApiClient:
+    def __init__(self, base_url: str):
+        self.base_url = base_url.rstrip("/")
 
-    response = requests.post(
-        f"{config.RDF_FINGERPRINTER_API_SERVICE}/fingerprint-file", files=files
-    )
+    def fingerprint_sparql_endpoint(self, sparql_endpoint_url: str, graphs: list[str]):
+        data: dict[str, str | list[str]] = {"sparql_endpoint_url": sparql_endpoint_url}
+        if graphs:
+            data["graphs"] = graphs
+        return requests.post(
+            f"{self.base_url}/fingerprint-sparql-endpoint",
+            json=data,
+            timeout=REQUEST_TIMEOUT_SECONDS,
+        )
 
-    return response.content, response.status_code
+    def fingerprint_file(self, data_file: FileStorage):
+        files = {"data_file": (data_file.filename, data_file.stream, data_file.mimetype)}
+        return requests.post(
+            f"{self.base_url}/fingerprint-file", files=files, timeout=REQUEST_TIMEOUT_SECONDS
+        )
 
+    def get_reports(self):
+        return requests.get(f"{self.base_url}/reports", timeout=REQUEST_TIMEOUT_SECONDS)
 
-def get_fingerprintings() -> tuple:
-    """
-    Method to connect to the fingerprinter api to get the list of fingerprintings.
-    :return: list, int
-    """
-    response = requests.get(f"{config.RDF_FINGERPRINTER_API_SERVICE}/reports")
+    def get_report(self, job_id: str, report_format: str):
+        return requests.get(
+            f"{self.base_url}/reports/{_segment(job_id)}/{_segment(report_format)}",
+            timeout=REQUEST_TIMEOUT_SECONDS,
+        )
 
-    return response.json(), response.status_code
+    def delete_report(self, job_id: str):
+        return requests.delete(
+            f"{self.base_url}/reports/{_segment(job_id)}", timeout=REQUEST_TIMEOUT_SECONDS
+        )
 
+    def get_active_tasks(self):
+        return requests.get(f"{self.base_url}/tasks/active", timeout=REQUEST_TIMEOUT_SECONDS)
 
-def get_report(fingerprinting_id: str, report_type: str) -> tuple:
-    """
-    Method to connect to the fingerprinter api to get a report.
-    :param fingerprinting_id: the id of the fingerprinting to get the report for
-    :param report_type: the type of report to get
-    :return: file, int
-    """
-    response = requests.get(
-        f"{config.RDF_FINGERPRINTER_API_SERVICE}/reports/{fingerprinting_id}",
-        params={"report_type": report_type},
-    )
-
-    return response.content, response.status_code
-
-
-def delete_fingerprinting(fingerprinting_id: str) -> tuple:
-    """
-    Method to connect to the fingerprinter api to delete a fingerprinting.
-    :param fingerprinting_id: the id of the fingerprinting to be deleted
-    :return: int
-    """
-    response = requests.delete(
-        f"{config.RDF_FINGERPRINTER_API_SERVICE}/reports/{fingerprinting_id}"
-    )
-
-    return response.json(), response.status_code
-
-
-def get_active_tasks() -> tuple:
-    """
-    Method to connect to the fingerprinter api to get the list of active tasks.
-    :return: list, int
-    """
-    response = requests.get(f"{config.RDF_FINGERPRINTER_API_SERVICE}/tasks/active")
-
-    return response.json(), response.status_code
-
-
-def revoke_task(task_id: str) -> tuple:
-    """
-    Method to connect to the fingerprinter api to revoke a task.
-    :param task_id: the id of the task to be revoked
-    :return: int
-    """
-    response = requests.delete(f"{config.RDF_FINGERPRINTER_API_SERVICE}/tasks/{task_id}")
-
-    return response.content, response.status_code
+    def cancel_task(self, task_id: str):
+        return requests.delete(
+            f"{self.base_url}/tasks/{_segment(task_id)}", timeout=REQUEST_TIMEOUT_SECONDS
+        )
