@@ -181,7 +181,10 @@ Library 3.5.0 facts this plan relies on (checked in `/home/lps/work/repos/rdf-fi
   only `shacl` and `puml` under `formats`, although all six generators are registered. Task 3.1
   confirms `pattern`, `shex` and `pitfalls` render through `generate_representations` and files a
   `documentation` issue in `meaningfy-ws/rdf-fingerprinter`; if one does not render, the task stops
-  and files a `bug` issue instead (the strict rule).
+  and files a `bug` issue instead (the strict rule). *Settled (2026-11-08, 3.6.0):* all five render
+  (`shacl` one file, `puml` one diagram plus one per module, `pattern` five files, `shex` one,
+  `pitfalls` one TSV); the documentation gap is `meaningfy-ws/rdf-fingerprinter#69`. The repository
+  has no `documentation` label, so the issue is unlabelled.
 - **L-2** The wheel ships no `py.typed` marker, so mypy treats `fingerprint` as untyped
   (`meaningfy-ws/rdf-fingerprinter#64`, filed in task 1.6). `mypy.ini` holds a section
   `[mypy-fingerprint.*] ignore_missing_imports = True`, named and scoped to that package; it changes

@@ -53,3 +53,11 @@ call; filed as `meaningfy-ws/rdf-fingerprinter#63`.
 - Pitfall findings are seen in the report page, where the library already puts them; the UI does
   not re-render the pitfalls file.
 - Destructive actions (delete, cancel) become `POST` forms with a confirmation step.
+
+## Found while building the upgrade (2026-11-08)
+
+- The library's `puml` output is several files: `diagram-default.puml` and one
+  `diagram-default--<module>.puml` per namespace module (rdf-fingerprinter 3.6.0). DEC-6 assumed one
+  `diagram.puml`; the PLAN must decide which diagram(s) the viewer renders.
+- `list_named_graphs` was released in rdf-fingerprinter 3.6.0 (#63), so stage 3 of this EPIC is no
+  longer blocked.
