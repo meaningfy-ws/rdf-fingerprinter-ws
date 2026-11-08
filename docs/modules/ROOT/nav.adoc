@@ -1,0 +1,6 @@
+* xref:index.adoc[Introduction]
+
+* xref:develop/index.adoc[Developer runbook]
+** xref:develop/rdf-fingerprinter.adoc[Building on rdf-fingerprinter]
+** xref:develop/agents.adoc[Working with agents]
+** xref:develop/testing.adoc[Testing checklist]

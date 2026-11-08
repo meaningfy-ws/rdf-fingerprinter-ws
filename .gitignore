@@ -71,8 +71,9 @@ instance/
 # Scrapy stuff:
 .scrapy
 
-# Sphinx documentation
-docs/_build/
+# Antora documentation
+docs/build/
+docs/node_modules/
 
 # PyBuilder
 target/
@@ -138,3 +139,5 @@ dmypy.json
 
 # fuseki
 /fuseki-fingerprinter-volume
+# Temporary files (agents and people)
+temp/
