@@ -11,7 +11,7 @@ from fingerprint.service_layer.settings import resolve_settings
 from fingerprinter.adapters.fingerprint_library import LibraryFingerprinter
 from fingerprinter.adapters.fuseki import FusekiDatasetStore
 from fingerprinter.domain.model import ReportFormat
-from tests.integration.conftest import FusekiServer
+from tests.containers import FusekiServer
 
 RESOURCES = Path(__file__).parent.parent / "resources"
 NAMED_GRAPH = "http://example.org/g1"

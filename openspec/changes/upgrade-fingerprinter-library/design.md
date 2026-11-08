@@ -359,8 +359,9 @@ Deferred, with their home:
 - **D-7** *Leader's choice:* `RDF_FINGERPRINTER_TIMEZONE` and `TIME_FORMAT` are dropped: job times
   are UTC ISO strings and nothing read them. `RDF_FINGERPRINTER_DEBUG` and the Flask config classes
   went with the `run.py` modules.
-- **D-6** No `task_revoked` handler yet: *Risks* makes it conditional on the stage-3 e2e
-  cancellation test.
+- **D-6** No `task_revoked` handler: *Risks* made it conditional on the stage-3 e2e cancellation
+  test, which passes without it (5 of 5 runs, prefork worker): the task's `finally` removes the
+  dataset despite `revoke(terminate=True)`. Closed as not needed.
 
 Deferred: action pins by SHA and the deprecated `uvicorn.workers` module (stage 4 images).
 

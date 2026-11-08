@@ -161,5 +161,10 @@ row when a run differs a lot.
 |===
 |Target |Tests |Time |Measured |Notes
 |`make check-docs` |– |≈ 1 s |2026-11-08 |
-|`make check-all` |75 |≈ 12 s |2026-11-08 |most of it is `check-spec` (npx)
+|`make check-all` |251 |≈ 13 s |2026-11-08 |most of it is `check-spec` (npx)
+|`make test-containers` |27 |≈ 80 s |2026-11-08 |integration and e2e; most of it is starting the Fuseki and Redis containers
+|e2e: endpoint job, all seven formats |1 |≈ 1.5 s |2026-11-08 |continents table; job wall time, queued to `completed`
+|e2e: file job (upload, dataset, run, removal) |1 |≈ 4 s |2026-11-08 |treaties table
+|e2e: unreachable endpoint |1 |≈ 5 s |2026-11-08 |the library retries twice before the job fails
+|e2e: cancel a running file job |1 |≈ 7 s |2026-11-08 |whole test, run alone, so it includes starting the worker
 |===

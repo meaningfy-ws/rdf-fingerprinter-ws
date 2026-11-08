@@ -1,4 +1,4 @@
-"""Session-scoped containers for the integration tests (design D-11, D-13); started once per run."""
+"""Session-scoped Fuseki and Redis containers for the integration and e2e tests (design D-11, D-13); started once per run."""
 
 from collections.abc import Iterator
 from dataclasses import dataclass
