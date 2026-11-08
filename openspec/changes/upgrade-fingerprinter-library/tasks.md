@@ -18,7 +18,7 @@ Each stage ends in one PR into `develop`, run through the stage loop of
 - [x] 1.6 Add `ruff.toml`, `mypy.ini`, `.coveragerc` (D-12), `.pre-commit-config.yaml` from the reference repository's files, and `.importlinter` with one stage-1 contract (`fingerprinter.services` and `fingerprinter.adapters` do not import `fingerprinter.entrypoints`, which today's code meets). Add the Makefile targets of `/home/lps/work/repos/rdf-persistence/Makefile`: `install`, `lock`, `format`, `lint`, `lint-fix`, `typecheck`, `check-architecture`, `check-spec`, `test`, `test-unit`, `test-feature`, `check-quality` (= `lint typecheck check-architecture check-spec check-docs`; the reference's generation and freshness targets do not apply), `check-all`; remove the pip targets. Fix the Ruff and mypy findings in their own commits.
 - [x] 1.7 Raise the unit and feature lane to ≥ 80 % coverage, test-first on the code stage 2 keeps (the API handlers and helpers, the UI views and forms). Check: `make check-all` green.
 - [x] 1.8 Replace `.github/workflows/tests.yml` with `.github/workflows/ci.yml`: Python 3.13, `astral-sh/setup-uv`, Node 20 (for `make check-spec`'s `npx`), `make install` and `make check-all` on PRs into and pushes to `develop`; remove Codecov.
-- [ ] 1.9 Stage 1 PR into `develop` (stage loop; no use case changes, so no acceptance demo).
+- [x] 1.9 Stage 1 PR into `develop` (stage loop; no use case changes, so no acceptance demo).
 
 ## 2. Stage 2 — Structure (DEC-8, D-1, D-2, D-5, D-6, D-7, D-16)
 
@@ -90,7 +90,7 @@ live in `tests/resources/`.
 
 ## Roadmap
 
-- [x] 1.1 · [x] 1.2 · [x] 1.3 · [x] 1.4 · [x] 1.5 · [x] 1.6 · [x] 1.7 · [x] 1.8 · [ ] 1.9
+- [x] 1.1 · [x] 1.2 · [x] 1.3 · [x] 1.4 · [x] 1.5 · [x] 1.6 · [x] 1.7 · [x] 1.8 · [x] 1.9
 - [ ] 2.1 · [ ] 2.2 · [ ] 2.3 · [ ] 2.4 · [ ] 2.5 · [ ] 2.6 · [ ] 2.7
 - [ ] 3.1 · [ ] 3.2 · [ ] 3.3 · [ ] 3.4 · [ ] 3.5 · [ ] 3.6 · [ ] 3.7
 - [ ] 4.1 · [ ] 4.2 · [ ] 4.3 · [ ] 4.4 · [ ] 4.5 · [ ] 4.6 · [ ] 4.7
