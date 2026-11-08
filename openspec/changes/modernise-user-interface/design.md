@@ -217,6 +217,39 @@ test module's worker.
   delete itself lands on `/`.
 - The report frame's own content is not checked by axe: it is the library's page, shown unchanged.
 
+## Stage-2 review (five lenses, 2026-11-08): accepted fixes
+
+Recorded before the fixes (Rule of Divergence).
+
+- **S2-1** The PlantUML server runs with `PLANTUML_SECURITY_PROFILE=SANDBOX` (compose and the test
+  fixture), so no diagram can make it fetch a URL; the image, its limit and its profile are one set of
+  constants in `tests/containers.py`, each with a note naming `docker/docker-compose.yml`.
+- **S2-2** Drawing: once the server is unreachable or times out, the job's remaining diagrams are
+  recorded as failures without waiting on each; a PlantUML file that cannot be decoded is that
+  diagram's failure, not the job's. The failure names the diagram by the label the UI would show
+  ("Class diagram (Whole model) could not be drawn: …"), not the file stem; the warning is logged.
+- **S2-3** Library dependency L-1 below: the picker depends on the library's diagram file names; an
+  integration test runs the real library and asserts `diagram_choices` can label every PlantUML file
+  it wrote, so a renamed scheme fails a gate. A split module (`<name>~<n>`) is labelled
+  "Vocabulary: <name> (part <n>)".
+- **S2-4** The status block answers `HX-Refresh: true` on a 404 (the job is gone), so the reload shows
+  "No such job or report."; the tab context (and its flash) is built only for jobs with outputs.
+- **S2-5** Copy left in templates moves to `labels.py` (column headers, meta labels, the frame title,
+  the image alt); the query names `tab` and `diagram` are constants; the three file routes share one
+  helper; the job view is built once per request; the failures list is one macro; the Report tab is an
+  include; `Download` separates the file name from the file count; diagrams are a named tuple with an
+  explicit sort key; `".svg"` comes from `ReportFormat.SVG`.
+- **S2-6** Tests: "The PlantUML server is down" keeps all seven library formats; the e2e journey
+  asserts the report frame shows the library's pitfalls section; the warning is logged; the UI
+  fixture uses the worker's real failure text.
+
+### Library dependencies
+
+- **L-1** rdf-fingerprinter publishes no description of each diagram file (graph, overview or module,
+  part): `meaningfy-ws/rdf-fingerprinter#75`. Until it does, the UI reads the file names
+  (`diagram-<slug>.puml`, `diagram-<slug>--<module>.puml`), pinned by the S2-3 integration test. When
+  #75 is released, the picker uses the published description and the parsing goes.
+
 ## Algorithm — live status
 
 The rows fragment is the same template as the page's table body (`templates/jobs/_rows.html`).
