@@ -1,83 +1,14 @@
-{% macro render_upload_input_field(field) %}
-    <div class="row">
-        <div class="col s12">
-            {{ field.label }}
-            <div class="file-field input-field">
-                <div class="btn blue lighten-1">
-
-                    <span><i class="material-icons left">cloud_upload</i>Browse</span>
-                    {{ field(**kwargs)|safe }}
-                </div>
-
-                <div class="file-path-wrapper">
-                    <input class="file-path validate" type="text"
-                           placeholder="Upload file"/>
-                    <span class="helper-text">{{ field.description }}</span>
-                </div>
-            </div>
+{# Form fields: the label, the control, its help and its error, tied together for screen readers. #}
+{% macro field(form_field, hint=None) %}
+    {% set attrs = {"aria-describedby": form_field.id ~ "-hint " ~ form_field.id ~ "-error"} %}
+    {% if form_field.errors %}{% set _ = attrs.update({"aria-invalid": "true"}) %}{% endif %}
+    {% set _ = attrs.update(kwargs) %}
+    <div class="field">
+        {{ form_field.label }}
+        {{ form_field(class_="input", **attrs) }}
+        <p class="help" id="{{ form_field.id }}-hint">{{ hint or form_field.description }}</p>
+        <div id="{{ form_field.id }}-error">
+            {% for error in form_field.errors %}<p class="field-error">{{ error }}</p>{% endfor %}
         </div>
     </div>
-{% endmacro %}
-
-{% macro render_radio_buttons_field(field) %}
-    <fieldset>
-        <legend>&nbsp;{{ field.label }}&nbsp;</legend>
-        {% for button in field %}
-            <label>
-                {{ button }}
-                <span>{{ button.label }}</span>
-            </label>
-        {% endfor %}
-    </fieldset>
-{% endmacro %}
-
-{% macro render_text_input_field(field) %}
-    <div class="row">
-        <div class="col s12">
-            <div class="input-field">
-                {{ field.label }}
-                {{ field(**kwargs)|safe }}
-
-                {% if field.errors %}
-
-                    {% for error in field.errors %}
-                        <p class="red-text">{{ error }}</p>
-                    {% endfor %}
-
-                {% endif %}
-            </div>
-        </div>
-    </div>
-{% endmacro %}
-
-{% macro render_text_area_field(field) %}
-    <div class="row">
-        <div class="input-field col s12">
-            {{ field(class_='materialize-textarea')|safe }}
-            {{ field.label }}
-<span class="helper-text">{{ field.description }}</span>
-
-            {% if field.errors %}
-
-                {% for error in field.errors %}
-                    <p class="red-text">{{ error }}</p>
-                {% endfor %}
-
-            {% endif %}
-        </div>
-    </div>
-{% endmacro %}
-
-{% macro render_job_state(job) %}
-    <span id="state-{{ job.id }}">{{ job.state }}</span>
-    {% if job.reason %}
-        <p id="reason-{{ job.id }}" class="red-text">{{ job.reason }}</p>
-    {% endif %}
-    {% if job.failures %}
-        <ul id="failures-{{ job.id }}">
-            {% for failure in job.failures %}
-                <li>{{ failure }}</li>
-            {% endfor %}
-        </ul>
-    {% endif %}
 {% endmacro %}

@@ -151,6 +151,54 @@ WCAG 2.2 AA in light and dark; no external assets. Non-goals: the EPIC's no-gos.
   install`, `uv run playwright install --with-deps chromium`, `make test-containers`; upgrade task
   4.3 then only adds the release workflow.
 
+## As built in stage 1 (tasks 1.3–1.5, 2026-11-08)
+
+- **U-5** The announcement is an out-of-band swap of the live region's *content*
+  (`hx-swap-oob="innerHTML"` on `#announce`): replacing the element itself is not reliably read out.
+- **U-4** `next` accepts any local path (so a row's cancel returns to `/?show=active`); `//host`,
+  backslashes, schemes and relative paths become `/`.
+- **U-4** The confirmation sits in a dimmed content area under the header, not a fixed overlay, so no
+  focusable link is hidden behind it (WCAG 2.2 *focus not obscured*).
+- **U-2** "What you get" hides "Class diagram (SVG)" until task 2.2 produces it.
+- The UI's downloads are proxied into memory, as before (no streaming of large zips).
+
+## Stage-1 review (five lenses, 2026-11-08): accepted fixes
+
+Recorded before the fixes (Rule of Divergence).
+
+- **S1-1** `next` is accepted only when it has no control character or whitespace, no scheme and no
+  host, and passes the `//`, `/\` check (an open redirect through `/%09/evil.example` was shown).
+- **S1-2** Every UI response sends `X-Frame-Options: SAMEORIGIN` and `Content-Security-Policy:
+  frame-ancestors 'self'` (clickjacking of the confirmations); an expired CSRF token renders the form
+  again with "This form expired. Please try again."; the session cookie is `SameSite=Lax`, and
+  `Secure` when `RDF_FINGERPRINTER_UI_SECURE_COOKIES` is true.
+- **S1-3** File downloads are streamed from the API (`stream=True`, passed through).
+- **S1-4** `ApiClient` turns API errors into one `ApiError(problem, status)` (in `ui/exceptions.py`)
+  and returns parsed values; views call typed methods (no method names as strings, no `requests` in
+  views). The job JSON is parsed once into a frozen `ApiJob` with defaults and an unknown-state
+  fallback (shown as its raw state with a neutral badge), so one odd record cannot break the page.
+- **S1-5** One copy of the rules: `JobRecord.with_state(..., now)` stamps `finished_at`;
+  `FingerprintOutcome.file_names` gives the sorted names; `formats` is derived from `files`; the
+  "only listed files" check lives in `services.reports.report_download`; both stores use them.
+- **S1-6** The UI's format ids, tab ids and config keys are constants (a UI-local `ApiState`
+  `StrEnum`, `labels` constants, a `listed_from_stage` flag instead of `!= 'svg'`); button and
+  empty-state copy and the form field labels move to `labels.py`; `helpers.py` is folded in;
+  `api_wrapper.py` becomes `api_client.py`; one megabyte constant; unused icons and the
+  not-yet-existing `GraphListingFailed` sentence removed (it comes with stage 3); a test pins
+  `labels.PROBLEMS` to the API's `PROBLEM_STATUS` and the UI's state sets to the OpenAPI enum.
+- **S1-7** A 404 after a delete or cancel `POST` lands on `/`; a poll treats only an unreachable API
+  (no answer) as "paused" — an error answer shows the server-error sentence in that row.
+- **S1-8** Tests: "An endpoint job is started" asserts the new row; the e2e journey asserts the
+  announcement once and that no `/jobs/rows` request follows "Done"; the `hx-vals` after a change;
+  the `TZ` fixture restores `time.tzset()`.
+
+As built (S1 fixes): `next` checks, framing headers, CSRF expiry and cookies as listed;
+`RDF_FINGERPRINTER_UI_SECURE_COOKIES` (default false) added to the settings and `docker/.env`; an
+unknown state shows its raw text with a neutral badge; a record written before `files` existed gets
+its `files` from its format folders when `FileJobStore` reads it, so older jobs keep their outputs;
+the e2e journey cancels leftover active jobs first (`quiet_console`), since the job store outlives a
+test module's worker.
+
 ## Algorithm — live status
 
 The rows fragment is the same template as the page's table body (`templates/jobs/_rows.html`).

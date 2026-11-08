@@ -16,11 +16,12 @@ from fingerprinter.domain.model import (
 )
 
 CREATED = datetime(2026, 11, 8, 10, 0, tzinfo=UTC)
+FINISHED = datetime(2026, 11, 8, 10, 0, 7, tzinfo=UTC)
 
 
 @pytest.fixture
 def store(tmp_path: Path) -> FileJobStore:
-    return FileJobStore(tmp_path / "reports")
+    return FileJobStore(tmp_path / "reports", clock=lambda: FINISHED)
 
 
 def record(job_id: str = "job-1", source: Source | None = None, created=CREATED) -> JobRecord:
@@ -66,6 +67,8 @@ def test_meta_json_is_the_record_in_the_api_shape(store, tmp_path):
         "reason": None,
         "failures": [],
         "formats": [],
+        "finished_at": None,
+        "files": {},
     }
 
 
@@ -99,6 +102,36 @@ def test_set_state_writes_the_failures_to_meta_json(store, tmp_path):
     meta = json.loads((tmp_path / "reports" / "job-1" / "meta.json").read_text())
     assert meta["state"] == "completed_with_failures"
     assert meta["failures"] == ["m1 failed", "m2 failed"]
+
+
+@pytest.mark.parametrize(
+    ("state", "stamped"),
+    [
+        (JobState.QUEUED, False),
+        (JobState.RUNNING, False),
+        (JobState.COMPLETED, True),
+        (JobState.COMPLETED_WITH_FAILURES, True),
+        (JobState.FAILED, True),
+        (JobState.CANCELLED, True),
+    ],
+)
+def test_set_state_stamps_finished_at_with_the_clock_for_a_final_state_only(store, state, stamped):
+    store.create(record())
+
+    store.set_state("job-1", state)
+
+    assert store.get("job-1").finished_at == (FINISHED if stamped else None)
+
+
+def test_the_clock_defaults_to_the_current_utc_time(tmp_path):
+    store = FileJobStore(tmp_path / "reports")
+    store.create(record())
+
+    store.set_state("job-1", JobState.COMPLETED)
+
+    finished = store.get("job-1").finished_at
+    assert finished is not None
+    assert abs((datetime.now(UTC) - finished).total_seconds()) < 60
 
 
 def test_set_state_of_an_unknown_id_raises_job_not_found(store):
@@ -149,6 +182,19 @@ def test_save_outputs_moves_files_into_format_folders_and_records_the_formats(st
     assert (folder / "json" / "profile.json").read_text() == "json:profile.json"
     assert not (tmp_path / "work" / "html" / "main.html").exists()
     assert store.get("job-1").formats == (ReportFormat.HTML, ReportFormat.JSON)
+
+
+def test_save_outputs_lists_the_files_per_format_without_the_zip(store, tmp_path):
+    store.create(record())
+
+    store.save_outputs("job-1", outcome(tmp_path, html=("main.html",), puml=("b.puml", "a.puml")))
+
+    assert store.get("job-1").files == {
+        ReportFormat.HTML: ("main.html",),
+        ReportFormat.PUML: ("a.puml", "b.puml"),
+    }
+    meta = json.loads((tmp_path / "reports" / "job-1" / "meta.json").read_text())
+    assert meta["files"] == {"html": ["main.html"], "puml": ["a.puml", "b.puml"]}
 
 
 def test_everything_is_zipped(store, tmp_path):
@@ -242,6 +288,13 @@ def test_the_zip_of_a_multi_file_format_is_built_when_the_outputs_are_saved(stor
         assert sorted(archive.namelist()) == ["html/main.html", "puml/a.puml", "puml/b.puml"]
 
 
+def test_one_listed_file_of_a_format_is_found_by_name(store, tmp_path):
+    store.create(record())
+    store.save_outputs("job-1", outcome(tmp_path, puml=("a.puml", "b.puml")))
+
+    assert store.file_for("job-1", ReportFormat.PUML, "b.puml").read_text() == "puml:b.puml"
+
+
 def test_a_format_with_no_file_is_not_available(store, tmp_path):
     store.create(record())
     store.save_outputs("job-1", outcome(tmp_path, html=("main.html",)))
@@ -272,7 +325,7 @@ def test_discard_outputs_keeps_only_the_record_and_clears_the_formats(store, tmp
     store.discard_outputs("job-1")
 
     assert sorted(p.name for p in (tmp_path / "reports" / "job-1").iterdir()) == ["meta.json"]
-    assert store.get("job-1").formats == ()
+    assert (store.get("job-1").formats, store.get("job-1").files) == ((), {})
 
 
 def test_outputs_can_be_saved_again_after_a_discard(store, tmp_path):
@@ -303,3 +356,35 @@ def test_delete_all_removes_every_job_and_tolerates_an_empty_store(store):
     store.delete_all()
 
     assert store.list() == []
+
+
+def test_a_record_written_before_files_existed_lists_its_files_from_disk(tmp_path):
+    """Records from before the `files` field still show their formats (stage-1 review follow-up)."""
+    import json
+
+    from fingerprinter.adapters.file_job_store import FileJobStore
+
+    job = tmp_path / "3f2c0000-0000-4000-8000-000000000000"
+    (job / "html").mkdir(parents=True)
+    (job / "html" / "main.html").write_text("<html></html>")
+    (job / "puml").mkdir()
+    (job / "puml" / "b.puml").write_text("@startuml\n@enduml")
+    (job / "puml" / "a.puml").write_text("@startuml\n@enduml")
+    (job / "meta.json").write_text(
+        json.dumps(
+            {
+                "id": job.name,
+                "source": {"endpoint": "http://example.org/sparql", "graphs": []},
+                "created_at": "2026-11-08T10:00:00+00:00",
+                "state": "completed",
+                "reason": None,
+                "failures": [],
+                "formats": ["html", "puml"],
+            }
+        )
+    )
+
+    record = FileJobStore(tmp_path).get(job.name)
+
+    assert [f.value for f in record.formats] == ["html", "puml"]
+    assert record.files[record.formats[1]] == ("a.puml", "b.puml")

@@ -59,7 +59,7 @@ def test_a_source_is_exactly_an_endpoint_or_a_file(kwargs):
         Source(**kwargs)
 
 
-def test_a_job_record_is_frozen_and_starts_with_no_reason_failures_or_formats():
+def test_a_job_record_is_frozen_and_starts_with_no_reason_failures_formats_or_files():
     record = JobRecord(
         id="j1",
         source=Source(file="data.ttl"),
@@ -67,6 +67,7 @@ def test_a_job_record_is_frozen_and_starts_with_no_reason_failures_or_formats():
         state=JobState.QUEUED,
     )
     assert (record.reason, record.failures, record.formats) == (None, (), ())
+    assert (record.finished_at, record.files) == (None, {})
     with pytest.raises(FrozenInstanceError):
         record.state = JobState.RUNNING  # type: ignore[misc]
 
@@ -92,7 +93,8 @@ def test_a_job_record_round_trips_through_its_json_shape():
         state=JobState.COMPLETED_WITH_FAILURES,
         reason=None,
         failures=("m1 failed",),
-        formats=(ReportFormat.HTML, ReportFormat.JSON),
+        finished_at=datetime(2026, 1, 1, 10, 0, 9, tzinfo=UTC),
+        files={ReportFormat.HTML: ("main.html",), ReportFormat.JSON: ("profile.json",)},
     )
 
     assert record.to_dict() == {
@@ -103,6 +105,8 @@ def test_a_job_record_round_trips_through_its_json_shape():
         "reason": None,
         "failures": ["m1 failed"],
         "formats": ["html", "json"],
+        "finished_at": "2026-01-01T10:00:09+00:00",
+        "files": {"html": ["main.html"], "json": ["profile.json"]},
     }
     assert JobRecord.from_dict(record.to_dict()) == record
 
@@ -134,7 +138,6 @@ def test_the_status_of_a_job_is_its_id_state_reason_and_failures():
         created_at=datetime(2026, 11, 8, tzinfo=UTC),
         state=JobState.COMPLETED_WITH_FAILURES,
         failures=("m failed",),
-        formats=(ReportFormat.HTML,),
     )
 
     assert record.to_status_dict() == {
@@ -142,4 +145,75 @@ def test_the_status_of_a_job_is_its_id_state_reason_and_failures():
         "state": "completed_with_failures",
         "reason": None,
         "failures": ["m failed"],
+    }
+
+
+def test_a_record_written_before_finished_at_and_files_existed_still_loads():
+    old = {
+        "id": "j1",
+        "source": {"file": "d.ttl", "graphs": []},
+        "created_at": "2026-01-01T10:00:00+00:00",
+        "state": "completed",
+        "reason": None,
+        "failures": [],
+        "formats": ["html"],
+    }
+
+    record = JobRecord.from_dict(old)
+
+    assert (record.finished_at, record.files) == (None, {})
+
+
+def test_the_formats_of_a_record_are_the_formats_that_have_files():
+    record = JobRecord(
+        id="j1",
+        source=Source(file="d.ttl"),
+        created_at=datetime(2026, 1, 1, tzinfo=UTC),
+        state=JobState.COMPLETED,
+        files={ReportFormat.HTML: ("main.html",), ReportFormat.JSON: ()},
+    )
+
+    assert record.formats == (ReportFormat.HTML,)
+
+
+@pytest.mark.parametrize(
+    ("state", "stamped"),
+    [
+        (JobState.QUEUED, False),
+        (JobState.RUNNING, False),
+        (JobState.COMPLETED, True),
+        (JobState.COMPLETED_WITH_FAILURES, True),
+        (JobState.FAILED, True),
+        (JobState.CANCELLED, True),
+    ],
+)
+def test_a_new_state_stamps_the_finish_time_for_a_final_state_only(state, stamped):
+    now = datetime(2026, 1, 1, 10, 5, tzinfo=UTC)
+    record = JobRecord(
+        id="j1",
+        source=Source(file="d.ttl"),
+        created_at=datetime(2026, 1, 1, tzinfo=UTC),
+        state=JobState.RUNNING,
+        files={ReportFormat.HTML: ("main.html",)},
+    )
+
+    changed = record.with_state(state, "why", ("m failed",), now)
+
+    assert (changed.state, changed.reason, changed.failures) == (state, "why", ("m failed",))
+    assert changed.finished_at == (now if stamped else None)
+    assert changed.files == record.files
+
+
+def test_the_file_names_of_an_outcome_are_sorted_per_format():
+    outcome = FingerprintOutcome(
+        files={
+            ReportFormat.PUML: (Path("w/b.puml"), Path("w/a.puml")),
+            ReportFormat.HTML: (Path("w/main.html"),),
+            ReportFormat.JSON: (),
+        }
+    )
+
+    assert outcome.file_names == {
+        ReportFormat.PUML: ("a.puml", "b.puml"),
+        ReportFormat.HTML: ("main.html",),
     }

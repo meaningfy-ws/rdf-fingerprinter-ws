@@ -1,6 +1,8 @@
 """In-memory fakes of the service ports (design D-2, D-11)."""
 
 import dataclasses
+from collections.abc import Callable
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import IO
 
@@ -78,7 +80,8 @@ class FakeDatasetStore:
 
 
 class InMemoryJobStore:
-    def __init__(self) -> None:
+    def __init__(self, clock: Callable[[], datetime] = lambda: datetime.now(UTC)) -> None:
+        self.clock = clock
         self.records: dict[str, JobRecord] = {}
         self.outputs: dict[str, dict[ReportFormat, tuple[Path, ...]]] = {}
 
@@ -101,26 +104,25 @@ class InMemoryJobStore:
         reason: str | None = None,
         failures: tuple[str, ...] = (),
     ) -> None:
-        record = self.get(job_id)
-        self.records[job_id] = dataclasses.replace(
-            record, state=state, reason=reason, failures=failures
-        )
+        self.records[job_id] = self.get(job_id).with_state(state, reason, failures, self.clock())
 
     def save_outputs(self, job_id: str, outcome: FingerprintOutcome) -> None:
         record = self.get(job_id)
         if job_id in self.outputs:
             raise FileExistsError(f'Job "{job_id}" already has outputs.')
         self.outputs[job_id] = dict(outcome.files)
-        self.records[job_id] = dataclasses.replace(record, formats=outcome.formats)
+        self.records[job_id] = dataclasses.replace(record, files=outcome.file_names)
 
     def discard_outputs(self, job_id: str) -> None:
         record = self.get(job_id)
         self.outputs.pop(job_id, None)
-        self.records[job_id] = dataclasses.replace(record, formats=())
+        self.records[job_id] = dataclasses.replace(record, files={})
 
-    def file_for(self, job_id: str, report_format: ReportFormat) -> Path:
+    def file_for(self, job_id: str, report_format: ReportFormat, name: str | None = None) -> Path:
         self.get(job_id)
         files = self.outputs.get(job_id, {}).get(report_format, ())
+        if name is not None:
+            files = tuple(path for path in files if path.name == name)
         if not files:
             raise FormatNotAvailable(job_id, report_format)
         return files[0]

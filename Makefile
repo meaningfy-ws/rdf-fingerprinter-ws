@@ -74,9 +74,9 @@ check-architecture: ## Check architecture constraints with import-linter
 	@ echo -e "$(BUILD_PRINT)$(ICON_DONE) Architecture checks passed$(END_BUILD_PRINT)"
 
 check-spec: ## Validate the OpenSpec specs and every change that carries spec deltas (pinned CLI, strict)
-	@ npx -y @fission-ai/openspec@1.4.1 validate --specs --strict --no-interactive
+	@ npx -y --prefer-offline @fission-ai/openspec@1.4.1 validate --specs --strict --no-interactive
 	@ for change in $$(ls -d openspec/changes/*/specs 2>/dev/null | cut -d/ -f3); do \
-		npx -y @fission-ai/openspec@1.4.1 validate "$$change" --type change --strict --no-interactive || exit 1; \
+		npx -y --prefer-offline @fission-ai/openspec@1.4.1 validate "$$change" --type change --strict --no-interactive || exit 1; \
 	done
 
 check-quality: lint typecheck check-architecture check-spec check-docs ## Static checks: lint + typecheck + architecture + spec + docs

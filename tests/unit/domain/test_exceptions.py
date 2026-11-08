@@ -3,6 +3,7 @@ import pytest
 from fingerprinter.domain.exceptions import (
     FormatNotAvailable,
     InvalidSource,
+    JobIsActive,
     JobNotCancellable,
     JobNotFound,
     QueueUnavailable,
@@ -30,6 +31,10 @@ def test_format_not_available_names_the_job_and_format():
 
 def test_job_not_cancellable_names_the_state():
     assert "completed" in str(JobNotCancellable("j1", JobState.COMPLETED))
+
+
+def test_job_is_active_names_the_state():
+    assert "running" in str(JobIsActive("j1", JobState.RUNNING))
 
 
 @pytest.mark.parametrize("error", [InvalidSource, QueueUnavailable])

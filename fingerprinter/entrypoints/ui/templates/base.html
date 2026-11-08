@@ -1,98 +1,37 @@
-<!DOCTYPE HTML>
+{% import "icons.html" as icons %}
+<!DOCTYPE html>
 <html lang="en">
 <head>
-    <title>RDF Fingeprinter</title>
+    <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
-    <meta name="Meaningfy" content="RDF-Differ">
-    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
-    <!-- Compiled and minified CSS -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
-    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='main.css') }}">
+    <meta name="color-scheme" content="light dark">
+    {# htmx must not inject its own <style> or evaluate code #}
+    <meta name="htmx-config" content='{"includeIndicatorStyles": false, "allowEval": false}'>
+    <title>{% block title %}Jobs{% endblock %} · RDF Fingerprinter</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}">
+    <script src="{{ url_for('static', filename='vendor/htmx.min.js') }}" defer></script>
 </head>
 <body>
-<header>
-{% set navigation_bar = [
-        (url_for('fingerprint_sparql_endpoint'), 'fingerprint_sparql_endpoint', 'SPARQL Endpoint'),
-        (url_for('fingerprint_file'), 'fingerprint_file', 'File'),
-        (url_for('get_active_tasks'), 'get_active_tasks', 'List active tasks')
-] %}
-
-{% set active_page = active_page|default('index') -%}
-{% block navbar %}
-   <nav class="navbar navbar-expand-lg navbar-light bg-light deep-purple lighten-2">
-        <div class="container">
-          <a href="{{ url_for('index') }}">RDF Fingerprinter</a>
-                <ul id="nav-mobile" class="right hide-on-med-and-down">
-                    {% for href, id, caption in navigation_bar %}
-                        <li class="nav-item{% if id == active_page %} active{% endif %}">
-                            <a class="nav-link" href="{{ url_for(id)|e }}">{{ caption|e }}</a>
-                        </li>
-                    {% endfor %}
-                </ul>
-        </div>
-    </nav>
-{% endblock %}
-</header>
-<main>
-{% block content %}
-    <div class="container">
-            {% with errors = get_flashed_messages(category_filter=[FLASH_ERROR]) %}
-                {% if errors %}
-                    {% for message in errors %}
-                        <div class="row">
-                            <div class="col s12">
-                                <div class="card red lighten-3">
-                                    <div class="row">
-                                        <div class="col s12 m10">
-                                            <div class="card-content black-text">
-                                                <i class="material-icons left">info_outline</i>
-                                                <p>{{ message }}</p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    {% endfor %}
-                {% endif %}
-            {% endwith %}
-            {% with messages = get_flashed_messages(category_filter=[FLASH_SUCCESS]) %}
-                {% if messages %}
-                    {% for message in messages %}
-                        <div class="row">
-                            <div class="col s12">
-                                <div class="card blue lighten-3">
-                                    <div class="row">
-                                        <div class="col s12 m10">
-                                            <div class="card-content black-text">
-                                                <i class="material-icons left">info_outline</i>
-                                                <p>{{ message }}</p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    {% endfor %}
-                {% endif %}
-            {% endwith %}
-
-        {% block app_content %}
-        {% endblock %}
+<a class="skip-link" href="#content">Skip to content</a>
+<header class="site-header">
+    <div class="bar">
+        <a class="brand" href="{{ url_for('index') }}">{{ icons.logo() }} RDF Fingerprinter</a>
+        <nav class="nav" aria-label="Main">
+            <a href="{{ url_for('index') }}"{% if active_page|default('') == 'index' %} aria-current="page"{% endif %}>Jobs</a>
+            <a class="btn btn-primary" href="{{ url_for('new_job') }}">{{ icons.plus() }} {{ labels.NEW_JOB }}</a>
+        </nav>
     </div>
-{% endblock %}
-    </main>
-    <footer class="page-footer blue-grey lighten-2">
-
-        <div class="container center black-text footer-container">
-            Powered by
-            <a class="white-text" href="https://github.com/meaningfy-ws">Meaningfy</a>
-        </div>
-
-    </footer>
-    </body>
+</header>
+<div id="announce" class="visually-hidden" aria-live="polite"></div>
+<main id="content">
+    <div id="flashes">
+        {% for category, message in get_flashed_messages(with_categories=true) %}
+            <div class="flash flash-{{ 'error' if category == FLASH_ERROR else 'success' }}"
+                 role="{{ 'alert' if category == FLASH_ERROR else 'status' }}">{{ message }}</div>
+        {% endfor %}
+    </div>
+    {% block app_content %}{% endblock %}
+</main>
+<footer class="site-footer">Powered by <a href="https://github.com/meaningfy-ws">Meaningfy</a></footer>
+</body>
 </html>
-
-<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>

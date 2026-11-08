@@ -45,5 +45,12 @@ class JobNotCancellable(Exception):
         super().__init__(f'Job "{job_id}" is {state} and cannot be cancelled.')
 
 
+class JobIsActive(Exception):
+    """The job is queued or running and cannot be deleted (409)."""
+
+    def __init__(self, job_id: str, state: JobState):
+        super().__init__(f'Job "{job_id}" is {state}: cancel it before deleting it.')
+
+
 class QueueUnavailable(Exception):
     """The job queue refused the job (503)."""

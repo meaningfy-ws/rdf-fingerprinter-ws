@@ -1,29 +1,23 @@
-#!/usr/bin/python3
-
-# forms.py
-# Date:  22/10/2020
-# Author: Mihai Coșleț
-# Email: coslet.mihai@gmail.com
-
-"""
-Form classes for use in views.
-"""
+"""Form classes for the New job page."""
 
 from flask_wtf import FlaskForm
 from flask_wtf.file import FileField, FileRequired
 from wtforms import StringField, TextAreaField
 from wtforms.validators import DataRequired
 
+from fingerprinter.entrypoints.ui import labels
 
-class BaseFingerprintForm(FlaskForm):
-    graphs = TextAreaField(
-        "Graphs", description="Separate them through spaces. example: graph1 graph2"
+
+class FingerprintSPARQLEndpointForm(FlaskForm):
+    sparql_endpoint_url = StringField(
+        labels.ENDPOINT_URL_LABEL,
+        description=labels.ENDPOINT_URL_HELP,
+        validators=[DataRequired(message=labels.PROBLEMS["InvalidSource"])],
     )
-
-
-class FingerprintSPARQLEndpointForm(BaseFingerprintForm):
-    sparql_endpoint_url = StringField("Endpoint URL", validators=[DataRequired()])
+    graphs = TextAreaField(labels.GRAPHS_LABEL, description=labels.GRAPHS_HELP)
 
 
 class FingerprintFileForm(FlaskForm):
-    data_file = FileField("Data file", validators=[FileRequired()])
+    data_file = FileField(
+        labels.FILE_LABEL, validators=[FileRequired(message=labels.CHOOSE_A_FILE)]
+    )

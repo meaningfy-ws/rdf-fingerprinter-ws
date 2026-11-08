@@ -156,7 +156,7 @@ def test_a_queue_that_is_down_is_a_503_and_the_job_is_failed(client, services, p
 
 
 def test_reports_lists_the_job_records(client, services):
-    seed(services, J1, failures=("m failed",), formats=(ReportFormat.HTML,))
+    seed(services, J1, failures=("m failed",), files={ReportFormat.HTML: ("main.html",)})
     seed(services, J2, JobState.QUEUED)
 
     response = client.get("/reports")
@@ -261,6 +261,64 @@ def test_an_unknown_format_is_a_400(client, services):
 
 def test_a_format_of_an_unknown_report_is_a_404(client):
     assert client.get(f"/reports/{UNKNOWN}/html").status_code == 404
+
+
+def test_a_job_record_carries_finished_at_and_its_files(client, services):
+    seed(
+        services,
+        J1,
+        finished_at=datetime(2026, 11, 8, 0, 0, 9, tzinfo=UTC),
+        files={ReportFormat.PUML: ("a.puml", "b.puml")},
+    )
+
+    record = client.get(f"/reports/{J1}").json()
+
+    assert record["finished_at"] == "2026-11-08T00:00:09+00:00"
+    assert record["files"] == {"puml": ["a.puml", "b.puml"]}
+
+
+def test_one_listed_file_of_a_format_is_served(client, services, tmp_path):
+    seed(services, J1, files={ReportFormat.PUML: ("a.puml", "b.puml")})
+    (tmp_path / "b.puml").write_text("diagram b")
+    seed_output(services, J1, ReportFormat.PUML, tmp_path / "b.puml")
+
+    response = client.get(f"/reports/{J1}/puml/b.puml")
+
+    assert response.status_code == 200
+    assert response.text == "diagram b"
+    assert response.headers["content-type"].startswith("text/plain")
+    assert response.headers["x-content-type-options"] == "nosniff"
+    assert "filename=b.puml" in response.headers["content-disposition"]
+
+
+def test_a_file_the_record_does_not_list_is_a_404(client, services):
+    seed(services, J1, files={ReportFormat.PUML: ("a.puml",)})
+
+    response = client.get(f"/reports/{J1}/puml/unknown.puml")
+
+    assert response.status_code == 404
+    assert response.json()["type"] == "urn:fingerprinter:FormatNotAvailable"
+
+
+def test_a_file_name_that_climbs_out_of_the_report_is_a_404(client, services):
+    seed(services, J1, files={ReportFormat.PUML: ("a.puml",)})
+
+    assert client.get(f"/reports/{J1}/puml/..%2Fmeta.json").status_code == 404
+
+
+def test_a_file_of_an_unknown_report_is_a_404(client):
+    assert client.get(f"/reports/{UNKNOWN}/puml/a.puml").status_code == 404
+
+
+@pytest.mark.parametrize("state", [JobState.QUEUED, JobState.RUNNING])
+def test_an_active_job_cannot_be_deleted(client, services, state):
+    seed(services, J1, state)
+
+    response = client.delete(f"/reports/{J1}")
+
+    assert response.status_code == 409
+    assert response.json()["type"] == "urn:fingerprinter:JobIsActive"
+    assert J1 in services.job_store.records
 
 
 def test_a_report_is_deleted_once(client, services):

@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% set active_page = "index" %}
+{% block title %}Jobs{% endblock %}
+
+{% block app_content %}
+    <h1>Jobs</h1>
+    {% if total is none %}
+        {# the flash above says why #}
+    {% elif not total %}
+        <div class="empty">{% include "jobs/_none.html" %}</div>
+    {% else %}
+        <nav aria-label="Filter jobs">
+            <ul class="tabs">
+                {% for option in filters %}
+                <li><a href="{{ url_for('index', show=None if loop.first else option.id) }}"{% if option.id == show %} aria-current="page"{% endif %}>{{ option.label }}</a></li>
+                {% endfor %}
+            </ul>
+        </nav>
+        <p class="muted small">Updates by itself while a job is queued or running.</p>
+        <div class="table-wrap">
+            <table class="table">
+                <caption class="visually-hidden">Jobs, newest first</caption>
+                <thead>
+                <tr>
+                    <th scope="col">Source</th>
+                    <th scope="col">Started</th>
+                    <th scope="col">Status</th>
+                    <th scope="col">Outputs</th>
+                    <th scope="col"><span class="visually-hidden">Actions</span></th>
+                </tr>
+                </thead>
+                {% include "jobs/_rows.html" %}
+            </table>
+        </div>
+    {% endif %}
+{% endblock %}

@@ -1,7 +1,7 @@
 """The domain model of a fingerprinting job (design D-1, D-5): pure data, no I/O."""
 
 from collections.abc import Mapping
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import datetime
 from enum import StrEnum
 from pathlib import Path, PurePath
@@ -58,7 +58,29 @@ class JobRecord:
     state: JobState
     reason: str | None = None
     failures: tuple[str, ...] = ()
-    formats: tuple[ReportFormat, ...] = ()
+    finished_at: datetime | None = None
+    files: Mapping[ReportFormat, tuple[str, ...]] = field(default_factory=dict)
+
+    @property
+    def formats(self) -> tuple[ReportFormat, ...]:
+        """The formats that have files."""
+        return tuple(fmt for fmt, names in self.files.items() if names)
+
+    def with_state(
+        self,
+        state: JobState,
+        reason: str | None,
+        failures: tuple[str, ...],
+        now: datetime,
+    ) -> "JobRecord":
+        """The record in a new state; a final state stamps ``finished_at`` with ``now``."""
+        return replace(
+            self,
+            state=state,
+            reason=reason,
+            failures=failures,
+            finished_at=None if state.is_active else now,
+        )
 
     def to_dict(self) -> dict[str, Any]:
         """The record in the JSON shape of design D-4, shared by ``meta.json`` and the API."""
@@ -73,6 +95,8 @@ class JobRecord:
             "reason": self.reason,
             "failures": list(self.failures),
             "formats": [report_format.value for report_format in self.formats],
+            "finished_at": self.finished_at.isoformat() if self.finished_at else None,
+            "files": {fmt.value: list(names) for fmt, names in self.files.items()},
         }
 
     def to_status_dict(self) -> dict[str, Any]:
@@ -98,7 +122,10 @@ class JobRecord:
             state=JobState(data["state"]),
             reason=data["reason"],
             failures=tuple(data["failures"]),
-            formats=tuple(ReportFormat(name) for name in data["formats"]),
+            finished_at=datetime.fromisoformat(data["finished_at"])
+            if data.get("finished_at")
+            else None,
+            files={ReportFormat(fmt): tuple(names) for fmt, names in data.get("files", {}).items()},
         )
 
 
@@ -112,3 +139,12 @@ class FingerprintOutcome:
     @property
     def formats(self) -> tuple[ReportFormat, ...]:
         return tuple(fmt for fmt, paths in self.files.items() if paths)
+
+    @property
+    def file_names(self) -> dict[ReportFormat, tuple[str, ...]]:
+        """The sorted file names per format that has files: what the job's record lists."""
+        return {
+            fmt: tuple(sorted(path.name for path in paths))
+            for fmt, paths in self.files.items()
+            if paths
+        }

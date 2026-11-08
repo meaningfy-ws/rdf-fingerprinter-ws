@@ -76,4 +76,10 @@ def api_app() -> FlaskApp:
 
 def ui_app() -> Flask:
     _configure_logging()
-    return create_ui_app(settings.api_url, settings.ui_secret_key)
+    return create_ui_app(
+        settings.api_url,
+        settings.ui_secret_key,
+        accepted_extensions=tuple(sorted(settings.input_mime_types)),
+        max_upload_bytes=settings.max_upload_bytes,
+        secure_cookies=settings.ui_secure_cookies,
+    )

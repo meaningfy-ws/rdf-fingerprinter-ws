@@ -50,8 +50,18 @@ def get_fingerprinting(uid: str) -> tuple[dict[str, Any], HTTPStatus]:
 
 
 def get_report_file(uid: str, format: str) -> Response:
+    return _send_report_file(uid, format, None)
+
+
+def get_report_named_file(uid: str, format: str, file: str) -> Response:
+    return _send_report_file(uid, format, file)
+
+
+def _send_report_file(uid: str, report_format: str, name: str | None) -> Response:
     services = _services()
-    path = reports.report_download(uid, ReportFormat(format), job_store=services.job_store)
+    path = reports.report_download(
+        uid, ReportFormat(report_format), name, job_store=services.job_store
+    )
     # an extension outside the table gets the type send_file guesses from the name
     mimetype = services.output_mime_types.get(file_extension(path.name))
     response = send_file(path, mimetype=mimetype)
