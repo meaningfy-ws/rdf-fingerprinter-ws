@@ -27,7 +27,7 @@ Each stage ends in one PR into `develop`, run through the stage loop of
 - [x] 2.3 `fingerprinter/services/ports.py` (D-2) with in-memory fakes in `tests/fakes.py`; `fingerprinter/services/jobs.py` and `fingerprinter/services/reports.py` (the algorithm of `design.md`), test-first through the fakes; the feature steps for the scenarios the test map marks *feature*.
 - [x] 2.4 Adapters `fuseki.py`, `file_job_store.py` (D-3, D-5), `file_upload_store.py`, `celery_queue.py` (D-6), `fingerprint_library.py` (stage-1 outputs: `html` and `json` only); integration tests in `tests/integration/` against Fuseki (`stain/jena-fuseki`) and Redis containers through testcontainers; add `make test-containers` (no coverage floor, D-12).
 - [x] 2.5 `fingerprinter/config.py` `Settings.from_env()` (D-7), `fingerprinter/bootstrap.py` (D-1, D-6), `fingerprinter/entrypoints/worker/tasks.py`; the API handlers call the services from `flask.current_app.extensions["fingerprinter"]` (D-8); the UI stays an HTTP client and gets its settings from `bootstrap.ui_app()` (D-9). The routes of D-17 serve the job record; the UI's job page shows its state, reason and failures. Delete `fingerprinter/adapters/{celery,sparql_adapter,helpers}.py` and `fingerprinter/services/{report_handling,handlers,db,file,tasks,time}.py` and their tests once replaced.
-- [ ] 2.6 Replace the stage-1 `.importlinter` with the contracts of D-16; add `tests/unit/test_architecture.py`, which runs `lint-imports` on a temporary copy of the package with one forbidden import per `package-boundaries` scenario and expects a failure naming it.
+- [x] 2.6 Replace the stage-1 `.importlinter` with the contracts of D-16; add `tests/unit/test_architecture.py`, which runs `lint-imports` on a temporary copy of the package with one forbidden import per `package-boundaries` scenario and expects a failure naming it.
 - [ ] 2.7 Stage 2 PR into `develop` (stage loop; the PR notes the API break of D-17; no new use case, so no acceptance demo).
 
 ## 3. Stage 3 — Outputs and API (DEC-1 to DEC-5, DEC-10, DEC-11, DEC-15, D-3, D-4, D-9, L-1)
@@ -91,7 +91,7 @@ live in `tests/resources/`.
 ## Roadmap
 
 - [x] 1.1 · [x] 1.2 · [x] 1.3 · [x] 1.4 · [x] 1.5 · [x] 1.6 · [x] 1.7 · [x] 1.8 · [x] 1.9
-- [x] 2.1 · [x] 2.2 · [x] 2.3 · [x] 2.4 · [x] 2.5 · [ ] 2.6 · [ ] 2.7
+- [x] 2.1 · [x] 2.2 · [x] 2.3 · [x] 2.4 · [x] 2.5 · [x] 2.6 · [ ] 2.7
 - [ ] 3.1 · [ ] 3.2 · [ ] 3.3 · [ ] 3.4 · [ ] 3.5 · [ ] 3.6 · [ ] 3.7
 - [ ] 4.1 · [ ] 4.2 · [ ] 4.3 · [ ] 4.4 · [ ] 4.5 · [ ] 4.6 · [ ] 4.7
 
