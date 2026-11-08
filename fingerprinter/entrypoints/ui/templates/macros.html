@@ -12,3 +12,9 @@
         </div>
     </div>
 {% endmacro %}
+
+
+{# A list of what could not be produced. #}
+{% macro failures(items) %}
+    <ul>{% for failure in items %}<li>{{ failure }}</li>{% endfor %}</ul>
+{% endmacro %}

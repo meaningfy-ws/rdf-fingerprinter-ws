@@ -50,7 +50,7 @@ def state_note(
 ) -> str:
     """The line under a status badge; ``took`` is the formatted duration, when it is known."""
     if state == ApiState.COMPLETED:
-        return f"Took {took}" if took else ""
+        return f"{TOOK} {took}" if took else ""
     if state == ApiState.COMPLETED_WITH_FAILURES:
         return f"{count(failures, 'part', 'parts')} could not be produced"
     if state == ApiState.FAILED:
@@ -155,11 +155,22 @@ JOB_TAB_NAMES = {
     JobTab.DIAGRAM: "Class diagram",
     JobTab.DOWNLOADS: "Downloads",
 }
+TAB_QUERY = "tab"
+DIAGRAM_QUERY = "diagram"
 WHOLE_MODEL = "Whole model"
 DIAGRAM_PICKER = "Diagram"
 SHOW = "Show"
 NO_DIAGRAM = "No diagram is available."
 UNKNOWN_DIAGRAM = "That diagram does not exist."
+JOBS_COLUMNS = ("Source", "Started", "Status", "Outputs")
+ACTIONS = "Actions"
+JOBS_CAPTION = "Jobs, newest first"
+JOBS_LIVE_HINT = "Updates by itself while a job is queued or running."
+OUTPUT_COLUMN = "Output"
+FILE_COLUMN = "File"
+STARTED = "Started"
+TOOK = "Took"
+JOB_ID = "ID"
 OPEN_IN_NEW_TAB = "Open in a new tab"
 DOWNLOAD = "Download"
 DOWNLOAD_SVG = "Download SVG"
@@ -170,10 +181,20 @@ def warnings_title(failures: int) -> str:
     return f"Some parts could not be produced ({failures})"
 
 
-def diagram_label(slug: str, vocabulary: str | None, *, several: bool) -> str:
+def diagram_label(slug: str, vocabulary: str | None, part: str | None, *, several: bool) -> str:
     """The picker's name for a diagram; the graph is named only when the job has several."""
     text = f"Vocabulary: {vocabulary}" if vocabulary else WHOLE_MODEL
+    if part:
+        text += f" (part {part})"
     return f"{text} — {slug}" if several else text
+
+
+def diagram_alt(source: str, label: str) -> str:
+    return f"Class diagram of {source}: {label}"
+
+
+def report_frame_title(source: str) -> str:
+    return f"Report for {source}"
 
 
 def zip_of(files: int) -> str:

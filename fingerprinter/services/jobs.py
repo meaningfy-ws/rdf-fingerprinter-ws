@@ -11,6 +11,7 @@ from urllib.parse import urlparse
 
 from fingerprinter.domain.exceptions import (
     DiagramRenderFailed,
+    DiagramServerUnavailable,
     InvalidSource,
     JobNotCancellable,
     QueueUnavailable,
@@ -118,17 +119,33 @@ def _start(job_id: str, job_store: JobStore) -> bool:
     return True
 
 
+def _drawn(source: Path, renderer: DiagramRenderer) -> bytes:
+    try:
+        text = source.read_bytes().decode()
+    except UnicodeDecodeError as error:
+        raise DiagramRenderFailed("the PlantUML file is not text") from error
+    return renderer.render(text)
+
+
 def _with_diagrams(
     outcome: FingerprintOutcome, renderer: DiagramRenderer, work_folder: Path
 ) -> FingerprintOutcome:
-    """The outcome plus an SVG for every PlantUML file; one that cannot be drawn is a failure."""
+    """The outcome plus an SVG for every PlantUML file; one that cannot be drawn is a failure.
+
+    Once the server is unreachable or too slow, the remaining diagrams fail with the same cause
+    without being tried: each would wait out the timeout.
+    """
     folder = work_folder / ReportFormat.SVG.value
     drawn: list[Path] = []
     failures = list(outcome.failures)
+    server_down: DiagramServerUnavailable | None = None
     for source in outcome.files.get(ReportFormat.PUML, ()):
         try:
-            svg = renderer.render(source.read_bytes().decode())
+            if server_down:
+                raise server_down
+            svg = _drawn(source, renderer)
         except DiagramRenderFailed as error:
+            server_down = error if isinstance(error, DiagramServerUnavailable) else server_down
             logger.warning("Class diagram %s could not be drawn: %s", source.stem, error)
             failures.append(f"Class diagram {source.stem} could not be drawn: {error}")
             continue

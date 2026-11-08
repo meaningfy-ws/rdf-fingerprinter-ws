@@ -11,7 +11,11 @@ FUSEKI_IMAGE = "stain/jena-fuseki:5.1.0"
 FUSEKI_PORT = 3030
 FUSEKI_ADMIN_USER = "admin"
 FUSEKI_ADMIN_PASSWORD = "integration-test-password"
+# The PlantUML image, size limit and security profile are those of the plantuml service in
+# docker/docker-compose.yml; tests/unit/test_plantuml_stack.py keeps the two equal.
 PLANTUML_IMAGE = "plantuml/plantuml-server:jetty-v1.2024.7"
+PLANTUML_LIMIT_SIZE = "16384"
+PLANTUML_SECURITY_PROFILE = "SANDBOX"  # no diagram can make the server fetch a URL
 PLANTUML_PORT = 8080
 REDIS_IMAGE = "redis:7-alpine"
 REDIS_PORT = 6379
@@ -80,7 +84,8 @@ def plantuml() -> Iterator[PlantUmlServer]:
     container = (
         DockerContainer(PLANTUML_IMAGE)
         .with_exposed_ports(PLANTUML_PORT)
-        .with_env("PLANTUML_LIMIT_SIZE", "16384")
+        .with_env("PLANTUML_LIMIT_SIZE", PLANTUML_LIMIT_SIZE)
+        .with_env("PLANTUML_SECURITY_PROFILE", PLANTUML_SECURITY_PROFILE)
         .waiting_for(HttpWaitStrategy(PLANTUML_PORT, "/").for_status_code(200))
     )
     with container:

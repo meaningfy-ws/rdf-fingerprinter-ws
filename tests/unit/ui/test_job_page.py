@@ -138,11 +138,26 @@ def test_with_several_graphs_each_diagram_names_its_graph(client, api):
     assert labels == ["Whole model — a", "Whole model — b", "Vocabulary: foaf — a"]
 
 
+def test_a_vocabulary_split_in_parts_names_each_part(client, api):
+    parts = ["diagram-default--skos~1.svg", "diagram-default--skos~2.svg"]
+    api.jobs = [
+        done(files=FILES | {"svg": ["diagram-default.svg", "diagram-default--dct.svg", *parts]})
+    ]
+    soup = page(client.get("/jobs/j1234567-aaaa?tab=diagram"))
+
+    labels = [o.get_text(strip=True) for o in soup.find_all("option")]
+    assert labels == [
+        "Whole model", "Vocabulary: dct", "Vocabulary: skos (part 1)", "Vocabulary: skos (part 2)",
+    ]  # fmt: skip
+
+
 # --- The diagram failed to render -------------------------------------------------------------------
 
 
 def test_the_diagram_failed_to_render(client, api):
-    failures = ["Class diagram default could not be drawn: the PlantUML server is not reachable"]
+    failures = [
+        "Class diagram diagram-default could not be drawn: the PlantUML server is not reachable"
+    ]
     files = {name: names for name, names in FILES.items() if name != "svg"}
     soup = open_job(client, api, "?tab=diagram", state="completed_with_failures", files=files,
                     failures=failures)  # fmt: skip
@@ -249,6 +264,14 @@ def test_a_job_that_stopped_offers_no_report_diagram_or_download(client, api, st
     assert soup.find(class_="badge").get_text(strip=True) == state.capitalize()
 
 
+def test_a_job_without_outputs_has_no_diagram_to_complain_about(client, api):
+    api.jobs = [record("j1", "failed", reason="endpoint unreachable")]
+
+    soup = page(client.get("/jobs/j1?tab=diagram&diagram=nothing.svg"))
+
+    assert soup.find(class_="flash") is None
+
+
 def test_an_unreachable_endpoint(client, api):
     reason = "endpoint unreachable: http://e/sparql: connection refused"
     api.jobs = [record("j1", "failed", reason=reason)]
@@ -306,6 +329,15 @@ def test_the_state_fragment_asks_for_a_refresh_once_the_job_is_final(client, api
     api.jobs = [record("j1", state)]
 
     assert client.get("/jobs/j1/state").headers["HX-Refresh"] == "true"
+
+
+def test_the_state_fragment_of_a_job_that_is_gone_reloads_to_the_not_found_page(client, api):
+    api.jobs = []
+
+    response = client.get("/jobs/gone/state")
+
+    assert response.status_code == 200
+    assert response.headers["HX-Refresh"] == "true"
 
 
 @pytest.mark.parametrize(

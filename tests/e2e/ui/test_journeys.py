@@ -73,6 +73,7 @@ def test_open_a_jobs_report_diagram_and_a_download(
 
     report = page.frame_locator("iframe[title^='Report for']")
     expect(report.locator("body")).to_have_text(re.compile(r"\S"))  # the library's page, loaded
+    expect(report.get_by_role("heading", name="Caveats and pitfalls")).to_be_attached()
 
     page.get_by_role("link", name="Class diagram").click()
     image = page.get_by_role("img", name=re.compile("Class diagram of"))

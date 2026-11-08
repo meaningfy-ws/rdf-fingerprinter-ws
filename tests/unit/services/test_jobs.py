@@ -5,7 +5,7 @@ from pathlib import Path
 import pytest
 
 from fingerprinter.domain.exceptions import (
-    DiagramRenderFailed,
+    DiagramServerUnavailable,
     InvalidSource,
     JobNotCancellable,
     JobNotFound,
@@ -15,6 +15,7 @@ from fingerprinter.domain.exceptions import (
 from fingerprinter.domain.model import FingerprintOutcome, JobRecord, JobState, ReportFormat, Source
 from fingerprinter.services import jobs
 from tests.fakes import (
+    DEFAULT_OUTCOME,
     FakeDatasetStore,
     FakeDiagramRenderer,
     FakeFingerprinter,
@@ -475,16 +476,13 @@ DIAGRAMS = ("diagram-default.puml", "diagram-default--skos.puml", "diagram-defau
 
 @pytest.fixture
 def diagram_library(tmp_path):
-    """A library run that wrote a whole-model diagram, two vocabulary diagrams and a report."""
+    """A library run that wrote the seven formats, with a whole-model and two vocabulary diagrams."""
     diagrams = []
     for name in DIAGRAMS:
         (tmp_path / name).write_text(f"@startuml\n' {name}\n@enduml\n")
         diagrams.append(tmp_path / name)
-    (tmp_path / "main.html").write_text("report")
     return FakeFingerprinter(
-        FingerprintOutcome(
-            files={ReportFormat.HTML: (tmp_path / "main.html",), ReportFormat.PUML: tuple(diagrams)}
-        )
+        FingerprintOutcome(files=DEFAULT_OUTCOME.files | {ReportFormat.PUML: tuple(diagrams)})
     )
 
 
@@ -503,9 +501,13 @@ def test_a_diagram_is_rendered(store, queue, diagram_library):
     assert renderer.rendered == sent  # the library's text, unchanged
 
 
-def test_the_plantuml_server_is_down(store, queue, diagram_library):
+LIBRARY_FORMATS = set(DEFAULT_OUTCOME.formats)
+
+
+@pytest.mark.parametrize("cause", ["is not reachable", "did not answer in time"])
+def test_the_plantuml_server_is_down(store, queue, diagram_library, cause):
     renderer = FakeDiagramRenderer()
-    renderer.error = DiagramRenderFailed("the PlantUML server is not reachable")
+    renderer.error = DiagramServerUnavailable(f"the PlantUML server {cause}")
     job_id = jobs.submit_endpoint_job(URL, (), job_store=store, queue=queue)
 
     run_endpoint(store, diagram_library, job_id, renderer=renderer)
@@ -513,10 +515,30 @@ def test_the_plantuml_server_is_down(store, queue, diagram_library):
     record = store.get(job_id)
     assert record.state is JobState.COMPLETED_WITH_FAILURES
     assert sorted(record.failures) == sorted(
-        f"Class diagram {name[:-5]} could not be drawn: the PlantUML server is not reachable"
+        f"Class diagram {name[:-5]} could not be drawn: the PlantUML server {cause}"
         for name in DIAGRAMS
     )
-    assert record.formats == (ReportFormat.HTML, ReportFormat.PUML)  # no svg, the rest is kept
+    assert set(record.formats) == LIBRARY_FORMATS  # all seven stay, no svg
+    assert len(renderer.rendered) == 1  # the others were not tried against a server that is down
+
+
+def test_a_plantuml_file_that_cannot_be_decoded_is_that_diagrams_failure(
+    store, queue, diagram_library, caplog
+):
+    broken = diagram_library.outcome.files[ReportFormat.PUML][1]
+    broken.write_bytes(b"@startuml\n\xff\xfe\n@enduml\n")
+    renderer = FakeDiagramRenderer()
+    job_id = jobs.submit_endpoint_job(URL, (), job_store=store, queue=queue)
+
+    run_endpoint(store, diagram_library, job_id, renderer=renderer)
+
+    record = store.get(job_id)
+    assert record.state is JobState.COMPLETED_WITH_FAILURES
+    assert [f.split(" could not")[0] for f in record.failures] == [
+        "Class diagram diagram-default--skos"
+    ]
+    assert record.files[ReportFormat.SVG] == ("diagram-default--dct.svg", "diagram-default.svg")
+    assert "diagram-default--skos could not be drawn" in caplog.text  # the warning is logged
 
 
 def test_a_diagram_that_cannot_be_drawn_leaves_the_others_and_the_library_failures(

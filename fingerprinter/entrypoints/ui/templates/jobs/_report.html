@@ -1,0 +1,4 @@
+<section>
+    <p><a href="{{ url_for('job_report', job_id=job.id) }}" target="_blank" rel="noopener">{{ labels.OPEN_IN_NEW_TAB }}</a></p>
+    <iframe class="report-frame" src="{{ url_for('job_report', job_id=job.id) }}" sandbox="allow-scripts" title="{{ labels.report_frame_title(job.source) }}"></iframe>
+</section>

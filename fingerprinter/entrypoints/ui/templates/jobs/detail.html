@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% import "icons.html" as icons %}
+{% import "macros.html" as macros %}
 {% block title %}{{ job.source }}{% endblock %}
 
 {% block app_content %}
@@ -13,7 +13,7 @@
     </div>
     {% set job_id = job.id %}
     {% include "jobs/_status.html" %}
-    <p class="meta muted small">{{ job.kind }} · Started <time datetime="{{ job.started.iso }}" title="{{ job.started.title }}">{{ job.started.text }}</time>{% if job.took %} · Took {{ job.took }}{% endif %} · ID <code>{{ job.short_id }}</code></p>
+    <p class="meta muted small">{{ job.kind }} · {{ labels.STARTED }} <time datetime="{{ job.started.iso }}" title="{{ job.started.title }}">{{ job.started.text }}</time>{% if job.took %} · {{ labels.TOOK }} {{ job.took }}{% endif %} · {{ labels.JOB_ID }} <code>{{ job.short_id }}</code></p>
 
     {% if job.state == labels.ApiState.FAILED and job.reason %}
     <section class="card" aria-labelledby="why-failed">
@@ -26,13 +26,13 @@
         {% if job.failures %}
         <details class="warnings">
             <summary>{{ labels.warnings_title(job.failures|length) }}</summary>
-            <ul>{% for failure in job.failures %}<li>{{ failure }}</li>{% endfor %}</ul>
+            {{ macros.failures(job.failures) }}
         </details>
         {% endif %}
         <nav aria-label="Job">
             <ul class="tabs">
                 {% for option in labels.JobTab %}
-                <li><a href="{{ url_for('job_page', job_id=job.id, tab=option.value) }}"{% if option == tab %} aria-current="page"{% endif %}>{{ labels.JOB_TAB_NAMES[option] }}</a></li>
+                <li><a href="{{ url_for('job_page', job_id=job.id, **{labels.TAB_QUERY: option.value}) }}"{% if option == tab %} aria-current="page"{% endif %}>{{ labels.JOB_TAB_NAMES[option] }}</a></li>
                 {% endfor %}
             </ul>
         </nav>
@@ -41,10 +41,7 @@
         {% elif tab == labels.JobTab.DOWNLOADS %}
             {% include "jobs/_downloads.html" %}
         {% else %}
-        <section>
-            <p><a href="{{ url_for('job_report', job_id=job.id) }}" target="_blank" rel="noopener">{{ labels.OPEN_IN_NEW_TAB }}</a></p>
-            <iframe class="report-frame" src="{{ url_for('job_report', job_id=job.id) }}" sandbox="allow-scripts" title="Report for {{ job.source }}"></iframe>
-        </section>
+            {% include "jobs/_report.html" %}
         {% endif %}
     {% endif %}
 {% endblock %}

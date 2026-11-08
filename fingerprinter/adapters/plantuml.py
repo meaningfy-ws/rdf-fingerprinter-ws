@@ -2,7 +2,7 @@
 
 import requests
 
-from fingerprinter.domain.exceptions import DiagramRenderFailed
+from fingerprinter.domain.exceptions import DiagramRenderFailed, DiagramServerUnavailable
 
 TIMEOUT_SECONDS = 30
 XML_DECLARATION_END = "?>"
@@ -26,9 +26,9 @@ class PlantUmlRenderer:
                 f"{self.base_url}/svg", data=puml_text.encode(), timeout=TIMEOUT_SECONDS
             )
         except requests.Timeout as error:
-            raise DiagramRenderFailed("the PlantUML server did not answer in time") from error
+            raise DiagramServerUnavailable("the PlantUML server did not answer in time") from error
         except requests.RequestException as error:
-            raise DiagramRenderFailed("the PlantUML server is not reachable") from error
+            raise DiagramServerUnavailable("the PlantUML server is not reachable") from error
         if not response.ok:
             raise DiagramRenderFailed(f"the PlantUML server answered {response.status_code}")
         if not _is_svg(response.text):

@@ -157,14 +157,21 @@ def job_rows() -> str:
 # --- The Job page ---------------------------------------------------------------------------------
 
 
+def _job_view(job_id: str) -> JobView:
+    """The job as the page shows it; raises ``ApiError``."""
+    return present(_about_job(_api().job, job_id), utcnow())
+
+
 def _tab_context(job: JobView, tab: labels.JobTab) -> dict[str, Any]:
-    """What the chosen tab shows beyond the job itself."""
+    """What the chosen tab shows beyond the job itself; a job without outputs has no tabs."""
+    if not job.has_outputs:
+        return {}
     if tab == labels.JobTab.DOWNLOADS:
         return {"downloads": downloads(job.files)}
     if tab != labels.JobTab.DIAGRAM:
         return {}
     choices = diagram_choices(job.files.get(labels.FormatId.SVG, ()))
-    wanted = request.args.get("diagram")
+    wanted = request.args.get(labels.DIAGRAM_QUERY)
     shown = next((d for d in choices if d.file == wanted), choices[0] if choices else None)
     if wanted and not (shown and shown.file == wanted):
         flash(labels.UNKNOWN_DIAGRAM, FLASH_ERROR)
@@ -173,20 +180,26 @@ def _tab_context(job: JobView, tab: labels.JobTab) -> dict[str, Any]:
 
 def job_page(job_id: str) -> str | tuple[str, int]:
     try:
-        job = present(_about_job(_api().job, job_id), utcnow())
+        job = _job_view(job_id)
     except ApiError as error:
         return _error_page(error)
-    tab = next((t for t in labels.JobTab if t == request.args.get("tab")), labels.JobTab.REPORT)
+    wanted = request.args.get(labels.TAB_QUERY)
+    tab = next((t for t in labels.JobTab if t == wanted), labels.JobTab.REPORT)
     return render_template(
         "jobs/detail.html", job=job, tab=tab, paused="", **_tab_context(job, tab)
     )
 
 
 def job_state(job_id: str) -> Response | str:
-    """The status block, re-fetched by the Job page while the job is active; a final job reloads it."""
+    """The status block, re-fetched by the Job page while the job is active.
+
+    A final job, or one that is gone, reloads the page: it then shows the outcome or "not found".
+    """
     try:
-        job = present(_about_job(_api().job, job_id), utcnow())
+        job = _job_view(job_id)
     except ApiError as error:
+        if error.status == HTTPStatus.NOT_FOUND:
+            return Response(status=HTTPStatus.OK, headers=REFRESH)
         paused = labels.UPDATES_PAUSED if error.unreachable else labels.SERVER_ERROR
         return render_template("jobs/_status.html", job=None, job_id=job_id, paused=paused)
     if not job.active:
@@ -269,30 +282,43 @@ def _served(file: ApiFile, *, attachment: bool, name: str, headers: dict[str, st
     return served
 
 
-def job_report(job_id: str) -> Response | tuple[str, int]:
-    try:
-        file = _about_job(_api().file, job_id, labels.FormatId.HTML)
-    except ApiError as error:
-        return _error_page(error)
-    return _served(file, attachment=False, name=REPORT_FILE_NAME, headers=REPORT_HEADERS)
-
-
-def job_diagram(job_id: str, name: str) -> Response | tuple[str, int]:
-    try:
-        file = _about_job(_api().file, job_id, labels.FormatId.SVG, name)
-    except ApiError as error:
-        return _error_page(error)
-    return _served(file, attachment=False, name=name, headers=DIAGRAM_HEADERS)
-
-
-def job_download(
-    job_id: str, report_format: str, name: str | None = None
+def _file_page(
+    job_id: str,
+    report_format: str,
+    name: str | None,
+    *,
+    attachment: bool,
+    fallback_name: str,
+    headers: dict[str, str],
 ) -> Response | tuple[str, int]:
     try:
         file = _about_job(_api().file, job_id, report_format, name)
     except ApiError as error:
         return _error_page(error)
-    return _served(file, attachment=True, name=name or report_format, headers=NO_SNIFF)
+    return _served(file, attachment=attachment, name=fallback_name, headers=headers)
+
+
+def job_report(job_id: str) -> Response | tuple[str, int]:
+    return _file_page(
+        job_id, labels.FormatId.HTML, None,
+        attachment=False, fallback_name=REPORT_FILE_NAME, headers=REPORT_HEADERS,
+    )  # fmt: skip
+
+
+def job_diagram(job_id: str, name: str) -> Response | tuple[str, int]:
+    return _file_page(
+        job_id, labels.FormatId.SVG, name,
+        attachment=False, fallback_name=name, headers=DIAGRAM_HEADERS,
+    )  # fmt: skip
+
+
+def job_download(
+    job_id: str, report_format: str, name: str | None = None
+) -> Response | tuple[str, int]:
+    return _file_page(
+        job_id, report_format, name,
+        attachment=True, fallback_name=name or report_format, headers=NO_SNIFF,
+    )  # fmt: skip
 
 
 # --- Delete and cancel ----------------------------------------------------------------------------

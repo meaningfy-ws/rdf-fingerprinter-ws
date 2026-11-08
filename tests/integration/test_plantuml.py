@@ -29,3 +29,12 @@ def test_a_diagram_the_server_refuses_is_an_error(renderer):
 def test_a_server_that_is_not_there_is_an_error():
     with pytest.raises(DiagramRenderFailed, match="not reachable"):
         PlantUmlRenderer("http://127.0.0.1:1").render(SMALL_DIAGRAM)
+
+
+def test_a_diagram_cannot_make_the_server_fetch_a_url(renderer):
+    """The profile of the stack refuses a URL include: no image of what it would have fetched."""
+    fetching = "@startuml\n!includeurl http://example.org/x\nclass Fetched\n@enduml\n"
+
+    # observed on jetty-v1.2024.7: the server answers 400 with an error image, whatever the profile
+    with pytest.raises(DiagramRenderFailed, match="answered 400"):
+        renderer.render(fetching)

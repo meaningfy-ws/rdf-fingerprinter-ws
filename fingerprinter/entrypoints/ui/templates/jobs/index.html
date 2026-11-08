@@ -16,17 +16,17 @@
                 {% endfor %}
             </ul>
         </nav>
-        <p class="muted small">Updates by itself while a job is queued or running.</p>
+        <p class="muted small">{{ labels.JOBS_LIVE_HINT }}</p>
         <div class="table-wrap">
             <table class="table">
-                <caption class="visually-hidden">Jobs, newest first</caption>
+                <caption class="visually-hidden">{{ labels.JOBS_CAPTION }}</caption>
                 <thead>
                 <tr>
-                    <th scope="col">Source</th>
-                    <th scope="col">Started</th>
-                    <th scope="col">Status</th>
-                    <th scope="col">Outputs</th>
-                    <th scope="col"><span class="visually-hidden">Actions</span></th>
+                    <th scope="col">{{ labels.JOBS_COLUMNS[0] }}</th>
+                    <th scope="col">{{ labels.JOBS_COLUMNS[1] }}</th>
+                    <th scope="col">{{ labels.JOBS_COLUMNS[2] }}</th>
+                    <th scope="col">{{ labels.JOBS_COLUMNS[3] }}</th>
+                    <th scope="col"><span class="visually-hidden">{{ labels.ACTIONS }}</span></th>
                 </tr>
                 </thead>
                 {% include "jobs/_rows.html" %}

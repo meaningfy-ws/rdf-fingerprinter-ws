@@ -243,6 +243,12 @@ Recorded before the fixes (Rule of Divergence).
   asserts the report frame shows the library's pitfalls section; the warning is logged; the UI
   fixture uses the worker's real failure text.
 
+As built (S2 fixes): *leader's choice* — a diagram's failure names its file stem ("Class diagram
+diagram-default--skos could not be drawn: …"); naming it by the UI label would need one rule shared by
+the worker and the UI, which the `ui-is-an-api-client` contract forbids. The PlantUML image of
+`jetty-v1.2024.7` already refuses URL includes without a profile; `SANDBOX` makes it explicit and a
+test pins it.
+
 ### Library dependencies
 
 - **L-1** rdf-fingerprinter publishes no description of each diagram file (graph, overview or module,

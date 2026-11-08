@@ -4,7 +4,7 @@ import pytest
 import requests
 
 from fingerprinter.adapters.plantuml import PlantUmlRenderer
-from fingerprinter.domain.exceptions import DiagramRenderFailed
+from fingerprinter.domain.exceptions import DiagramRenderFailed, DiagramServerUnavailable
 
 INTERNAL_URL = "http://plantuml-internal:8080"
 PUML = "@startuml\nclass Ä\n@enduml\n"
@@ -89,7 +89,7 @@ def test_an_unreachable_or_slow_server_is_an_error_without_the_url(
 
     monkeypatch.setattr(requests, "post", post)
 
-    with pytest.raises(DiagramRenderFailed, match=cause) as raised:
+    with pytest.raises(DiagramServerUnavailable, match=cause) as raised:
         renderer.render(PUML)
 
     assert INTERNAL_URL not in str(raised.value)

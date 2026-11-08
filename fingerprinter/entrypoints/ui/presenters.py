@@ -3,6 +3,8 @@
 from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import datetime
+from operator import attrgetter
+from typing import NamedTuple
 
 from fingerprinter.entrypoints.ui import labels
 from fingerprinter.entrypoints.ui.api_model import ApiJob
@@ -61,48 +63,67 @@ def present(job: ApiJob, now: datetime) -> JobView:
     )
 
 
-SVG_SUFFIX = ".svg"
+SVG_SUFFIX = f".{labels.FormatId.SVG}"
 DIAGRAM_PREFIX = "diagram-"
 VOCABULARY_SEPARATOR = "--"
+PART_SEPARATOR = "~"
 
 
-@dataclass(frozen=True)
-class Diagram:
+class Diagram(NamedTuple):
     file: str
     label: str
+
+
+class _Parsed(NamedTuple):
+    file: str
+    slug: str
+    vocabulary: str | None
+    part: str | None
+
+    @property
+    def sort_key(self) -> tuple[bool, str]:
+        """Each graph's whole model before the vocabularies, then by file name."""
+        return self.vocabulary is not None, self.file
+
+
+def _parsed(file: str) -> _Parsed:
+    stem = file.removesuffix(SVG_SUFFIX).removeprefix(DIAGRAM_PREFIX)
+    slug, separator, module = stem.partition(VOCABULARY_SEPARATOR)
+    vocabulary, _, part = module.partition(PART_SEPARATOR)
+    return _Parsed(file, slug, vocabulary if separator else None, part or None)
 
 
 def diagram_choices(files: tuple[str, ...]) -> tuple[Diagram, ...]:
     """The picker's diagrams: each graph's whole model first, then the vocabularies (design U-8).
 
-    The library names them ``diagram-<slug>.svg`` and ``diagram-<slug>--<vocabulary>.svg``.
+    The library names them ``diagram-<slug>.svg``, ``diagram-<slug>--<vocabulary>.svg`` and, for a
+    vocabulary split in parts, ``diagram-<slug>--<vocabulary>~<n>.svg`` (design L-1).
     """
-    parsed = []
-    for file in files:
-        stem = file.removesuffix(SVG_SUFFIX).removeprefix(DIAGRAM_PREFIX)
-        slug, _, vocabulary = stem.partition(VOCABULARY_SEPARATOR)
-        parsed.append((bool(vocabulary), file, slug, vocabulary or None))
-    several = len({slug for *_, slug, _ in parsed}) > 1
+    parsed = sorted((_parsed(file) for file in files), key=attrgetter("sort_key"))
+    several = len({item.slug for item in parsed}) > 1
     return tuple(
-        Diagram(file, labels.diagram_label(slug, vocabulary, several=several))
-        for _, file, slug, vocabulary in sorted(parsed)
+        Diagram(
+            item.file, labels.diagram_label(item.slug, item.vocabulary, item.part, several=several)
+        )
+        for item in parsed
     )
 
 
 @dataclass(frozen=True)
 class Download:
     format: labels.Format
-    file: str  # the file's name, or how many files the zip holds
+    name: str | None  # the file's name, when the format holds one file
+    count: int  # how many files the download holds
 
 
 def downloads(files: Mapping[str, tuple[str, ...]]) -> tuple[Download, ...]:
     """One row per format the job holds, in display order, then the zip of everything."""
     rows = [
-        Download(fmt, names[0] if len(names) == 1 else labels.zip_of(len(names)))
+        Download(fmt, names[0] if len(names) == 1 else None, len(names))
         for fmt in labels.FORMATS
         if (names := files.get(fmt.id, ())) and fmt.id != labels.FormatId.ZIP
     ]
     everything = sum(len(names) for names in files.values())
     if everything:
-        rows.append(Download(labels.ZIP_FORMAT, labels.zip_of(everything)))
+        rows.append(Download(labels.ZIP_FORMAT, None, everything))
     return tuple(rows)
