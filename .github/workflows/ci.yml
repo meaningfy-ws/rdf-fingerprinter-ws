@@ -1,0 +1,40 @@
+# CI: every step calls a `make` target, so "green locally" means "green in CI".
+# Runs on pushes to develop and on PRs into develop.
+name: CI
+
+on:
+  push:
+    branches: [develop]
+    paths-ignore: ["docs/**", "*.md", "LICENSE", ".claude/**"]
+  pull_request:
+    branches: [develop]
+    paths-ignore: ["docs/**", "*.md", "LICENSE", ".claude/**"]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  check-all:
+    name: Lint, typecheck, architecture, spec and tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.13.5"
+          python-version: "3.13"
+          enable-cache: true
+
+      # make check-spec runs the pinned OpenSpec CLI through npx.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - run: make install
+      - run: make check-all
