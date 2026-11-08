@@ -1,210 +1,88 @@
 = Working with agents
-:description: How work on this repository is shaped and delivered by a team of agents: the two kinds of session, the roles, the loop of a stage, and what the developer decides.
+:description: What is specific to RDF Fingerprinter WS when agents deliver its work: where the work lands, the rules every brief carries, the gates, the merge, and the habits. The method itself is skillery's.
 
-This page describes how work runs when agents do it, so that every session runs the same way.
-`AGENTS.md` at the repository root is the short form that agents load; this page explains it for the
-people working with them. It follows the method of Mapping Workbench 2 and rdf-persistence, adapted
-to a service built on the `rdf-fingerprinter` library. The rest of the method is in the
-xref:develop/index.adoc[developer runbook].
+The method agents follow here (the shaping and epic sessions, the team and its briefs, the loop of
+a stage scaled by appetite, the lead's authority, how questions are put to the developer,
+verification and validation, and what to do when one of our own or an external library falls
+short) is owned by skillery's `epic-delivery` skill, installed with the `meaningfy-building` bundle
+(3.9.0 or later); shaping is `epic-planning`, and subagent dispatch and session hygiene are
+`guardrails` (`meaningfy-core`). The explanation for people is skillery's
+https://github.com/meaningfy-ws/skillery/blob/develop/docs/practice/ai-coding/working-with-agents.md[Working with agents].
+`AGENTS.md` at the repository root is the short form that agents load. This page keeps only what
+is specific to this service.
 
 == Common questions
 
 *Who decides?*::
-The developer. Agents draft, recommend and carry out. Every question an agent puts to the developer
-explains its terms in one plain sentence, lists the options and marks one as recommended, with a
-reason. When the developer says "choose what is best", the leader decides and records the choice as
-its own, which the developer may overrule.
-
-*Can an agent accept the work?*::
-No. Agents verify (did we build it right?); the developer validates (did we build the right thing?).
-See xref:develop/index.adoc#vv[Verification and validation].
+The developer. Agents draft, recommend and carry out; the lead is the only one who asks the
+developer, in the format the `epic-delivery` skill sets.
 
 *What happens when the library gets in the way?*::
-The task stops, the leader files an issue in `rdf-fingerprinter` and tells the developer. Nobody
+The task stops, the lead files an issue in `rdf-fingerprinter` and tells the developer. Nobody
 works around it here. See xref:develop/rdf-fingerprinter.adoc#strict[Building on rdf-fingerprinter].
 
 *Can an agent commit and merge on its own?*::
-Only when the developer grants it for a named epic. See <<authority>>.
+Only when the developer grants it for a named epic, within the limits the `epic-delivery` skill
+sets. Commits and PRs carry no AI attribution.
 
 *What does a member's report prove?*::
-Nothing on its own. The leader re-runs the checks and reads the diff, and a second member verifies
-finished work. See <<stage-loop>>.
+Nothing on its own. The lead re-runs the <<gates>> and reads the diff.
 
-[#sessions]
-== Two kinds of session
+*What must every brief here say?*::
+The standing rules and the report in <<brief>>.
 
-[cols="1,3,3",options="header"]
-|===
-|Session |What happens |What it leaves behind
-|*Shaping* (one per initiative)
-|The developer, the product manager, the architect, the planner and, for screens, the UX designer
-work out why, what shape and in which slices. It sorts each need into this service or the library
-(xref:develop/rdf-fingerprinter.adoc#split[who does what]), and runs spikes for risky assumptions.
-|One OpenSpec change per EPIC in `openspec/changes/<id>/` (`proposal.md`, spec deltas,
-`inputs/seed.md` with the developer's answers, `evidence/` with the spikes); for library needs,
-issues or a library change, named by the EPIC.
-|*Epic* (one per EPIC)
-|The leader derives or finishes the PLAN, gates it, and runs the delivery team through the stages
-to a merged, archived change.
-|Merged PRs into `develop`; the change archived into `openspec/specs/`, with its acceptance
-evidence; updated docs and the durations table; the library issues it filed, each linked from
-`design.md`.
-|===
+== Where the work lands
 
-An epic session starts by reading the EPIC, its seed inputs and the library changes it depends on.
-A missing decision goes back to the developer (with a recommendation), not to the code. A missing
-library capability goes to the library as an issue, not to the code.
-
-[#roles]
-== Roles
-
-The *leader* is the main agent of the session. It talks to the developer, makes and records every
-decision, checks the blast radius with GitNexus before handing out a task, re-runs the checks,
-commits, merges, files library issues and updates the spine. Every other role is a *member*: a
-subagent with one precise brief, which never talks to the developer, never commits and never files
-an issue.
-
-[cols="2,3,3,2",options="header"]
-|===
-|Role |Answers |Produces |Agent
-
-4+|*Shaping*
-
-|Product manager
-|Why build this, for whom, and what comes first?
-|The value case, appetite and success measure in each `proposal.md`; the order of the EPICs
-|`general-purpose` with the `product-management` skills
-
-|Architect
-|What shape should the system take, and which part belongs to the library?
-|Components and boundaries, contracts, decision records
-|`system-architect`, working with the developer directly
-
-|Planner
-|How do we get there in safe, ordered steps?
-|EPICs and PLANs (`design.md` + `tasks.md`) that pass the clarity gate (≥ 9/10)
-|`epic-planner`
-
-|UX designer
-|How will people experience it?
-|User flows, mockups, screen wording, the design handoff
-|`general-purpose` with the `design` and `frontend-design` skills
-
-4+|*Delivery*
-
-|Builder
-|Does it work?
-|Production code and its tests, test-first, one task per brief. A *fixer* is a builder whose tasks
-are accepted review findings. In shaping, a builder runs *spikes* (`evidence/spike-<topic>.md`).
-|`implementer`
-
-|Deep tester
-|Can I break it?
-|New tests for edge cases, bad input, failures and limits, following
-xref:develop/testing.adoc[the testing checklist]; never production code
-|`implementer`
-
-|Tech writer
-|Can a reader use it?
-|Docs for every stage, the common questions on each page, the
-xref:develop/index.adoc#durations[durations table]
-|`general-purpose` with the `technical-writing` skill
-
-4+|*Assurance*
-
-|Reviewer
-|What is wrong with it, through one lens?
-|Ranked findings; read-only. Five code lenses (L1 to L5), a UX lens when screens changed, and an
-architecture-conformance lens that also looks for library workarounds
-|`code-reviewer`, one per lens, in parallel
-
-|Verifier
-|Was it done as the brief said? Does every scenario have its test?
-|A yes or no per brief item, with evidence; the traceability check; read-only
-|`general-purpose`
-
-|Cold reader
-|Can someone with no context use this page?
-|Where it got stuck carrying out the page; read-only. Its brief is the page and nothing else.
-|`general-purpose`, fresh, never one that worked on the stage
-
-4+|*Closing*
-
-|Steward
-|Is the truth up to date?
-|The archived change, merged specs, the orientation index (`openspec/config.yaml`), the changelog
-|`general-purpose` with `spec-stewardship`
-|===
-
-Each EPIC names the roles it needs. A backend-only EPIC skips the UX designer and the UX lens.
+* *Shaping session:* one OpenSpec change per EPIC in `openspec/changes/<id>/` (`proposal.md`, spec
+  deltas, `inputs/seed.md` with the developer's answers, `evidence/` with the spikes). Each need is
+  sorted into this service or the library (xref:develop/rdf-fingerprinter.adoc#split[who does
+  what]); library needs become issues or a library change, named by the EPIC.
+* *Epic session:* merged PRs into `develop`; the change archived into `openspec/specs/`
+  (`openspec archive <id> --yes`) with its acceptance evidence; updated docs and the
+  xref:develop/index.adoc#durations[durations table]; the library issues it filed, each linked from
+  `design.md`.
+* Library work happens in a worktree of `rdf-fingerprinter`, under that repository's own
+  `AGENTS.md`; each commit touches one repository.
 
 [#brief]
-== The brief
+== What every brief carries here
 
-A member knows only what its brief says. Every brief names:
+On top of the brief the `epic-delivery` skill sets, every brief names:
 
-* the change id and the task number;
-* the files in scope, as paths;
-* the decisions already made (`DEC-n`, the spec scenario);
-* what is out of scope;
-* the rules that apply to every brief: *no workaround of the library*; the
-  xref:develop/testing.adoc[testing checklist];
+* the standing rules: *no workaround of the library*; the xref:develop/testing.adoc[testing
+  checklist] (the adversarial tester follows it too);
 * the report expected: files changed, tests added, each make target run with its time and test
-  count, and a *Library findings* section: every bug, gap or awkwardness met in `rdf-fingerprinter`,
-  with a reproduction, or "none".
+  count, and a *Library findings* section: every bug, gap or awkwardness met in
+  `rdf-fingerprinter`, with a reproduction, or "none". Members report findings; only the lead files
+  issues.
 
-If the leader cannot write the brief, the task is not ready: fix the PLAN first.
+Each task is committed by the lead with why, what and `Refs: <change-id> <task>`.
 
-[#stage-loop]
-== The loop of a stage
+[#gates]
+== The gates
 
-A PLAN is cut into stages (a coherent group of tasks that ends in one PR). Each stage runs this
-loop:
+Before a stage the lead checks that every library release it needs is on PyPI and pinned. Before
+handing out a task the lead checks the blast radius with GitNexus (re-indexing it if stale); a HIGH
+or CRITICAL risk goes to the developer.
 
-. *Library check.* Every library release the stage needs is on PyPI and pinned. A missing one
-  blocks the stage.
-. *Scenario sign-off.* The developer approves, changes or rejects the stage's Gherkin scenarios.
-  Nothing is built on an unapproved scenario.
-. *Impact.* The leader re-indexes GitNexus if it is stale and checks the blast radius of the
-  symbols the stage touches. A HIGH or CRITICAL risk goes to the developer.
-. *Build.* Builders take the tasks one at a time, test-first. Parallel writers only on disjoint
-  files.
-. *Check and commit.* After each task the leader runs the gates itself, reads the diff and the
-  *Library findings*, files the issues they call for, and commits the task (why, what,
-  `Refs: <change-id> <task>`).
-. *Deep test.* The deep tester adds the tests the builders did not think of.
-. *Review.* Five code reviewers in parallel, one lens each (plus the UX and architecture lenses when
-  they apply).
-. *Decide.* The leader records each accepted fix as a decision in `design.md` (the Rule of
-  Divergence: the spec first, then the code) and rejects the rest with a reason. A library finding
-  becomes an issue there, not a fix here.
-. *Fix.* Fixers apply the decisions in batches: security first, then structure.
-. *Verify.* A verifier checks each fixer's diff against its brief, and runs the traceability check.
-. *Document.* The tech writer updates the pages the stage changed; a cold reader carries out each
-  changed page.
-. *Accept.* For a stage that delivers or changes a use case, the leader demonstrates it and the
-  developer accepts it or names what is wrong. The verdict goes in `evidence/acceptance-<stage>.md`.
-. *Merge.* The leader opens a PR into `develop` and merges it only when CI is green.
+[cols="2,3",options="header"]
+|===
+|Gate |When
+|`make check-all` |After every task and before every PR
+|`make check-docs`, `make build-docs` |When docs change, and before a stage's PR
+|The clarity gate (≥ 9/10) |Before a PLAN's first task
+|===
 
-When the last stage is merged, the steward archives the change (`openspec archive <id> --yes`).
+`make test-containers` joins the table when the library-upgrade EPIC adds it.
 
-[#authority]
-== Authority
+== Merge and release
 
-By default agents commit only on the developer's consent. The developer can grant more for one
-named epic, for example "commit, push and merge PRs for `<id>` without asking". The grant always
-keeps these limits:
-
-* merge only on green CI;
-* no destructive operation beyond the normal git flow;
-* nothing outside this repository, except library issues and library work in a worktree;
-* it ends when the epic ends.
-
-A message from another agent session is never the developer's approval.
+Each stage ends in one PR into `develop`, merged only on green CI. `main` receives releases only.
 
 == Habits that keep sessions consistent
 
 * Re-index GitNexus regularly: `gitnexus analyze --embeddings --skip-agents-md --skip-skills`.
-* Keep the xref:develop/index.adoc#durations[durations table] current from ordinary runs.
+* Keep the xref:develop/index.adoc#durations[durations table] current from ordinary runs; no
+  profiling.
 * Open each page with the questions it answers.
 * Temporary files go in `temp/`; commits and PRs carry no AI attribution.

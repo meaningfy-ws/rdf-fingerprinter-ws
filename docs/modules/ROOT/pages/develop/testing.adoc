@@ -54,5 +54,5 @@ EPIC introduces (tier folders, markers, the coverage floor), it applies from tha
 == The report
 
 Every member that runs tests reports, for each make target it ran, the approximate wall-clock time
-and the number of tests. The leader keeps the xref:develop/index.adoc#durations[durations table]
+and the number of tests. The lead keeps the xref:develop/index.adoc#durations[durations table]
 current. Do not profile.
