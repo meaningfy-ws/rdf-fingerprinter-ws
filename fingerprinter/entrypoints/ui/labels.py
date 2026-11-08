@@ -103,6 +103,7 @@ FORMATS: tuple[Format, ...] = (
     Format(FormatId.ZIP, "Download all (.zip)", "Everything above in one archive."),
 )
 
+ZIP_FORMAT = next(f for f in FORMATS if f.id == FormatId.ZIP)
 
 ACTIVE_STATES = frozenset({ApiState.QUEUED, ApiState.RUNNING})
 OUTPUT_STATES = frozenset({ApiState.COMPLETED, ApiState.COMPLETED_WITH_FAILURES})
@@ -139,6 +140,45 @@ DELETE_CONFIRMATION = Confirmation(
 CANCEL_CONFIRMATION = Confirmation(
     "Cancel this job?", "The job stops. This cannot be undone.", "Keep it", "Cancel job"
 )
+
+
+class JobTab(StrEnum):
+    """What the Job page shows: the value of ``?tab=``; a missing or unknown one is the report."""
+
+    REPORT = "report"
+    DIAGRAM = "diagram"
+    DOWNLOADS = "downloads"
+
+
+JOB_TAB_NAMES = {
+    JobTab.REPORT: "Report",
+    JobTab.DIAGRAM: "Class diagram",
+    JobTab.DOWNLOADS: "Downloads",
+}
+WHOLE_MODEL = "Whole model"
+DIAGRAM_PICKER = "Diagram"
+SHOW = "Show"
+NO_DIAGRAM = "No diagram is available."
+UNKNOWN_DIAGRAM = "That diagram does not exist."
+OPEN_IN_NEW_TAB = "Open in a new tab"
+DOWNLOAD = "Download"
+DOWNLOAD_SVG = "Download SVG"
+WHY_IT_FAILED = "Why it failed"
+
+
+def warnings_title(failures: int) -> str:
+    return f"Some parts could not be produced ({failures})"
+
+
+def diagram_label(slug: str, vocabulary: str | None, *, several: bool) -> str:
+    """The picker's name for a diagram; the graph is named only when the job has several."""
+    text = f"Vocabulary: {vocabulary}" if vocabulary else WHOLE_MODEL
+    return f"{text} — {slug}" if several else text
+
+
+def zip_of(files: int) -> str:
+    return f"{count(files, 'file', 'files')} (.zip)"
+
 
 OPEN_REPORT = "Open report"
 DELETE = "Delete…"

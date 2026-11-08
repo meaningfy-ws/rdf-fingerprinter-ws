@@ -105,10 +105,8 @@ def test_a_finished_job_offers_its_report_its_zip_and_delete(client, api, state)
 
     links = row_links(rows_of(page(client.get("/")))[0])
 
-    report = links["Open report (opens in a new tab)"]
-    assert (report["href"], report["target"], report["rel"]) == (
-        "/jobs/j1/report", "_blank", ["noopener"],
-    )  # fmt: skip
+    assert links["Open report"]["href"] == "/jobs/j1"  # the Job page, from stage 2
+    assert not links["Open report"].has_attr("target")
     assert links["Download all (.zip)"]["href"] == "/jobs/j1/files/zip"
     assert urlsplit(links["Delete…"]["href"]).path == "/jobs/j1/delete"
     assert next_of(links["Delete…"]) == "/"
@@ -221,7 +219,7 @@ def test_a_running_job_reaches_completion(client, api):
     done = page(client.get("/jobs/rows?show=all&was=j1"))
 
     assert done.find(class_="badge").get_text(strip=True) == "Done"
-    assert done.find("a", href="/jobs/j1/report") is not None
+    assert done.find("a", href="/jobs/j1") is not None
     assert poll_attributes(done.find("tbody")) == dict.fromkeys(poll_attributes(done), None)
     announce = done.find(id="announce")
     assert announce["hx-swap-oob"] == "innerHTML"

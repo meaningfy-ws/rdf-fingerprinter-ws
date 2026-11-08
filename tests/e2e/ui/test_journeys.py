@@ -63,3 +63,29 @@ def test_delete_with_confirmation(
     page.get_by_role("button", name="Delete report").click()
     expect(page.get_by_role("status")).to_contain_text("deleted")
     expect(row_for(page, source)).to_have_count(0)
+
+
+def test_open_a_jobs_report_diagram_and_a_download(
+    ui_url: str, continents_job: str, open_page: Callable[..., Page]
+):
+    page = open_page()
+    page.goto(f"{ui_url}/jobs/{continents_job}")
+
+    report = page.frame_locator("iframe[title^='Report for']")
+    expect(report.locator("body")).to_have_text(re.compile(r"\S"))  # the library's page, loaded
+
+    page.get_by_role("link", name="Class diagram").click()
+    image = page.get_by_role("img", name=re.compile("Class diagram of"))
+    expect(image).to_be_visible()
+    page.wait_for_function("document.querySelector('#diagram img').naturalWidth > 0")
+    options = page.get_by_label("Diagram").locator("option")
+    assert options.count() > 1  # the whole model and a vocabulary
+    before = image.get_attribute("src")
+    page.get_by_label("Diagram").select_option(index=1)  # chosen without leaving the page
+    expect(image).not_to_have_attribute("src", before)
+    page.wait_for_function("document.querySelector('#diagram img').naturalWidth > 0")
+
+    page.get_by_role("link", name="Downloads").click()
+    with page.expect_download() as download:
+        page.get_by_role("link", name="Download Profile (JSON)").click()
+    assert download.value.suggested_filename.endswith(".json")

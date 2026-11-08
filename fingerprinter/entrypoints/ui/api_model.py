@@ -1,7 +1,7 @@
 """What the API's answers become in the UI: parsed once, with defaults, then used as typed values."""
 
-from collections.abc import Iterable
-from dataclasses import dataclass
+from collections.abc import Iterable, Mapping
+from dataclasses import dataclass, field
 from datetime import datetime
 from enum import StrEnum
 from typing import Any
@@ -39,6 +39,7 @@ class ApiJob:
     reason: str | None = None
     failures: tuple[str, ...] = ()
     finished_at: datetime | None = None
+    files: Mapping[str, tuple[str, ...]] = field(default_factory=dict)
 
     @property
     def source_name(self) -> str:
@@ -60,6 +61,7 @@ class ApiJob:
             reason=data.get("reason"),
             failures=tuple(data.get("failures") or ()),
             finished_at=datetime.fromisoformat(finished) if finished else None,
+            files={fmt: tuple(names) for fmt, names in (data.get("files") or {}).items()},
         )
 
 

@@ -208,6 +208,15 @@ test module's worker.
   least one diagram was drawn. The library writes seven formats; the record lists eight once the
   worker has drawn diagrams (the report-access feature step counts the library's seven).
 
+## As built in stage 2 (tasks 2.3–2.4, 2026-11-08)
+
+- **U-3** The Job page's status block shows the state's note only while the job is active.
+- **U-8** The picker swaps only the diagram and its download (`hx-select` on `#diagram-view`), so
+  keyboard focus stays in the select; the image sits in a scrollable region at natural size.
+- **U-4** "Delete…" from the Job page passes `next=/jobs/<id>` ("Keep it" returns there); the
+  delete itself lands on `/`.
+- The report frame's own content is not checked by axe: it is the library's page, shown unchanged.
+
 ## Algorithm — live status
 
 The rows fragment is the same template as the page's table body (`templates/jobs/_rows.html`).

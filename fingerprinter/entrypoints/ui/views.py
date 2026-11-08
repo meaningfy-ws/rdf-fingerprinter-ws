@@ -25,7 +25,12 @@ from fingerprinter.entrypoints.ui.api_client import ApiClient
 from fingerprinter.entrypoints.ui.api_model import ApiFile, ApiJob
 from fingerprinter.entrypoints.ui.exceptions import ApiError
 from fingerprinter.entrypoints.ui.forms import FingerprintFileForm, FingerprintSPARQLEndpointForm
-from fingerprinter.entrypoints.ui.presenters import JobView, present
+from fingerprinter.entrypoints.ui.presenters import (
+    JobView,
+    diagram_choices,
+    downloads,
+    present,
+)
 
 BYTES_PER_MB = 1024 * 1024
 FLASH_ERROR = "error"
@@ -37,6 +42,10 @@ REPORT_FILE_NAME = "main.html"
 NO_SNIFF = {"X-Content-Type-Options": "nosniff"}
 REPORT_HEADERS = NO_SNIFF | {"Content-Security-Policy": "sandbox allow-scripts"}
 FRAME_ANCESTORS = "frame-ancestors 'self'"
+DIAGRAM_HEADERS = NO_SNIFF | {
+    "Content-Security-Policy": "default-src 'none'; style-src 'unsafe-inline'; sandbox"
+}
+REFRESH = {"HX-Refresh": "true"}
 
 
 def utcnow() -> datetime:
@@ -145,6 +154,46 @@ def job_rows() -> str:
     return render_template("jobs/_rows.html", **context)
 
 
+# --- The Job page ---------------------------------------------------------------------------------
+
+
+def _tab_context(job: JobView, tab: labels.JobTab) -> dict[str, Any]:
+    """What the chosen tab shows beyond the job itself."""
+    if tab == labels.JobTab.DOWNLOADS:
+        return {"downloads": downloads(job.files)}
+    if tab != labels.JobTab.DIAGRAM:
+        return {}
+    choices = diagram_choices(job.files.get(labels.FormatId.SVG, ()))
+    wanted = request.args.get("diagram")
+    shown = next((d for d in choices if d.file == wanted), choices[0] if choices else None)
+    if wanted and not (shown and shown.file == wanted):
+        flash(labels.UNKNOWN_DIAGRAM, FLASH_ERROR)
+    return {"diagrams": choices, "shown": shown}
+
+
+def job_page(job_id: str) -> str | tuple[str, int]:
+    try:
+        job = present(_about_job(_api().job, job_id), utcnow())
+    except ApiError as error:
+        return _error_page(error)
+    tab = next((t for t in labels.JobTab if t == request.args.get("tab")), labels.JobTab.REPORT)
+    return render_template(
+        "jobs/detail.html", job=job, tab=tab, paused="", **_tab_context(job, tab)
+    )
+
+
+def job_state(job_id: str) -> Response | str:
+    """The status block, re-fetched by the Job page while the job is active; a final job reloads it."""
+    try:
+        job = present(_about_job(_api().job, job_id), utcnow())
+    except ApiError as error:
+        paused = labels.UPDATES_PAUSED if error.unreachable else labels.SERVER_ERROR
+        return render_template("jobs/_status.html", job=None, job_id=job_id, paused=paused)
+    if not job.active:
+        return Response(status=HTTPStatus.OK, headers=REFRESH)
+    return render_template("jobs/_status.html", job=job, job_id=job_id, paused="")
+
+
 # --- New job --------------------------------------------------------------------------------------
 
 
@@ -226,6 +275,14 @@ def job_report(job_id: str) -> Response | tuple[str, int]:
     except ApiError as error:
         return _error_page(error)
     return _served(file, attachment=False, name=REPORT_FILE_NAME, headers=REPORT_HEADERS)
+
+
+def job_diagram(job_id: str, name: str) -> Response | tuple[str, int]:
+    try:
+        file = _about_job(_api().file, job_id, labels.FormatId.SVG, name)
+    except ApiError as error:
+        return _error_page(error)
+    return _served(file, attachment=False, name=name, headers=DIAGRAM_HEADERS)
 
 
 def job_download(
@@ -330,7 +387,10 @@ ROUTES: tuple[tuple[str, Callable[..., Any], tuple[str, ...]], ...] = (
     ("/jobs/new", new_job, ("GET",)),
     ("/jobs/endpoint", start_endpoint_job, ("POST",)),
     ("/jobs/file", start_file_job, ("POST",)),
+    ("/jobs/<job_id>", job_page, ("GET",)),
+    ("/jobs/<job_id>/state", job_state, ("GET",)),
     ("/jobs/<job_id>/report", job_report, ("GET",)),
+    ("/jobs/<job_id>/diagrams/<name>", job_diagram, ("GET",)),
     ("/jobs/<job_id>/files/<report_format>", job_download, ("GET",)),
     ("/jobs/<job_id>/files/<report_format>/<name>", job_download, ("GET",)),
     ("/jobs/<job_id>/delete", confirm_delete, ("GET",)),

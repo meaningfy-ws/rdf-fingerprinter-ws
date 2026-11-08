@@ -1,0 +1,9 @@
+{# The status block; the Job page includes it and /jobs/<id>/state answers it while the job is active. #}
+<div id="job-status"{% if paused or job.active %} hx-get="{{ url_for('job_state', job_id=job_id) }}" hx-trigger="every 3s" hx-swap="outerHTML"{% endif %}>
+{% if paused %}
+    <span class="muted">{{ paused }}</span>
+{% else %}
+    <span class="badge {{ job.badge_class }}">{{ job.label }}</span>
+    {% if job.active %}<span class="muted small">{{ job.note }}</span>{% endif %}
+{% endif %}
+</div>

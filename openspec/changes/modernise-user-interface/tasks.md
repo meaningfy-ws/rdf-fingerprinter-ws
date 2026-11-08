@@ -20,7 +20,7 @@ scenarios and asked to implement them (2026-11-08, `inputs/mockups.md`).
 
 - [x] 2.1 U-9: `DiagramRenderer` port and fake (`tests/fakes.py`); `Services.diagram_renderer`; the `plantuml` container fixture and the e2e stack's PlantUML settings; `adapters/plantuml.py`; settings and `bootstrap`; the PlantUML service in `docker/docker-compose.yml`; container fixture and `tests/integration/test_plantuml.py` (SVG for a small diagram; a non-SVG answer is an error).
 - [x] 2.2 U-8 in the worker (`_with_diagrams`, the renderer passed through `run_*` and the worker tasks): `ReportFormat.SVG`, the OpenAPI enum, `OUTPUT_MIME_TYPES["svg"]`, labels; every PlantUML file rendered to `svg`; a renderer failure is a listed failure, partial failure keeps the drawn ones. Tests named after "A diagram is rendered" and "The PlantUML server is down" in `tests/unit/services/test_jobs.py`, "One diagram is fetched" and "An unknown diagram is not found" in `tests/unit/api/test_api.py`; the e2e endpoint job also asserts `svg` files.
-- [ ] 2.3 The Job page per U-3: header (title, badge, meta line with U-6 time and duration, "Delete…"/"Cancel job…"), the warnings panel ("Some parts could not be produced (n)", expandable), tabs Report (U-11 and `/jobs/<id>/report` with its headers), Class diagram (U-8 picker, `/jobs/<id>/diagrams/<file>` with its headers, "Download SVG"), Downloads (U-2 names, descriptions, file counts from `files`); status block polling. Tests in `tests/unit/ui/test_job_page.py`, named after "The report is read in the page", "The diagram is shown", "The diagram failed to render", "Downloads are listed", "An unreachable endpoint".
+- [x] 2.3 The Job page per U-3: header (title, badge, meta line with U-6 time and duration, "Delete…"/"Cancel job…"), the warnings panel ("Some parts could not be produced (n)", expandable), tabs Report (U-11 and `/jobs/<id>/report` with its headers), Class diagram (U-8 picker, `/jobs/<id>/diagrams/<file>` with its headers, "Download SVG"), Downloads (U-2 names, descriptions, file counts from `files`); status block polling. Tests in `tests/unit/ui/test_job_page.py`, named after "The report is read in the page", "The diagram is shown", "The diagram failed to render", "Downloads are listed", "An unreachable endpoint".
 - [ ] 2.4 `tests/e2e/ui/test_journeys.py`: "open a job's report, diagram and a download"; axe on the Job page in light and dark. Stage 2 PR with `evidence/acceptance-stage-2.md`.
 
 ## 3. Graph picker (DEC-9; U-10)
@@ -47,7 +47,7 @@ scenarios and asked to implement them (2026-11-08, `inputs/mockups.md`).
 ## Roadmap
 
 - [x] 1.0 · [x] 1.1 · [x] 1.2 · [x] 1.3 · [x] 1.4 · [x] 1.5 · [x] 1.6 · [x] 1.7
-- [x] 2.1 · [x] 2.2 · [ ] 2.3 · [ ] 2.4
+- [x] 2.1 · [x] 2.2 · [x] 2.3 · [ ] 2.4
 - [ ] 3.1 · [ ] 3.2 · [ ] 3.3
 
 ## Verification

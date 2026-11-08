@@ -1,0 +1,21 @@
+<div class="table-wrap">
+    <table class="table">
+        <caption class="visually-hidden">{{ labels.JOB_TAB_NAMES[labels.JobTab.DOWNLOADS] }}</caption>
+        <thead>
+        <tr>
+            <th scope="col">Output</th>
+            <th scope="col">File</th>
+            <th scope="col"><span class="visually-hidden">{{ labels.DOWNLOAD }}</span></th>
+        </tr>
+        </thead>
+        <tbody>
+        {% for item in downloads %}
+        <tr>
+            <th scope="row"><span class="name">{{ item.format.name }}</span><br><span class="muted small">{{ item.format.description }}</span></th>
+            <td class="mono">{{ item.file }}</td>
+            <td><a href="{{ url_for('job_download', job_id=job.id, report_format=item.format.id) }}">{{ icons.download(16) }} {{ labels.DOWNLOAD }}<span class="visually-hidden"> {{ item.format.name }}</span></a></td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
