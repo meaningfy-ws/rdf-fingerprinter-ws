@@ -23,6 +23,7 @@ from tests.fakes import (
 
 URL = "http://example.org/sparql"
 EXTENSIONS = frozenset({"rdf", "ttl"})
+FINISHED = datetime(2026, 11, 8, 10, 0, 7, tzinfo=UTC)
 
 
 @pytest.fixture
@@ -401,3 +402,62 @@ def test_a_finished_job_cannot_be_cancelled(state, store, queue, uploads):
 def test_cancelling_an_unknown_job_is_not_found(store, queue, uploads):
     with pytest.raises(JobNotFound):
         jobs.cancel_job("nope", job_store=store, queue=queue, upload_store=uploads)
+
+
+# --- finished_at: the job store stamps it, once per final state ---------------------------------
+
+
+@pytest.fixture
+def timed_store():
+    return InMemoryJobStore(clock=lambda: FINISHED)
+
+
+def test_a_job_is_not_finished_while_it_is_queued_or_running(timed_store, queue):
+    job_id = jobs.submit_endpoint_job(URL, (), job_store=timed_store, queue=queue)
+    assert timed_store.get(job_id).finished_at is None
+
+    timed_store.set_state(job_id, JobState.RUNNING)
+
+    assert timed_store.get(job_id).finished_at is None
+
+
+@pytest.mark.parametrize(
+    ("failures", "state"),
+    [((), JobState.COMPLETED), (("a failed",), JobState.COMPLETED_WITH_FAILURES)],
+)
+def test_a_completed_run_is_finished_when_it_ends(timed_store, queue, library, failures, state):
+    library.outcome = FingerprintOutcome(
+        files={ReportFormat.HTML: (Path("main.html"),)}, failures=failures
+    )
+    job_id = jobs.submit_endpoint_job(URL, (), job_store=timed_store, queue=queue)
+
+    run_endpoint(timed_store, library, job_id)
+
+    record = timed_store.get(job_id)
+    assert (record.state, record.finished_at) == (state, FINISHED)
+
+
+def test_a_failed_run_is_finished_when_it_ends(timed_store, queue, library):
+    library.error = RuntimeError("boom")
+    job_id = jobs.submit_endpoint_job(URL, (), job_store=timed_store, queue=queue)
+
+    run_endpoint(timed_store, library, job_id)
+
+    assert timed_store.get(job_id).finished_at == FINISHED
+
+
+def test_a_submission_the_queue_refused_is_finished_as_failed(timed_store, queue):
+    queue.error = QueueUnavailable("down")
+    with pytest.raises(QueueUnavailable):
+        jobs.submit_endpoint_job(URL, (), job_store=timed_store, queue=queue)
+
+    (record,) = timed_store.list()
+    assert (record.state, record.finished_at) == (JobState.FAILED, FINISHED)
+
+
+def test_a_cancelled_job_is_finished_when_it_is_cancelled(timed_store, queue, uploads):
+    job_id = jobs.submit_endpoint_job(URL, (), job_store=timed_store, queue=queue)
+
+    jobs.cancel_job(job_id, job_store=timed_store, queue=queue, upload_store=uploads)
+
+    assert timed_store.get(job_id).finished_at == FINISHED

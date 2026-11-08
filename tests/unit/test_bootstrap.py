@@ -80,6 +80,13 @@ def test_the_ui_app_is_a_client_of_the_api_with_its_own_secret_key(bootstrap):
     assert app.extensions["api"].base_url == "http://fingerprinter-api:4020"
 
 
+def test_the_ui_app_is_given_the_accepted_extensions_and_the_upload_limit(bootstrap):
+    app = bootstrap.ui_app()
+
+    assert app.config["ACCEPTED_EXTENSIONS"] == ("jsonld", "n3", "nq", "nt", "rdf", "trix", "ttl")
+    assert app.config["MAX_UPLOAD_BYTES"] == 512 * 1024 * 1024
+
+
 def test_the_ui_process_builds_no_adapters(bootstrap):
     bootstrap.ui_app()
 

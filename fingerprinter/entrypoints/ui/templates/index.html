@@ -4,8 +4,8 @@
 
 {% block app_content %}
     <h1 id="title">Fingerprinting reports</h1>
-    <table class="table highlight ">
-        <thead class="thead-dark">
+    <div class="table-wrap"><table class="table">
+        <thead>
         <tr>
             <th scope="col">ID</th>
             <th scope="col">source</th>
@@ -26,22 +26,21 @@
                     {% for format in job.formats %}
                         <a href="{{ url_for('download_report', job_id=job.id, report_format=format) }}"
                            id="get-{{ format }}-{{ job.id }}"
-                           style="margin-bottom: 5px"
-                           class="btn btn-file blue darken-2">Get {{ format }}</a>
+                           class="btn">Get {{ format }}</a>
                     {% endfor %}
                     {% if job.formats %}
                         <a href="{{ url_for('download_report', job_id=job.id, report_format='zip') }}"
                            id="get-zip-{{ job.id }}"
-                           class="btn btn-file blue darken-2">Get all files</a>
+                           class="btn">Get all files</a>
                     {% endif %}
                 </td>
                 <td>
                     <a href="{{ url_for('delete_fingerprinting', job_id=job.id) }}"
                        id="remove-{{ job.id }}"
-                       class="btn btn-file red darken-2">Remove</a>
+                       class="btn btn-danger">Remove</a>
                 </td>
             </tr>
         {% endfor %}
         </tbody>
-    </table>
+    </table></div>
 {% endblock %}

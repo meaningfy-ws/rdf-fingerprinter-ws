@@ -103,6 +103,18 @@ components:
           description: The formats that can be downloaded.
           items:
             $ref: '#/components/schemas/ReportFormat'
+        finished_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: When the job reached a final state; null while it is queued or running.
+        files:
+          type: object
+          description: The names of the files of each format, so that one can be downloaded by name.
+          additionalProperties:
+            type: array
+            items:
+              type: string
 
     TaskStatus:
       type: object
@@ -167,7 +179,9 @@ components:
     NotFound:
       description: No such job or report, or the report has no file of this format.
     Conflict:
-      description: The job is not queued or running.
+      description: >-
+        The job is in the wrong state: it is not queued or running (cancel), or it still is
+        (delete).
     UnsupportedMediaType:
       description: The file type is not supported; the problem lists the accepted types.
     PayloadTooLarge:
@@ -265,6 +279,8 @@ paths:
           $ref: '#/components/responses/BadRequest'
         404:
           $ref: '#/components/responses/NotFound'
+        409:
+          $ref: '#/components/responses/Conflict'
   /reports/{uid}/{format}:
     parameters:
       - $ref: '#/components/parameters/uid'
@@ -277,6 +293,36 @@ paths:
     get:
       operationId: fingerprinter.entrypoints.api.handlers.get_report_file
       description: Download a report in one format.
+      responses:
+        200:
+          description: The file.
+          content:
+            '*/*':
+              schema:
+                type: string
+                format: binary
+        400:
+          $ref: '#/components/responses/BadRequest'
+        404:
+          $ref: '#/components/responses/NotFound'
+  /reports/{uid}/{format}/{file}:
+    parameters:
+      - $ref: '#/components/parameters/uid'
+      - name: format
+        in: path
+        required: true
+        description: The format the file belongs to.
+        schema:
+          $ref: '#/components/schemas/ReportFormat'
+      - name: file
+        in: path
+        required: true
+        description: A file name the job record lists under this format.
+        schema:
+          type: string
+    get:
+      operationId: fingerprinter.entrypoints.api.handlers.get_report_named_file
+      description: Download one file of a format.
       responses:
         200:
           description: The file.

@@ -38,3 +38,21 @@ jobs:
 
       - run: make install
       - run: make check-all
+
+  # Integration and e2e tests need Docker (Fuseki, Redis) and, for the UI journeys, Chromium.
+  containers:
+    name: Container tests (integration and e2e)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.13.5"
+          python-version: "3.13"
+          enable-cache: true
+
+      - run: make install
+      - run: uv run playwright install --with-deps chromium
+      - run: make test-containers

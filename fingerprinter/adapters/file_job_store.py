@@ -5,6 +5,8 @@ import json
 import os
 import shutil
 import zipfile
+from collections.abc import Callable
+from datetime import UTC, datetime
 from pathlib import Path
 
 from fingerprinter.domain.exceptions import FormatNotAvailable, JobNotFound
@@ -32,8 +34,11 @@ def _format_zip(job_folder: Path, report_format: ReportFormat) -> Path:
 
 
 class FileJobStore:
-    def __init__(self, reports_folder: Path):
+    def __init__(
+        self, reports_folder: Path, clock: Callable[[], datetime] = lambda: datetime.now(UTC)
+    ):
         self.reports_folder = reports_folder
+        self.clock = clock
 
     def _folder(self, job_id: str) -> Path:
         if job_id in ("", ".", "..") or Path(job_id).name != job_id:
@@ -77,7 +82,12 @@ class FileJobStore:
         failures: tuple[str, ...] = (),
     ) -> None:
         record = self.get(job_id)
-        self._write(dataclasses.replace(record, state=state, reason=reason, failures=failures))
+        finished_at = None if state.is_active else self.clock()
+        self._write(
+            dataclasses.replace(
+                record, state=state, reason=reason, failures=failures, finished_at=finished_at
+            )
+        )
 
     def save_outputs(self, job_id: str, outcome: FingerprintOutcome) -> None:
         record = self.get(job_id)
@@ -92,18 +102,26 @@ class FileJobStore:
             if len(paths) > 1:
                 _zip(folder / report_format.value, _format_zip(folder, report_format), ["."])
         _zip(folder, folder / REPORT_ZIP, folder_names=[f.value for f in outcome.formats])
-        self._write(dataclasses.replace(record, formats=outcome.formats))
+        files = {
+            fmt: tuple(sorted(path.name for path in outcome.files[fmt])) for fmt in outcome.formats
+        }
+        self._write(dataclasses.replace(record, formats=outcome.formats, files=files))
 
     def discard_outputs(self, job_id: str) -> None:
         record = self.get(job_id)
         for entry in self._folder(job_id).iterdir():
             if entry.name != META_FILE:
                 shutil.rmtree(entry) if entry.is_dir() else entry.unlink()
-        self._write(dataclasses.replace(record, formats=()))
+        self._write(dataclasses.replace(record, formats=(), files={}))
 
-    def file_for(self, job_id: str, report_format: ReportFormat) -> Path:
-        self.get(job_id)
+    def file_for(self, job_id: str, report_format: ReportFormat, name: str | None = None) -> Path:
+        record = self.get(job_id)
         folder = self._folder(job_id)
+        if name is not None:
+            # only a name the record lists reaches the file system
+            if name not in record.files.get(report_format, ()):
+                raise FormatNotAvailable(job_id, report_format)
+            return folder / report_format.value / name
         if report_format is ReportFormat.ZIP:
             if not (folder / REPORT_ZIP).is_file():
                 raise FormatNotAvailable(job_id, report_format)

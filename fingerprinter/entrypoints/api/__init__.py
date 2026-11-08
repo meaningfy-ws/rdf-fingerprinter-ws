@@ -11,6 +11,7 @@ from connexion.problem import problem
 from fingerprinter.domain.exceptions import (
     FormatNotAvailable,
     InvalidSource,
+    JobIsActive,
     JobNotCancellable,
     JobNotFound,
     QueueUnavailable,
@@ -27,6 +28,7 @@ PROBLEM_STATUS: dict[type[Exception], HTTPStatus] = {
     JobNotFound: HTTPStatus.NOT_FOUND,
     FormatNotAvailable: HTTPStatus.NOT_FOUND,
     JobNotCancellable: HTTPStatus.CONFLICT,
+    JobIsActive: HTTPStatus.CONFLICT,
     QueueUnavailable: HTTPStatus.SERVICE_UNAVAILABLE,
 }
 

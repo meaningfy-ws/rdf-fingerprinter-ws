@@ -59,7 +59,7 @@ def test_a_source_is_exactly_an_endpoint_or_a_file(kwargs):
         Source(**kwargs)
 
 
-def test_a_job_record_is_frozen_and_starts_with_no_reason_failures_or_formats():
+def test_a_job_record_is_frozen_and_starts_with_no_reason_failures_formats_or_files():
     record = JobRecord(
         id="j1",
         source=Source(file="data.ttl"),
@@ -67,6 +67,7 @@ def test_a_job_record_is_frozen_and_starts_with_no_reason_failures_or_formats():
         state=JobState.QUEUED,
     )
     assert (record.reason, record.failures, record.formats) == (None, (), ())
+    assert (record.finished_at, record.files) == (None, {})
     with pytest.raises(FrozenInstanceError):
         record.state = JobState.RUNNING  # type: ignore[misc]
 
@@ -93,6 +94,8 @@ def test_a_job_record_round_trips_through_its_json_shape():
         reason=None,
         failures=("m1 failed",),
         formats=(ReportFormat.HTML, ReportFormat.JSON),
+        finished_at=datetime(2026, 1, 1, 10, 0, 9, tzinfo=UTC),
+        files={ReportFormat.HTML: ("main.html",), ReportFormat.JSON: ("profile.json",)},
     )
 
     assert record.to_dict() == {
@@ -103,6 +106,8 @@ def test_a_job_record_round_trips_through_its_json_shape():
         "reason": None,
         "failures": ["m1 failed"],
         "formats": ["html", "json"],
+        "finished_at": "2026-01-01T10:00:09+00:00",
+        "files": {"html": ["main.html"], "json": ["profile.json"]},
     }
     assert JobRecord.from_dict(record.to_dict()) == record
 
@@ -143,3 +148,20 @@ def test_the_status_of_a_job_is_its_id_state_reason_and_failures():
         "reason": None,
         "failures": ["m failed"],
     }
+
+
+def test_a_record_written_before_finished_at_and_files_existed_still_loads():
+    old = {
+        "id": "j1",
+        "source": {"file": "d.ttl", "graphs": []},
+        "created_at": "2026-01-01T10:00:00+00:00",
+        "state": "completed",
+        "reason": None,
+        "failures": [],
+        "formats": ["html"],
+    }
+
+    record = JobRecord.from_dict(old)
+
+    assert (record.finished_at, record.files) == (None, {})
+    assert record.formats == (ReportFormat.HTML,)

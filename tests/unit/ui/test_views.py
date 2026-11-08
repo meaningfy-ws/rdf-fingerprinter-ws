@@ -8,8 +8,8 @@ from werkzeug.datastructures import FileStorage
 
 from fingerprinter.entrypoints.ui import create_app
 
-ERROR_CARD = {"class": "card red lighten-3"}
-SUCCESS_CARD = {"class": "card blue lighten-3"}
+ERROR_CARD = {"class": "flash-error"}
+SUCCESS_CARD = {"class": "flash-success"}
 
 
 class FakeResponse:
@@ -56,6 +56,12 @@ class FakeApi:
         return self._answer("cancel_task", task_id)
 
 
+def make_app():
+    return create_app(
+        "http://api.test", "ui-secret", accepted_extensions=("rdf", "ttl"), max_upload_bytes=1024
+    )
+
+
 @pytest.fixture
 def api() -> FakeApi:
     return FakeApi()
@@ -63,7 +69,7 @@ def api() -> FakeApi:
 
 @pytest.fixture
 def client(api):
-    app = create_app("http://api.test", "ui-secret")
+    app = make_app()
     app.config["WTF_CSRF_ENABLED"] = False
     app.extensions["api"] = api
     return app.test_client()
@@ -94,7 +100,14 @@ def problem(status, **fields):
 
 
 def test_the_app_needs_the_secret_key_it_is_given():
-    assert create_app("http://api.test", "ui-secret").config["SECRET_KEY"] == "ui-secret"
+    assert make_app().config["SECRET_KEY"] == "ui-secret"
+
+
+def test_the_app_keeps_the_accepted_extensions_and_the_upload_limit_it_is_given():
+    app = make_app()
+
+    assert app.config["ACCEPTED_EXTENSIONS"] == ("rdf", "ttl")
+    assert app.config["MAX_UPLOAD_BYTES"] == 1024
 
 
 def test_failures_are_shown(client, api):

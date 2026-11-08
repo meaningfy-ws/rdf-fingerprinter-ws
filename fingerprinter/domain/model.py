@@ -59,6 +59,8 @@ class JobRecord:
     reason: str | None = None
     failures: tuple[str, ...] = ()
     formats: tuple[ReportFormat, ...] = ()
+    finished_at: datetime | None = None
+    files: Mapping[ReportFormat, tuple[str, ...]] = field(default_factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
         """The record in the JSON shape of design D-4, shared by ``meta.json`` and the API."""
@@ -73,6 +75,8 @@ class JobRecord:
             "reason": self.reason,
             "failures": list(self.failures),
             "formats": [report_format.value for report_format in self.formats],
+            "finished_at": self.finished_at.isoformat() if self.finished_at else None,
+            "files": {fmt.value: list(names) for fmt, names in self.files.items()},
         }
 
     def to_status_dict(self) -> dict[str, Any]:
@@ -99,6 +103,10 @@ class JobRecord:
             reason=data["reason"],
             failures=tuple(data["failures"]),
             formats=tuple(ReportFormat(name) for name in data["formats"]),
+            finished_at=datetime.fromisoformat(data["finished_at"])
+            if data.get("finished_at")
+            else None,
+            files={ReportFormat(fmt): tuple(names) for fmt, names in data.get("files", {}).items()},
         )
 
 

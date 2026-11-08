@@ -4,8 +4,8 @@
 
 {% block app_content %}
     <h1 id="title">List of active tasks</h1>
-    <table class="table highlight ">
-        <thead class="thead-dark">
+    <div class="table-wrap"><table class="table">
+        <thead>
         <tr>
             <th scope="col">ID</th>
             <th scope="col">source</th>
@@ -21,10 +21,10 @@
                 <td>{{ macros.render_job_state(task) }}</td>
                 <td><a href="{{ url_for('revoke_task', task_id=task.id) }}"
                        id="stop-task-{{ task.id }}"
-                       class="btn btn-file red darken-2">Stop task<i class="material-icons right">do_disturb_on</i></a>
+                       class="btn btn-danger">Stop task</a>
                 </td>
             </tr>
         {% endfor %}
         </tbody>
-    </table>
+    </table></div>
 {% endblock %}
