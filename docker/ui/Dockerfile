@@ -13,4 +13,4 @@ RUN --mount=type=cache,target=/root/.cache/uv uv sync --frozen --no-default-grou
 
 COPY . .
 
-CMD gunicorn --timeout ${RDF_FINGERPRINTER_GUNICORN_TIMEOUT-1200} --workers ${RDF_FINGERPRINTER_GUNICORN_UI_WORKERS-1} --bind 0.0.0.0:${RDF_FINGERPRINTER_UI_PORT} --log-file ${RDF_FINGERPRINTER_UI_LOGS} --log-level ${RDF_FINGERPRINTER_LOG_LEVEL} fingerprinter.entrypoints.ui.run:app
+CMD gunicorn --timeout ${RDF_FINGERPRINTER_GUNICORN_TIMEOUT-1200} --workers ${RDF_FINGERPRINTER_GUNICORN_UI_WORKERS-1} --bind 0.0.0.0:${RDF_FINGERPRINTER_UI_PORT} --log-file ${RDF_FINGERPRINTER_UI_LOGS} --log-level ${RDF_FINGERPRINTER_LOG_LEVEL} 'fingerprinter.bootstrap:ui_app()'

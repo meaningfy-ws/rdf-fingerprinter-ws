@@ -28,7 +28,7 @@ from tests.fakes import (
 )
 
 RESOURCES = Path(__file__).parent.parent / "resources"
-# Today's config.INPUT_MIME_TYPES keys; bootstrap passes the real ones (task 2.5).
+# The keys of config.INPUT_MIME_TYPES, which bootstrap passes to the real services.
 SUPPORTED_EXTENSIONS = frozenset({"rdf", "trix", "nq", "nt", "jsonld", "n3", "ttl"})
 STATUS_BY_ERROR: dict[type[Exception], int] = {
     InvalidSource: 400,

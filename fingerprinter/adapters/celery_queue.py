@@ -4,8 +4,7 @@ from pathlib import Path
 
 from celery import Celery
 
-ENDPOINT_TASK = "fingerprint_endpoint"
-FILE_TASK = "fingerprint_file"
+from fingerprinter.services.ports import ENDPOINT_TASK, FILE_TASK
 
 
 class CeleryJobQueue:

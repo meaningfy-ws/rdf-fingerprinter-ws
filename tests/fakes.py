@@ -2,7 +2,7 @@
 
 import dataclasses
 from pathlib import Path
-from typing import BinaryIO
+from typing import IO
 
 from fingerprinter.domain.exceptions import FormatNotAvailable, JobNotFound
 from fingerprinter.domain.model import (
@@ -124,7 +124,7 @@ class FakeUploadStore:
     def __init__(self) -> None:
         self.saved: dict[str, Path] = {}
 
-    def save(self, job_id: str, stream: BinaryIO, filename: str) -> Path:
+    def save(self, job_id: str, stream: IO[bytes], filename: str) -> Path:
         stream.read()
         self.saved[job_id] = Path("db") / job_id / filename
         return self.saved[job_id]

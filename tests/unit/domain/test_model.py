@@ -81,3 +81,38 @@ def test_an_outcome_lists_the_formats_that_hold_files():
     )
     assert outcome.formats == (ReportFormat.HTML, ReportFormat.JSON)
     assert outcome.failures == ("m1 failed",)
+
+
+def test_a_job_record_round_trips_through_its_json_shape():
+    record = JobRecord(
+        id="j1",
+        source=Source(endpoint="http://example.org/sparql", graphs=("http://g",)),
+        created_at=datetime(2026, 1, 1, 10, 0, tzinfo=UTC),
+        state=JobState.COMPLETED_WITH_FAILURES,
+        reason=None,
+        failures=("m1 failed",),
+        formats=(ReportFormat.HTML, ReportFormat.JSON),
+    )
+
+    assert record.to_dict() == {
+        "id": "j1",
+        "source": {"endpoint": "http://example.org/sparql", "graphs": ["http://g"]},
+        "created_at": "2026-01-01T10:00:00+00:00",
+        "state": "completed_with_failures",
+        "reason": None,
+        "failures": ["m1 failed"],
+        "formats": ["html", "json"],
+    }
+    assert JobRecord.from_dict(record.to_dict()) == record
+
+
+def test_a_file_source_serialises_under_the_file_key():
+    record = JobRecord(
+        id="j2",
+        source=Source(file="data.ttl"),
+        created_at=datetime(2026, 1, 1, tzinfo=UTC),
+        state=JobState.QUEUED,
+    )
+
+    assert record.to_dict()["source"] == {"file": "data.ttl", "graphs": []}
+    assert JobRecord.from_dict(record.to_dict()) == record

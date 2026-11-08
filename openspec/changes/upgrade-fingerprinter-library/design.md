@@ -295,7 +295,27 @@ Recorded before the fixes (Rule of Divergence):
 - `FileJobStore` writes `meta.json` through a temporary file and `os.replace` (the API reads while
   the worker writes); `save_outputs` on a job that already holds outputs raises `FileExistsError`.
 - The Celery app of `bootstrap` has no result backend, and short publish retries, so a downed Redis
-  fails a submission in about a second (task 2.5).
+  fails a submission in about a second (task 2.5; measured 0.18 s, a 503 problem response).
+
+### As built in stage 2 (task 2.5, 2026-11-08)
+
+- **D-1** `services/ports.py` also holds `Services`, a frozen dataclass of the ports plus the
+  supported upload extensions, and the task names `ENDPOINT_TASK`/`FILE_TASK` shared by the queue
+  adapter and the worker. `JobRecord.to_dict()`/`from_dict()` in the domain is the one serialiser of
+  the D-4 record, used by `FileJobStore` and the API.
+- **D-1, D-8** No `run.py` modules: an entrypoint may not import `bootstrap` (D-16), so the process
+  targets are `bootstrap:api_app()` (gunicorn, uvicorn worker), `bootstrap:ui_app()` and
+  `bootstrap:celery_app`. `bootstrap` reads `Settings.from_env()` on import, so a missing secret key
+  stops every process at start.
+- **D-8** `create_app(services, *, swagger_ui)`; the Flask app sets `PROPAGATE_EXCEPTIONS`, so each
+  domain exception reaches its own Connexion handler (problem `type` `urn:fingerprinter:<Name>`; 415
+  adds `accepted`). Error responses in the OpenAPI file declare no `content`, since Connexion cannot
+  pick between `application/json` and `application/problem+json` for one operation.
+- **D-7** *Leader's choice:* `RDF_FINGERPRINTER_TIMEZONE` and `TIME_FORMAT` are dropped: job times
+  are UTC ISO strings and nothing read them. `RDF_FINGERPRINTER_DEBUG` and the Flask config classes
+  went with the `run.py` modules.
+- **D-6** No `task_revoked` handler yet: *Risks* makes it conditional on the stage-3 e2e
+  cancellation test.
 
 Deferred: action pins by SHA and the deprecated `uvicorn.workers` module (stage 4 images).
 

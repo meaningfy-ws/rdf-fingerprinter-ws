@@ -6,7 +6,7 @@ import uuid
 from collections.abc import Callable, Collection
 from datetime import UTC, datetime
 from pathlib import Path, PurePath
-from typing import BinaryIO
+from typing import IO
 from urllib.parse import urlparse
 
 from fingerprinter.domain.exceptions import (
@@ -55,7 +55,7 @@ def submit_endpoint_job(
 
 
 def submit_file_job(
-    stream: BinaryIO,
+    stream: IO[bytes],
     filename: str,
     *,
     supported_extensions: Collection[str],

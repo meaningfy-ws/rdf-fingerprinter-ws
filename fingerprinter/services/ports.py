@@ -1,7 +1,9 @@
 """The ports the services depend on (design D-2); adapters implement them."""
 
+from collections.abc import Collection
+from dataclasses import dataclass
 from pathlib import Path
-from typing import BinaryIO, Protocol
+from typing import IO, Protocol
 
 from fingerprinter.domain.model import FingerprintOutcome, JobRecord, JobState, ReportFormat
 
@@ -57,7 +59,7 @@ class JobStore(Protocol):
 
 
 class UploadStore(Protocol):
-    def save(self, job_id: str, stream: BinaryIO, filename: str) -> Path: ...
+    def save(self, job_id: str, stream: IO[bytes], filename: str) -> Path: ...
 
     def discard(self, job_id: str) -> None: ...
 
@@ -68,3 +70,20 @@ class JobQueue(Protocol):
     def submit_file(self, job_id: str, path: Path) -> None: ...
 
     def cancel(self, job_id: str) -> None: ...
+
+
+# The task names the queue sends and the worker registers; one definition, so they cannot drift.
+ENDPOINT_TASK = "fingerprint_endpoint"
+FILE_TASK = "fingerprint_file"
+
+
+@dataclass(frozen=True)
+class Services:
+    """What the entrypoints call the use cases with: the ports, built once by ``bootstrap``."""
+
+    jobs: JobStore
+    uploads: UploadStore
+    queue: JobQueue
+    datasets: DatasetStore
+    fingerprinter: Fingerprinter
+    supported_extensions: Collection[str]

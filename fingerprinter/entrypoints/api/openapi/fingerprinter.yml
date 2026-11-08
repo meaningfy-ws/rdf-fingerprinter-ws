@@ -4,6 +4,9 @@ info:
   title: Fingerprinting Service
   description: |
     This API provides the possibility to fingerprint an RDF file or SPARQL endpoint.
+    A fingerprinting runs as a job: starting one answers `202` with the job id, and the job record
+    (`/reports/{uid}` or `/tasks/{task_id}`) tells its state, the reason it failed and the
+    measurements that failed.
 
   contact:
     name: Eugeniu Costetchi
@@ -12,22 +15,13 @@ info:
   license:
     name: GNU General Public License Version 3 (GPLv3)
     url: https://www.gnu.org/licenses/gpl-3.0.en.html
-  version: 1.0.1
+  version: 2.0.0
 
 servers:
   - url: 'http://localhost:4020/'
     description: Default server
 
 components:
-  parameters:
-    extensionParam:
-      in: query
-      name: report_type
-      required: false
-      schema:
-        type: string
-      description: The type of the report that will be returned
-
   schemas:
     EndpointFingerprinter:
       type: object
@@ -54,25 +48,132 @@ components:
           description: The file to be fingerprinted
       required:
         - data_file
-    TaskStatus:
+
+    JobState:
+      type: string
+      enum: [queued, running, completed, completed_with_failures, failed, cancelled]
+
+    ReportFormat:
+      type: string
+      enum: [html, json, shacl, puml, pattern, shex, pitfalls, zip]
+
+    JobCreated:
       type: object
-      description: A description of a task status response.
       properties:
         task_id:
           type: string
-          description: The task identifier.
-        task_status:
+          description: The job id; it names the job's report and its task.
+      required:
+        - task_id
+
+    JobRecord:
+      type: object
+      description: A fingerprinting job.
+      properties:
+        id:
           type: string
-          description: The task status.
-        task_result:
+        source:
+          type: object
+          description: The endpoint or the uploaded file name, and the named graphs.
+          properties:
+            endpoint:
+              type: string
+            file:
+              type: string
+            graphs:
+              type: array
+              items:
+                type: string
+        created_at:
           type: string
-          description: The task result.
+          format: date-time
+        state:
+          $ref: '#/components/schemas/JobState'
+        reason:
+          type: string
+          nullable: true
+          description: Why the job failed.
+        failures:
+          type: array
+          description: The measurements that failed.
+          items:
+            type: string
+        formats:
+          type: array
+          description: The formats that can be downloaded.
+          items:
+            $ref: '#/components/schemas/ReportFormat'
+
+    TaskStatus:
+      type: object
+      description: The state of a job.
+      properties:
+        task_id:
+          type: string
+        state:
+          $ref: '#/components/schemas/JobState'
+        reason:
+          type: string
+          nullable: true
+        failures:
+          type: array
+          items:
+            type: string
+
+    Message:
+      type: object
+      properties:
+        message:
+          type: string
+
+    Problem:
+      type: object
+      description: A problem response (RFC 9457).
+      properties:
+        type:
+          type: string
+        title:
+          type: string
+        status:
+          type: integer
+        detail:
+          type: string
+
+  parameters:
+    uid:
+      name: uid
+      in: path
+      required: true
+      description: The job id.
+      schema:
+        type: string
+    taskId:
+      name: task_id
+      in: path
+      required: true
+      description: The job id.
+      schema:
+        type: string
+
+  # Error responses are problem+json (RFC 9457) with the shape of the Problem schema; they declare no
+  # content here, since Connexion cannot pick one content type for an operation that lists several.
+  responses:
+    BadRequest:
+      description: The request is invalid.
+    NotFound:
+      description: No such job or report, or the report has no file of this format.
+    Conflict:
+      description: The job is not queued or running.
+    UnsupportedMediaType:
+      description: The file type is not supported; the problem lists the accepted types.
+    Unavailable:
+      description: The job queue is unavailable.
 
 paths:
   /fingerprint-sparql-endpoint:
     post:
       operationId: fingerprinter.entrypoints.api.handlers.fingerprint_sparql_endpoint
-      description: Fingerprint a SPARQL endpoint.
+      description: Start a job that fingerprints a SPARQL endpoint.
       requestBody:
         required: true
         content:
@@ -80,14 +181,20 @@ paths:
             schema:
               $ref: '#/components/schemas/EndpointFingerprinter'
       responses:
-        200:
-          description: OK.
-        5XX:
-          description: Unexpected Error.
+        202:
+          description: The job is queued.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobCreated'
+        400:
+          $ref: '#/components/responses/BadRequest'
+        503:
+          $ref: '#/components/responses/Unavailable'
   /fingerprint-file:
     post:
       operationId: fingerprinter.entrypoints.api.handlers.fingerprint_file
-      description: Fingerprint an RDF file.
+      description: Start a job that fingerprints an RDF file.
       requestBody:
         required: true
         content:
@@ -95,119 +202,131 @@ paths:
             schema:
               $ref: '#/components/schemas/FileFingerprinter'
       responses:
-        200:
-          description: OK.
-        5XX:
-          description: Unexpected Error.
+        202:
+          description: The job is queued.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobCreated'
+        415:
+          $ref: '#/components/responses/UnsupportedMediaType'
+        503:
+          $ref: '#/components/responses/Unavailable'
 
   /reports:
     get:
       operationId: fingerprinter.entrypoints.api.handlers.get_fingerprintings
-      description: Get all reports.
+      description: List the job records.
       responses:
         200:
-          description: Fingerprinting reports successfully retrieved.
+          description: The job records, oldest first.
           content:
             application/json:
               schema:
                 type: array
-        5XX:
-          description: Unexpected Error.
+                items:
+                  $ref: '#/components/schemas/JobRecord'
   /reports/{uid}:
+    parameters:
+      - $ref: '#/components/parameters/uid'
     get:
-      operationId: fingerprinter.entrypoints.api.handlers.get_fingerprinting_report
-      description: Get a fingerprinting report.
-      parameters:
-        - in: query
-          name: report_type
-          required: false
-          description: Report type
-          schema:
-            type: string
-        - name: uid
-          in: path
-          required: true
-          schema:
-            type: string
+      operationId: fingerprinter.entrypoints.api.handlers.get_fingerprinting
+      description: Get a job record.
       responses:
         200:
-          description: Fingerprinting report successfully retrieved.
+          description: The job record.
           content:
-            text/html:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobRecord'
+        404:
+          $ref: '#/components/responses/NotFound'
+    delete:
+      operationId: fingerprinter.entrypoints.api.handlers.delete_fingerprinting
+      description: Delete a job and its report.
+      responses:
+        200:
+          description: The report is deleted.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+        404:
+          $ref: '#/components/responses/NotFound'
+  /reports/{uid}/{format}:
+    parameters:
+      - $ref: '#/components/parameters/uid'
+      - name: format
+        in: path
+        required: true
+        description: The format to download; a format of several files comes as a zip.
+        schema:
+          $ref: '#/components/schemas/ReportFormat'
+    get:
+      operationId: fingerprinter.entrypoints.api.handlers.get_report_file
+      description: Download a report in one format.
+      responses:
+        200:
+          description: The file.
+          content:
+            '*/*':
               schema:
                 type: string
                 format: binary
+        400:
+          $ref: '#/components/responses/BadRequest'
         404:
-          description: Fingerprinting report not found.
-        5XX:
-          description: Unexpected Error.
-    delete:
-      operationId: fingerprinter.entrypoints.api.handlers.delete_fingerprinting
-      description: Delete a fingerprinting report.
-      parameters:
-        - name: uid
-          in: path
-          required: true
-          schema:
-            type: string
-      responses:
-        200:
-          description: Fingerprinting report successfully deleted.
-        404:
-          description: Fingerprinting doesn't exist.
-        5XX:
-          description: Unexpected Error.
+          $ref: '#/components/responses/NotFound'
   /remove-reports:
     delete:
       operationId: fingerprinter.entrypoints.api.handlers.delete_all_fingerprintings
-      description: Delete all fingerprinting reports.
+      description: Delete every job and report; there may be none.
       responses:
         200:
-          description: Fingerprinting reports successfully deleted.
-        5XX:
-          description: Unexpected Error.
+          description: The reports are deleted.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
   /tasks/active:
     get:
       operationId: fingerprinter.entrypoints.api.handlers.get_active_tasks
-      description: Get status of a task
+      description: List the jobs that are queued or running.
       responses:
         200:
-          description: Task status description succesfully retreived.
+          description: The job records.
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/TaskStatus"
-
+                type: array
+                items:
+                  $ref: '#/components/schemas/JobRecord'
   /tasks/{task_id}:
+    parameters:
+      - $ref: '#/components/parameters/taskId'
     get:
       operationId: fingerprinter.entrypoints.api.handlers.get_task_status
-      description: Get status of a task
-      parameters:
-        - name: task_id
-          in: path
-          required: true
-          description: task id
-          schema:
-            type: string
+      description: Get the state of a job.
       responses:
         200:
-          description: Task status description succesfully retreived.
+          description: The state, the reason it failed and the failed measurements.
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/TaskStatus"
+                $ref: '#/components/schemas/TaskStatus'
+        404:
+          $ref: '#/components/responses/NotFound'
     delete:
       operationId: fingerprinter.entrypoints.api.handlers.stop_running_task
-      description: cancel execution  status of a task
-      parameters:
-        - name: task_id
-          in: path
-          required: true
-          description: task id
-          schema:
-            type: string
+      description: Cancel a queued or running job.
       responses:
         200:
-          description: Task accepted for revoking.
-        406:
-          description: Task already marked for revoking.
+          description: The job is cancelled.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+        404:
+          $ref: '#/components/responses/NotFound'
+        409:
+          $ref: '#/components/responses/Conflict'

@@ -5,6 +5,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from enum import StrEnum
 from pathlib import Path
+from typing import Any
 
 
 class ReportFormat(StrEnum):
@@ -53,6 +54,38 @@ class JobRecord:
     reason: str | None = None
     failures: tuple[str, ...] = ()
     formats: tuple[ReportFormat, ...] = ()
+
+    def to_dict(self) -> dict[str, Any]:
+        """The record in the JSON shape of design D-4, shared by ``meta.json`` and the API."""
+        where = {"endpoint": self.source.endpoint} if self.source.endpoint else {}
+        if self.source.file:
+            where = {"file": self.source.file}
+        return {
+            "id": self.id,
+            "source": {**where, "graphs": list(self.source.graphs)},
+            "created_at": self.created_at.isoformat(),
+            "state": self.state.value,
+            "reason": self.reason,
+            "failures": list(self.failures),
+            "formats": [report_format.value for report_format in self.formats],
+        }
+
+    @classmethod
+    def from_dict(cls, data: Mapping[str, Any]) -> "JobRecord":
+        source = data["source"]
+        return cls(
+            id=data["id"],
+            source=Source(
+                endpoint=source.get("endpoint"),
+                file=source.get("file"),
+                graphs=tuple(source["graphs"]),
+            ),
+            created_at=datetime.fromisoformat(data["created_at"]),
+            state=JobState(data["state"]),
+            reason=data["reason"],
+            failures=tuple(data["failures"]),
+            formats=tuple(ReportFormat(name) for name in data["formats"]),
+        )
 
 
 @dataclass(frozen=True)

@@ -5,53 +5,13 @@ import json
 import os
 import shutil
 import zipfile
-from datetime import datetime
 from pathlib import Path
-from typing import Any
 
 from fingerprinter.domain.exceptions import FormatNotAvailable, JobNotFound
-from fingerprinter.domain.model import (
-    FingerprintOutcome,
-    JobRecord,
-    JobState,
-    ReportFormat,
-    Source,
-)
+from fingerprinter.domain.model import FingerprintOutcome, JobRecord, JobState, ReportFormat
 
 META_FILE = "meta.json"
 REPORT_ZIP = "report.zip"
-
-
-def _to_json(record: JobRecord) -> dict[str, Any]:
-    source = {"endpoint": record.source.endpoint} if record.source.endpoint else {}
-    if record.source.file:
-        source = {"file": record.source.file}
-    return {
-        "id": record.id,
-        "source": {**source, "graphs": list(record.source.graphs)},
-        "created_at": record.created_at.isoformat(),
-        "state": record.state.value,
-        "reason": record.reason,
-        "failures": list(record.failures),
-        "formats": [report_format.value for report_format in record.formats],
-    }
-
-
-def _from_json(data: dict[str, Any]) -> JobRecord:
-    source = data["source"]
-    return JobRecord(
-        id=data["id"],
-        source=Source(
-            endpoint=source.get("endpoint"),
-            file=source.get("file"),
-            graphs=tuple(source["graphs"]),
-        ),
-        created_at=datetime.fromisoformat(data["created_at"]),
-        state=JobState(data["state"]),
-        reason=data["reason"],
-        failures=tuple(data["failures"]),
-        formats=tuple(ReportFormat(name) for name in data["formats"]),
-    )
 
 
 def _zip(root: Path, target: Path, folder_names: list[str]) -> None:
@@ -76,7 +36,7 @@ class FileJobStore:
         meta = self._folder(record.id) / META_FILE
         # replace, not write: the API reads the record while the worker updates it
         temporary = meta.with_suffix(".tmp")
-        temporary.write_text(json.dumps(_to_json(record)))
+        temporary.write_text(json.dumps(record.to_dict()))
         os.replace(temporary, meta)
 
     def create(self, record: JobRecord) -> None:
@@ -86,7 +46,7 @@ class FileJobStore:
     def get(self, job_id: str) -> JobRecord:
         meta = self._folder(job_id) / META_FILE
         try:
-            return _from_json(json.loads(meta.read_text()))
+            return JobRecord.from_dict(json.loads(meta.read_text()))
         except FileNotFoundError:
             raise JobNotFound(job_id) from None
 

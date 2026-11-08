@@ -67,3 +67,17 @@
         </div>
     </div>
 {% endmacro %}
+
+{% macro render_job_state(job) %}
+    <span id="state-{{ job.id }}">{{ job.state }}</span>
+    {% if job.reason %}
+        <p id="reason-{{ job.id }}" class="red-text">{{ job.reason }}</p>
+    {% endif %}
+    {% if job.failures %}
+        <ul id="failures-{{ job.id }}">
+            {% for failure in job.failures %}
+                <li>{{ failure }}</li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+{% endmacro %}

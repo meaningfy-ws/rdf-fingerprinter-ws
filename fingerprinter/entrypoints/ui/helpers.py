@@ -1,19 +1,21 @@
-#!/usr/bin/python3
+"""The messages the UI flashes when the API refuses a request (design, Error matrix)."""
 
-# helpers.py
-# Date:  05/11/2020
-# Author: Mihai Coșleț
-# Email: coslet.mihai@gmail.com
+from typing import Any
 
-"""
-Misfit methods
-"""
+UNSUPPORTED_FILE_TYPE = 415
+MESSAGES = {
+    400: "Enter an http or https SPARQL endpoint URL.",
+    404: "No such job or report.",
+    409: "This job has already finished.",
+    503: "The job queue is unavailable. Try again later.",
+}
 
-from json import loads
 
-
-def get_error_message_from_response(response):
-    return (
-        f"Status: {loads(response).get('status')}. Title: {loads(response).get('title')}"
-        f" Detail: {loads(response).get('detail')}"
+def error_message(response: Any) -> str:
+    """The flash message for an API response that is not a success."""
+    if response.status_code == UNSUPPORTED_FILE_TYPE:
+        accepted = ", ".join(response.json().get("accepted", []))
+        return f"This file type is not supported. Accepted: {accepted}."
+    return MESSAGES.get(
+        response.status_code, f"The request failed (status {response.status_code})."
     )

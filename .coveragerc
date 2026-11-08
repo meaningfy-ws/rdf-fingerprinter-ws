@@ -3,7 +3,6 @@
 branch = True
 source = fingerprinter
 # Exercised only by `make test-containers` (D-12), so outside the unit/feature floor.
-# The legacy adapters (celery, sparql_adapter, helpers) leave with task 2.5.
 omit =
     fingerprinter/adapters/*
     fingerprinter/bootstrap.py

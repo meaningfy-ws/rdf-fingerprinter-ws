@@ -27,9 +27,6 @@ ignore = [
 max-complexity = 10
 
 [lint.per-file-ignores]
-# Justified, scoped exceptions only. Example: a config module whose method names
-# are UPPER_SNAKE_CASE to mirror environment-variable names.
-"fingerprinter/config.py" = ["N802"]  # properties mirror the environment variable names
 # The exception names are fixed by the design (D-1) and the test map (JobFailed).
 "fingerprinter/domain/exceptions.py" = ["N818"]
 "tests/fakes.py" = ["N818"]
