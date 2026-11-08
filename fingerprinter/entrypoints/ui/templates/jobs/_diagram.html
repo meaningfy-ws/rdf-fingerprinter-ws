@@ -1,0 +1,25 @@
+{% import "icons.html" as icons %}
+{% import "macros.html" as macros %}
+<section id="diagram">
+{% if shown %}
+    <form class="picker" method="get" action="{{ url_for('job_page', job_id=job.id) }}"
+          hx-get="{{ url_for('job_page', job_id=job.id) }}" hx-trigger="change" hx-target="#diagram-view"
+          hx-select="#diagram-view" hx-swap="outerHTML" hx-push-url="true">
+        <input type="hidden" name="{{ labels.TAB_QUERY }}" value="{{ labels.JobTab.DIAGRAM }}">
+        <label for="diagram-choice">{{ labels.DIAGRAM_PICKER }}</label>
+        <select id="diagram-choice" name="{{ labels.DIAGRAM_QUERY }}">
+            {% for choice in diagrams %}<option value="{{ choice.file }}"{% if choice == shown %} selected{% endif %}>{{ choice.label }}</option>{% endfor %}
+        </select>
+        <button type="submit" class="btn">{{ labels.SHOW }}</button>
+    </form>
+    <div id="diagram-view">
+        <div class="diagram" role="region" tabindex="0" aria-label="{{ shown.label }}">
+            <img src="{{ url_for('job_diagram', job_id=job.id, name=shown.file) }}" alt="{{ labels.diagram_alt(job.source, shown.label) }}">
+        </div>
+        <p><a class="btn" href="{{ url_for('job_download', job_id=job.id, report_format=labels.FormatId.SVG, name=shown.file) }}">{{ icons.download(16) }} {{ labels.DOWNLOAD_SVG }}</a></p>
+    </div>
+{% else %}
+    <p><strong>{{ labels.NO_DIAGRAM }}</strong></p>
+    {% if job.failures %}{{ macros.failures(job.failures) }}{% endif %}
+{% endif %}
+</section>

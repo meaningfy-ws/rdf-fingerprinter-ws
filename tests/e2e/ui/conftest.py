@@ -100,6 +100,14 @@ def finished_job(api_url: str, start_job: Callable[[str], str], finished_source:
     return job_id
 
 
+@pytest.fixture(scope="module")
+def continents_job(api_url: str, start_job: Callable[[str], str], continents_endpoint: str) -> str:
+    """A finished job with every output: the continents dataset, profiled."""
+    job_id = start_job(continents_endpoint)
+    wait_for(_Api(api_url), job_id)
+    return job_id
+
+
 class _Api:
     """What ``wait_for`` needs of a client: ``get(path).json()``."""
 

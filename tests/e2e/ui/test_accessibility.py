@@ -6,24 +6,33 @@ from urllib.parse import urlsplit
 import pytest
 from playwright.sync_api import Page, expect
 
-from tests.e2e.conftest import wait_for
-from tests.e2e.ui.conftest import UNREACHABLE, _Api, axe_violations
+from tests.e2e.ui.conftest import UNREACHABLE, axe_violations
 
 PHONE = {"width": 360, "height": 740}
-PAGES = ("jobs", "new job from an endpoint", "new job from a file", "delete confirmation")
+PAGES = (
+    "jobs",
+    "new job from an endpoint",
+    "new job from a file",
+    "delete confirmation",
+    "job report",
+    "job class diagram",
+    "job downloads",
+    "failed job",
+)
 
 
 @pytest.fixture(scope="module")
-def paths(
-    api_url: str, start_job: Callable[[str], str], continents_endpoint: str, finished_job: str
-):
+def paths(continents_job: str, finished_job: str):
     """The paths to check; the Jobs page lists a finished job of each kind (Done, Failed)."""
-    wait_for(_Api(api_url), start_job(continents_endpoint))
     return {
         "jobs": "/",
         "new job from an endpoint": "/jobs/new",
         "new job from a file": "/jobs/new?from=file",
         "delete confirmation": f"/jobs/{finished_job}/delete",
+        "job report": f"/jobs/{continents_job}",
+        "job class diagram": f"/jobs/{continents_job}?tab=diagram",
+        "job downloads": f"/jobs/{continents_job}?tab=downloads",
+        "failed job": f"/jobs/{finished_job}",
     }
 
 

@@ -11,6 +11,7 @@ from fingerprinter.entrypoints.worker.tasks import register_tasks
 from fingerprinter.services.ports import Services
 from tests.fakes import (
     FakeDatasetStore,
+    FakeDiagramRenderer,
     FakeFingerprinter,
     FakeJobQueue,
     FakeUploadStore,
@@ -36,6 +37,7 @@ def services() -> Services:
         queue=FakeJobQueue(),
         dataset_store=RecordingDatasetStore(),
         fingerprinter=FakeFingerprinter(),
+        diagram_renderer=FakeDiagramRenderer(),
         supported_extensions=frozenset({"ttl"}),
         output_mime_types={},
     )

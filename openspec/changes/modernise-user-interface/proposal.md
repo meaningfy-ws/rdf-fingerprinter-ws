@@ -135,6 +135,15 @@ Three stages, in this order:
   each format's files; `GET /reports/{uid}/{format}/{file}` serves one file; `GET
   /endpoint-graphs?url=` lists named graphs (stage 3).
 - `docker/docker-compose.yml`: the PlantUML server (moved to `infra/` by upgrade stage 4).
+- *Added in delivery (specs updated 2026-11-08; design U-3, U-7, S1-1, S1-2, S2-1, S2-2):* the job
+  record carries `finished_at` and the files of each format, older records reading theirs from disk;
+  deleting a `queued` or `running` job answers `409` ("Cancel the job before deleting it."); the
+  console's four state filters; "Status updates paused" while the API is unreachable; the UI refuses
+  forms without a CSRF token, framing by other sites and non-local return addresses, with
+  `RDF_FINGERPRINTER_UI_SECURE_COOKIES` for the `Secure` cookie; the report and diagrams are served
+  with sandboxing CSP headers; the PlantUML server runs in its `SANDBOX` profile and a diagram's
+  failure stays that diagram's.
+- CI: a `containers` job running `make test-containers` with Chromium (task 1.0).
 - Tests: UI unit and feature tests; Playwright journeys with axe checks in `tests/e2e/`.
 - Docs: the UI pages and screenshots in `docs/modules/ROOT/pages/index.adoc`.
 
@@ -155,4 +164,6 @@ Three stages, in this order:
   `bootstrap.py`, the OpenAPI contract.
 - Systems: one new container (PlantUML server) in `docker/` now, `infra/` from upgrade stage 4, and CI.
 - Library: `list_named_graphs` (rdf-fingerprinter 3.6.0, released for this EPIC: #63).
-- Users of the API: additive only (format `svg`, per-format file lists in the job record, one file by name, `GET /endpoint-graphs`).
+- Users of the API: additive (format `svg`, `finished_at` and per-format file lists in the job
+  record, one file by name, `GET /endpoint-graphs`), except one behaviour change: deleting an active
+  job now answers `409` instead of deleting it.

@@ -27,7 +27,7 @@
         <td>
             {% if job.has_outputs %}
             <div class="actions">
-                <a href="{{ url_for('job_report', job_id=job.id) }}" target="_blank" rel="noopener">{{ labels.OPEN_REPORT }}<span class="visually-hidden"> (opens in a new tab)</span></a>
+                <a href="{{ url_for('job_page', job_id=job.id) }}">{{ labels.OPEN_REPORT }}</a>
                 <a href="{{ url_for('job_download', job_id=job.id, report_format=labels.FormatId.ZIP) }}">{{ icons.download(16) }} {{ labels.FORMAT_NAMES[labels.FormatId.ZIP] }}</a>
             </div>
             {% endif %}

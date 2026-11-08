@@ -2,8 +2,10 @@
 
 ### Requirement: List reports
 The service SHALL list every job record, whatever its state, with its id, its source (the endpoint
-URL or the file name), the graphs requested, its creation time, its state, its reason, its failures
-and the formats it holds.
+URL or the file name), the graphs requested, its creation time, the time it reached a final state
+(`finished_at`), its state, its reason, its failures, the formats it holds and the files of each
+format (`files`; added by `modernise-user-interface` U-7). A record written before `finished_at`
+and `files` existed SHALL still be listed, its files read from its format folders.
 
 #### Scenario: A completed job appears in the list
 - **GIVEN** a job that completed for `http://example.org/sparql`
@@ -14,6 +16,11 @@ and the formats it holds.
 - **GIVEN** a job that failed because its endpoint was unreachable
 - **WHEN** a client lists the reports
 - **THEN** the list holds that job with state `failed`, its reason, and no formats
+
+#### Scenario: A finished job carries its end time and files
+- **GIVEN** a job that completed
+- **WHEN** a client reads its record
+- **THEN** the record holds `finished_at` and, per format, the names of its files
 
 ### Requirement: Download a report by format
 The service SHALL let a client download a report's output by format name: `html` (the report page),
@@ -49,7 +56,9 @@ format with no file in that report, SHALL answer `404`.
 
 ### Requirement: Delete reports
 The service SHALL delete one report by id, and SHALL delete all reports on request (answering
-`200` even when there were none). Deleting an unknown report SHALL answer `404`.
+`200` even when there were none). Deleting an unknown report SHALL answer `404`; deleting a job
+that is `queued` or `running` SHALL answer `409` and leave the job as it is (added by
+`modernise-user-interface` U-3: cancel first).
 
 #### Scenario: A report is deleted
 - **WHEN** a client deletes a report by its id
@@ -63,6 +72,11 @@ The service SHALL delete one report by id, and SHALL delete all reports on reque
 #### Scenario: Deleting an unknown report
 - **WHEN** a client deletes a report id the service never issued
 - **THEN** the service answers `404` with a problem response
+
+#### Scenario: An active job cannot be deleted
+- **GIVEN** a running job
+- **WHEN** a client deletes it
+- **THEN** the service answers `409` with a problem response and the job is still running
 
 ### Requirement: The UI offers every format
 The web UI SHALL show, for each report, a download link per format the report holds and the job's

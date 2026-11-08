@@ -41,6 +41,7 @@ def test_the_defaults_are_todays(env):
     assert settings.api_url == "http://fingerprinter-api:4020"
     assert settings.fuseki_url == "http://fuseki:3030"
     assert settings.redis_url == "redis://redis:6379"
+    assert settings.plantuml_url == "http://plantuml:8080"
     assert (settings.fuseki_user, settings.fuseki_password) == ("", "")
     assert settings.show_swagger_ui is True
     assert settings.log_level == "info"
@@ -61,6 +62,8 @@ def test_the_environment_overrides_the_defaults(env):
     env.setenv("RDF_FINGERPRINTER_FUSEKI_PASSWORD", "pw")
     env.setenv("RDF_FINGERPRINTER_REDIS_LOCATION", "redis://cache")
     env.setenv("RDF_FINGERPRINTER_REDIS_PORT", "6380")
+    env.setenv("RDF_FINGERPRINTER_PLANTUML_LOCATION", "http://draw")
+    env.setenv("RDF_FINGERPRINTER_PLANTUML_PORT", "8081")
     env.setenv("RDF_FINGERPRINTER_FILE_DB", "/data/db")
     env.setenv("RDF_FINGERPRINTER_REPORTS_DB", "/data/reports")
     env.setenv("RDF_FINGERPRINTER_LOG_LEVEL", "debug")
@@ -74,6 +77,7 @@ def test_the_environment_overrides_the_defaults(env):
     assert settings.fuseki_url == "http://jena:3031"
     assert (settings.fuseki_user, settings.fuseki_password) == ("admin", "pw")
     assert settings.redis_url == "redis://cache:6380"
+    assert settings.plantuml_url == "http://draw:8081"
     assert (settings.file_db, settings.reports_db) == (Path("/data/db"), Path("/data/reports"))
     assert settings.log_level == "debug"
     assert settings.show_swagger_ui is False

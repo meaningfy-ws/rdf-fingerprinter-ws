@@ -155,6 +155,15 @@ def test_the_jobs_are_parsed_into_typed_values(client, requests_double):
     assert job.source_name == "http://e/sparql"
 
 
+def test_the_files_of_a_job_are_listed_per_format(client, requests_double):
+    files = {"html": ["main.html"], "svg": ["diagram-a.svg", "diagram-b.svg"]}
+    requests_double.answer = Answer(200, [record("j1", "completed", files=files)])
+
+    (job,) = client.list_jobs()
+
+    assert job.files == {"html": ("main.html",), "svg": ("diagram-a.svg", "diagram-b.svg")}
+
+
 def test_a_record_with_missing_fields_takes_defaults_and_an_unknown_state_stays_raw(
     client, requests_double
 ):
@@ -164,8 +173,8 @@ def test_a_record_with_missing_fields_takes_defaults_and_an_unknown_state_stays_
 
     (job,) = client.list_jobs()
 
-    assert (job.state, job.graphs, job.failures, job.finished_at, job.source_name) == (
-        "on-hold", (), (), None, "",
+    assert (job.state, job.graphs, job.failures, job.finished_at, job.source_name, job.files) == (
+        "on-hold", (), (), None, "", {},
     )  # fmt: skip
     assert job.state not in set(ApiState)
 

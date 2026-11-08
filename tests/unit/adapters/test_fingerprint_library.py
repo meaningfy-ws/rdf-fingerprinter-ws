@@ -9,7 +9,8 @@ def test_every_format_the_library_generates_has_its_generator_id():
         ReportFormat.HTML,
         ReportFormat.JSON,
         ReportFormat.ZIP,
-    }  # ZIP: the store
+        ReportFormat.SVG,
+    }  # ZIP: the store; SVG: the worker draws it from the PlantUML files
 
     assert set(GENERATOR_IDS) == set(ReportFormat) - written_by_the_report
     assert list(GENERATOR_IDS.values()) == ["shacl", "puml", "pattern", "shex", "pitfalls"]

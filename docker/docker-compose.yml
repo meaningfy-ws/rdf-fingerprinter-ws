@@ -43,11 +43,22 @@ services:
       - mydefault
     depends_on:
       - redis
+      - plantuml
 
   redis:
     image: redis:6-alpine
     ports:
       - ${RDF_FINGERPRINTER_REDIS_PORT}:${RDF_FINGERPRINTER_REDIS_PORT}
+    networks:
+      - mydefault
+
+  plantuml:
+    # image, size limit and security profile: kept equal to tests/containers.py
+    container_name: plantuml
+    image: plantuml/plantuml-server:jetty-v1.2024.7
+    environment:
+      - PLANTUML_LIMIT_SIZE=16384
+      - PLANTUML_SECURITY_PROFILE=SANDBOX
     networks:
       - mydefault
 

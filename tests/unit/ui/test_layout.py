@@ -186,13 +186,6 @@ def test_there_is_a_sentence_for_each_problem_the_api_sends_and_for_no_other():
     assert set(labels.PROBLEMS) == {problem.__name__ for problem in PROBLEM_STATUS}
 
 
-def test_what_you_get_lists_a_format_from_the_stage_that_produces_it():
-    listed = {f.id for f in labels.LISTED_FORMATS}
-
-    assert labels.FormatId.SVG not in listed
-    assert listed == {f.id for f in labels.FORMATS if f.listed_from_stage <= labels.CURRENT_STAGE}
-
-
 def test_labels_name_every_format_in_display_order():
     assert [f.id for f in labels.FORMATS] == [
         "html", "json", "shacl", "puml", "svg", "pattern", "shex", "pitfalls", "zip",

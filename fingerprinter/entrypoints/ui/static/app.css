@@ -196,3 +196,17 @@ textarea { min-height: 6rem; }
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; animation: none !important; scroll-behavior: auto !important; }
 }
+
+/* the Job page */
+#job-status { margin-bottom: .25rem; }
+.meta { margin-bottom: 1rem; }
+.warnings { margin-bottom: 1rem; padding: .5rem 1rem; color: var(--warnings-fg); background: var(--warnings-bg); border-radius: var(--radius); }
+.warnings summary { min-height: var(--target); display: flex; align-items: center; font-weight: 600; cursor: pointer; }
+.warnings ul { margin: 0 0 .5rem; padding-left: 1.25rem; overflow-wrap: anywhere; }
+.report-frame { display: block; width: 100%; height: 80vh; background: #fff; border: 1px solid var(--line); border-radius: var(--radius); }
+.picker { display: flex; flex-wrap: wrap; align-items: end; gap: .5rem; margin-bottom: 1rem; }
+.picker select { width: auto; min-width: 16rem; max-width: 100%; }
+.picker label { flex: 1 0 100%; margin: 0; }
+.diagram { overflow: auto; margin-bottom: 1rem; padding: 1rem; background: #fff; border: 1px solid var(--line); border-radius: var(--radius); }
+.diagram img { max-width: none; display: block; margin: 0 auto; }
+.table .name { font-weight: 600; }

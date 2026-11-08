@@ -17,6 +17,7 @@ from fingerprinter.adapters.file_job_store import FileJobStore
 from fingerprinter.adapters.file_upload_store import FileUploadStore
 from fingerprinter.adapters.fingerprint_library import LibraryFingerprinter
 from fingerprinter.adapters.fuseki import FusekiDatasetStore
+from fingerprinter.adapters.plantuml import PlantUmlRenderer
 from fingerprinter.config import Settings
 from fingerprinter.entrypoints.api import create_app as create_api_app
 from fingerprinter.entrypoints.ui import create_app as create_ui_app
@@ -49,6 +50,7 @@ def build_services() -> Services:
             settings.input_mime_types,
         ),
         fingerprinter=LibraryFingerprinter(),
+        diagram_renderer=PlantUmlRenderer(settings.plantuml_url),
         supported_extensions=frozenset(settings.input_mime_types),
         output_mime_types=settings.output_mime_types,
     )

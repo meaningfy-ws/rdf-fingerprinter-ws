@@ -55,7 +55,7 @@ components:
 
     ReportFormat:
       type: string
-      enum: [html, json, shacl, puml, pattern, shex, pitfalls, zip]
+      enum: [html, json, shacl, puml, svg, pattern, shex, pitfalls, zip]
 
     JobCreated:
       type: object

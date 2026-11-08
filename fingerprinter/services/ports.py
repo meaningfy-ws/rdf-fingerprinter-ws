@@ -16,6 +16,12 @@ class Fingerprinter(Protocol):
         ...
 
 
+class DiagramRenderer(Protocol):
+    def render(self, puml_text: str) -> bytes:
+        """The SVG of a PlantUML diagram; raises ``DiagramRenderFailed`` with the cause."""
+        ...
+
+
 class DatasetStore(Protocol):
     def create(self, name: str) -> None: ...
 
@@ -88,5 +94,6 @@ class Services:
     queue: JobQueue
     dataset_store: DatasetStore
     fingerprinter: Fingerprinter
+    diagram_renderer: DiagramRenderer
     supported_extensions: Collection[str]
     output_mime_types: Mapping[str, str]

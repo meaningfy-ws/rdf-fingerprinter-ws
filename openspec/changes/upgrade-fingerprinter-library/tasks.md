@@ -61,6 +61,9 @@ live in `tests/resources/`.
 | jobs · An invalid URL is rejected | feature | — |
 | jobs · An RDF/XML file is queued | feature | `continents-source-ap.rdf` |
 | jobs · An unsupported file is rejected | feature | a `notes.txt` upload |
+| jobs · An endpoint URL with user info is rejected | unit · `tests/unit/api/test_api.py` (`test_an_endpoint_url_with_user_info_is_a_400_problem`) | — |
+| jobs · A file over the upload limit is rejected | unit · `tests/unit/api/test_api.py` (`test_a_file_over_the_upload_limit_is_a_413_problem_and_no_job`), `tests/unit/adapters/test_file_upload_store.py` | a small limit |
+| jobs · The broker is down | unit · `tests/unit/services/test_jobs.py` (`test_an_unavailable_queue_*`), `tests/unit/adapters/test_celery_queue.py`; integration · `test_celery_queue.py` | a stopped broker |
 | jobs · An endpoint job writes all formats | integration · `test_fingerprint_library.py`; e2e · `test_jobs.py` | Fuseki with `continents-source-ap.rdf` |
 | jobs · The pitfall findings reach the report page | integration · `test_fingerprint_library.py` | `pitfall-untyped-class.ttl` (task 3.2) |
 | jobs · Named graphs are profiled when none is selected | integration · `test_fingerprint_library.py` | Fuseki: `continents-source-ap.rdf` default, `courts-source-ap.rdf` in `http://example.org/g1` |
@@ -73,6 +76,7 @@ live in `tests/resources/`.
 | jobs · A running job can be cancelled | e2e · `test_jobs.py` (no `fp-<id>` dataset, no upload, no outputs); feature (a `queued` file job: upload discarded) | a file job cancelled while `running`; fakes |
 | jobs · A finished job cannot be cancelled | feature | a `completed` record |
 | access · A completed job appears in the list | feature | fake `Fingerprinter` |
+| access · A finished job carries its end time and files | unit · `tests/unit/api/test_api.py` (`test_a_job_record_carries_finished_at_and_its_files`), `test_file_job_store.py` (an older record lists its files from disk) | a saved outcome |
 | access · A failed job appears without formats | feature | fake `Fingerprinter` raising `JobFailed("endpoint unreachable: http://unreachable.invalid/sparql")` (a test-only exception in `tests/fakes.py`) |
 | access · The report page is downloaded | unit · `test_file_job_store.py`; feature | a saved outcome |
 | access · A multi-file format is zipped | unit · `test_file_job_store.py` | two `puml` files |
@@ -83,8 +87,9 @@ live in `tests/resources/`.
 | access · A report is deleted | feature | — |
 | access · All reports are deleted | feature | two records |
 | access · Deleting an unknown report | feature | — |
-| access · The report page lists the downloads | unit · `tests/unit/ui/test_views.py` | a fake API answer |
-| access · Failures are shown | unit · `tests/unit/ui/test_views.py` | a `completed_with_failures` record |
+| access · An active job cannot be deleted | unit · `tests/unit/api/test_api.py`, `tests/unit/services/test_reports.py` | a `running` record |
+| access · The report page lists the downloads | unit · `tests/unit/ui/test_job_page.py` (`test_downloads_are_listed`; `test_views.py` was replaced by the UI EPIC) | a fake API answer |
+| access · Failures are shown | unit · `tests/unit/ui/test_job_page.py` (`test_the_warnings_panel_lists_the_failures_and_counts_them`) | a `completed_with_failures` record |
 | boundaries · every scenario | unit · `test_architecture.py`; `make check-architecture` | a temporary package copy |
 | (D-15: library operational variables unset) | unit · `tests/unit/test_infra_env.py` fails on any of the eight library variables in `infra/.env.example` (task 4.1) | `infra/.env.example` |
 

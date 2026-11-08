@@ -199,6 +199,63 @@ its `files` from its format folders when `FileJobStore` reads it, so older jobs 
 the e2e journey cancels leftover active jobs first (`quiet_console`), since the job store outlives a
 test module's worker.
 
+## As built in stage 2 (tasks 2.1–2.2, 2026-11-08)
+
+- **U-9** `DiagramRenderer.render` raises `DiagramRenderFailed` (domain); its message is the cause in
+  plain words ("the PlantUML server is not reachable", "did not answer in time", "answered <status>",
+  "did not answer with an SVG") and never the server's address, since failures are shown to clients.
+- **U-8** SVGs are written to `<work folder>/svg/<stem>.svg`; the `svg` format exists only when at
+  least one diagram was drawn. The library writes seven formats; the record lists eight once the
+  worker has drawn diagrams (the report-access feature step counts the library's seven).
+
+## As built in stage 2 (tasks 2.3–2.4, 2026-11-08)
+
+- **U-3** The Job page's status block shows the state's note only while the job is active.
+- **U-8** The picker swaps only the diagram and its download (`hx-select` on `#diagram-view`), so
+  keyboard focus stays in the select; the image sits in a scrollable region at natural size.
+- **U-4** "Delete…" from the Job page passes `next=/jobs/<id>` ("Keep it" returns there); the
+  delete itself lands on `/`.
+- The report frame's own content is not checked by axe: it is the library's page, shown unchanged.
+
+## Stage-2 review (five lenses, 2026-11-08): accepted fixes
+
+Recorded before the fixes (Rule of Divergence).
+
+- **S2-1** The PlantUML server runs with `PLANTUML_SECURITY_PROFILE=SANDBOX` (compose and the test
+  fixture), so no diagram can make it fetch a URL; the image, its limit and its profile are one set of
+  constants in `tests/containers.py`, each with a note naming `docker/docker-compose.yml`.
+- **S2-2** Drawing: once the server is unreachable or times out, the job's remaining diagrams are
+  recorded as failures without waiting on each; a PlantUML file that cannot be decoded is that
+  diagram's failure, not the job's. The failure names the diagram by the label the UI would show
+  ("Class diagram (Whole model) could not be drawn: …"), not the file stem; the warning is logged.
+- **S2-3** Library dependency L-1 below: the picker depends on the library's diagram file names; an
+  integration test runs the real library and asserts `diagram_choices` can label every PlantUML file
+  it wrote, so a renamed scheme fails a gate. A split module (`<name>~<n>`) is labelled
+  "Vocabulary: <name> (part <n>)".
+- **S2-4** The status block answers `HX-Refresh: true` on a 404 (the job is gone), so the reload shows
+  "No such job or report."; the tab context (and its flash) is built only for jobs with outputs.
+- **S2-5** Copy left in templates moves to `labels.py` (column headers, meta labels, the frame title,
+  the image alt); the query names `tab` and `diagram` are constants; the three file routes share one
+  helper; the job view is built once per request; the failures list is one macro; the Report tab is an
+  include; `Download` separates the file name from the file count; diagrams are a named tuple with an
+  explicit sort key; `".svg"` comes from `ReportFormat.SVG`.
+- **S2-6** Tests: "The PlantUML server is down" keeps all seven library formats; the e2e journey
+  asserts the report frame shows the library's pitfalls section; the warning is logged; the UI
+  fixture uses the worker's real failure text.
+
+As built (S2 fixes): *leader's choice* — a diagram's failure names its file stem ("Class diagram
+diagram-default--skos could not be drawn: …"); naming it by the UI label would need one rule shared by
+the worker and the UI, which the `ui-is-an-api-client` contract forbids. The PlantUML image of
+`jetty-v1.2024.7` already refuses URL includes without a profile; `SANDBOX` makes it explicit and a
+test pins it.
+
+### Library dependencies
+
+- **L-1** rdf-fingerprinter publishes no description of each diagram file (graph, overview or module,
+  part): `meaningfy-ws/rdf-fingerprinter#75`. Until it does, the UI reads the file names
+  (`diagram-<slug>.puml`, `diagram-<slug>--<module>.puml`), pinned by the S2-3 integration test. When
+  #75 is released, the picker uses the published description and the parsing goes.
+
 ## Algorithm — live status
 
 The rows fragment is the same template as the page's table body (`templates/jobs/_rows.html`).
@@ -247,6 +304,23 @@ Sentences live in `labels.py`; the upgrade's design, section *Error matrix*, is 
 - **Playwright in CI** is slow and downloads a browser: only in the container job.
 - **Cropped diagrams** above 16384 px: accepted; the PlantUML file is still downloadable.
 - **Polling load**: 3 s per open page, only while something is active.
+
+## Beyond the original specs (recorded 2026-11-08)
+
+Behaviour built and tested in stages 1 and 2 that the specs did not state, now written into them:
+
+- `job-console`: the requirement "The console filters jobs by state" (U-3); "Updates pause while the
+  service is down" (S1-7); the upload limit named on the form and "A file over the limit is
+  refused"; only a final job offers delete; the requirement "Forms and pages are safe from other
+  sites" (S1-1, S1-2).
+- `report-viewer`: the report's and diagrams' CSP headers (U-4); the requirement "A job page says what
+  ran and when" (U-3, U-6, S2-4); the warnings panel that counts the failures.
+- `class-diagram`: the PlantUML `SANDBOX` profile (S2-1); the `svg` format only when a diagram was
+  drawn (U-8); failures named by file stem, fail-fast once the server is down, an undecodable file
+  failing only its diagram (S2-2), with "One diagram cannot be drawn".
+- API changes that belong to the upgrade's `report-access` (`finished_at`, `files`, `409` on deleting
+  an active job) are written into that change's spec, since this change cannot modify a capability
+  before the upgrade is archived. The one non-additive API change is that `409`.
 
 ## Open Questions
 

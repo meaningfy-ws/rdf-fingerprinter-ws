@@ -12,6 +12,7 @@ from fingerprint.service_layer.settings import resolve_settings
 from fingerprinter.adapters.fingerprint_library import LibraryFingerprinter
 from fingerprinter.adapters.fuseki import FusekiDatasetStore
 from fingerprinter.domain.model import ReportFormat
+from fingerprinter.entrypoints.ui.presenters import DIAGRAM_PREFIX, SVG_SUFFIX, diagram_choices
 from tests.containers import FusekiServer
 
 RESOURCES = Path(__file__).parent.parent / "resources"
@@ -86,7 +87,10 @@ def test_pattern_shex_and_pitfalls_render_through_generate_representations(
 
 
 def test_an_endpoint_job_writes_all_formats(continents_outcome):
-    assert set(continents_outcome.formats) == set(ReportFormat) - {ReportFormat.ZIP}
+    assert set(continents_outcome.formats) == set(ReportFormat) - {
+        ReportFormat.ZIP,
+        ReportFormat.SVG,
+    }  # SVG: the worker
     for report_format, paths in continents_outcome.files.items():
         assert all(p.parent.name == report_format.value and p.stat().st_size for p in paths)
     assert continents_outcome.files[ReportFormat.HTML][0].name == "main.html"
@@ -128,3 +132,23 @@ def test_an_unreachable_endpoint_raises_endpoint_unreachable(tmp_path):
 def test_a_usage_error_raises_value_error(continents_endpoint, tmp_path):
     with pytest.raises(ValueError):
         LibraryFingerprinter().fingerprint("not a url", (), tmp_path)
+
+
+def test_the_picker_labels_every_diagram_file_the_library_writes(two_graphs_endpoint, tmp_path):
+    """Pins L-1: the UI reads the library's diagram file names; a renamed scheme fails here."""
+    outcome = LibraryFingerprinter().fingerprint(two_graphs_endpoint, (), tmp_path)
+    names = [path.name for path in outcome.files[ReportFormat.PUML]]
+    assert all(name.startswith(DIAGRAM_PREFIX) for name in names), names
+    assert len(names) > 2, names  # the whole model and vocabularies of each of two graphs
+
+    chosen = diagram_choices(tuple(name.replace(".puml", SVG_SUFFIX) for name in names))
+
+    assert len(chosen) == len(names)
+    whole = [d.label for d in chosen if d.label.startswith("Whole model")]
+    assert len(whole) == 2 and all(" — " in label for label in whole), whole  # one per graph
+    vocabularies = [d.label for d in chosen if d.label.startswith("Vocabulary: ")]
+    assert len(vocabularies) == len(names) - 2
+    assert all("diagram" not in label and "--" not in label for label in vocabularies)
+    for name in names:  # each vocabulary's name is the one in its file name
+        module = name.removesuffix(".puml").partition("--")[2].partition("~")[0]
+        assert not module or any(f"Vocabulary: {module}" in label for label in vocabularies), name

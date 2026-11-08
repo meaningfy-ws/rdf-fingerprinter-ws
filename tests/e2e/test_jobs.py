@@ -41,6 +41,12 @@ def test_an_endpoint_job_writes_all_formats(api, fuseki):
         download = api.get(f"/reports/{status['task_id']}/{report_format.value}")
         assert download.status_code == 200, report_format
         assert download.content, report_format
+    diagrams = api.get(f"/reports/{status['task_id']}").json()["files"]["svg"]
+    assert diagrams  # one SVG per PlantUML file, drawn by the PlantUML server of the stack
+    for name in diagrams:
+        svg = api.get(f"/reports/{status['task_id']}/svg/{name}")
+        assert svg.headers["content-type"].startswith("image/svg+xml")
+        assert b"<svg" in svg.content
 
 
 def test_the_dataset_and_upload_are_removed_before_a_job_is_seen_finished(

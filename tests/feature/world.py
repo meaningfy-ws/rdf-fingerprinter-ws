@@ -18,6 +18,7 @@ from fingerprinter.services.ports import Services
 from tests.fakes import (
     DEFAULT_OUTCOME,
     FakeDatasetStore,
+    FakeDiagramRenderer,
     FakeFingerprinter,
     FakeJobQueue,
     FakeUploadStore,
@@ -35,6 +36,7 @@ class World:
         self.uploads = FakeUploadStore()
         self.datasets = FakeDatasetStore(self.store)
         self.library = FakeFingerprinter(self._outcome(folder))
+        self.renderer = FakeDiagramRenderer()
         self.client = create_app(
             Services(
                 job_store=self.store,
@@ -42,6 +44,7 @@ class World:
                 queue=self.queue,
                 dataset_store=self.datasets,
                 fingerprinter=self.library,
+                diagram_renderer=self.renderer,
                 supported_extensions=frozenset(INPUT_MIME_TYPES),
                 output_mime_types=OUTPUT_MIME_TYPES,
             )
@@ -87,7 +90,10 @@ class World:
         return self.job_id
 
     def run_endpoint(self, job_id: str, url: str) -> None:
-        jobs.run_endpoint_job(job_id, url, (), job_store=self.store, fingerprinter=self.library)
+        jobs.run_endpoint_job(
+            job_id, url, (), job_store=self.store, fingerprinter=self.library,
+            diagram_renderer=self.renderer,
+        )  # fmt: skip
 
     def run_file(self, job_id: str) -> None:
         jobs.run_file_job(
@@ -97,6 +103,7 @@ class World:
             dataset_store=self.datasets,
             upload_store=self.uploads,
             fingerprinter=self.library,
+            diagram_renderer=self.renderer,
         )
 
     def status_of(self, job_id: str) -> Any:

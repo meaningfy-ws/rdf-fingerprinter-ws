@@ -5,6 +5,7 @@ from pathlib import Path
 import pytest
 
 from fingerprinter.domain.exceptions import (
+    DiagramServerUnavailable,
     InvalidSource,
     JobNotCancellable,
     JobNotFound,
@@ -14,7 +15,9 @@ from fingerprinter.domain.exceptions import (
 from fingerprinter.domain.model import FingerprintOutcome, JobRecord, JobState, ReportFormat, Source
 from fingerprinter.services import jobs
 from tests.fakes import (
+    DEFAULT_OUTCOME,
     FakeDatasetStore,
+    FakeDiagramRenderer,
     FakeFingerprinter,
     FakeJobQueue,
     FakeUploadStore,
@@ -58,14 +61,17 @@ def submit_file(store, uploads, queue, name="data.ttl"):
     )  # fmt: skip
 
 
-def run_endpoint(store, library, job_id, graphs=()):
-    jobs.run_endpoint_job(job_id, URL, graphs, job_store=store, fingerprinter=library)
+def run_endpoint(store, library, job_id, graphs=(), renderer=None):
+    jobs.run_endpoint_job(
+        job_id, URL, graphs, job_store=store, fingerprinter=library,
+        diagram_renderer=renderer or FakeDiagramRenderer(),
+    )  # fmt: skip
 
 
-def run_file(store, datasets, uploads, library, job_id):
+def run_file(store, datasets, uploads, library, job_id, renderer=None):
     jobs.run_file_job(
         job_id, uploads.saved[job_id], job_store=store, dataset_store=datasets, upload_store=uploads,
-        fingerprinter=library,
+        fingerprinter=library, diagram_renderer=renderer or FakeDiagramRenderer(),
     )  # fmt: skip
 
 
@@ -160,7 +166,7 @@ def test_a_run_without_failures_completes_with_the_saved_formats(store, queue, l
     run_endpoint(store, library, job_id)
     record = store.get(job_id)
     assert record.state is JobState.COMPLETED
-    assert record.formats == library.outcome.formats
+    assert set(record.formats) == {*library.outcome.formats, ReportFormat.SVG}  # the diagrams drawn
     assert library.calls == [(URL, ())]
 
 
@@ -461,3 +467,110 @@ def test_a_cancelled_job_is_finished_when_it_is_cancelled(timed_store, queue, up
     jobs.cancel_job(job_id, job_store=timed_store, queue=queue, upload_store=uploads)
 
     assert timed_store.get(job_id).finished_at == FINISHED
+
+
+# --- class-diagram: the worker renders the diagrams ---------------------------------------------
+
+DIAGRAMS = ("diagram-default.puml", "diagram-default--skos.puml", "diagram-default--dct.puml")
+
+
+@pytest.fixture
+def diagram_library(tmp_path):
+    """A library run that wrote the seven formats, with a whole-model and two vocabulary diagrams."""
+    diagrams = []
+    for name in DIAGRAMS:
+        (tmp_path / name).write_text(f"@startuml\n' {name}\n@enduml\n")
+        diagrams.append(tmp_path / name)
+    return FakeFingerprinter(
+        FingerprintOutcome(files=DEFAULT_OUTCOME.files | {ReportFormat.PUML: tuple(diagrams)})
+    )
+
+
+def test_a_diagram_is_rendered(store, queue, diagram_library):
+    renderer = FakeDiagramRenderer()
+    job_id = jobs.submit_endpoint_job(URL, (), job_store=store, queue=queue)
+
+    run_endpoint(store, diagram_library, job_id, renderer=renderer)
+
+    record = store.get(job_id)
+    assert record.state is JobState.COMPLETED
+    assert record.files[ReportFormat.SVG] == (
+        "diagram-default--dct.svg", "diagram-default--skos.svg", "diagram-default.svg",
+    )  # fmt: skip
+    sent = [path.read_text() for path in diagram_library.outcome.files[ReportFormat.PUML]]
+    assert renderer.rendered == sent  # the library's text, unchanged
+
+
+LIBRARY_FORMATS = set(DEFAULT_OUTCOME.formats)
+
+
+@pytest.mark.parametrize("cause", ["is not reachable", "did not answer in time"])
+def test_the_plantuml_server_is_down(store, queue, diagram_library, cause):
+    renderer = FakeDiagramRenderer()
+    renderer.error = DiagramServerUnavailable(f"the PlantUML server {cause}")
+    job_id = jobs.submit_endpoint_job(URL, (), job_store=store, queue=queue)
+
+    run_endpoint(store, diagram_library, job_id, renderer=renderer)
+
+    record = store.get(job_id)
+    assert record.state is JobState.COMPLETED_WITH_FAILURES
+    assert sorted(record.failures) == sorted(
+        f"Class diagram {name[:-5]} could not be drawn: the PlantUML server {cause}"
+        for name in DIAGRAMS
+    )
+    assert set(record.formats) == LIBRARY_FORMATS  # all seven stay, no svg
+    assert len(renderer.rendered) == 1  # the others were not tried against a server that is down
+
+
+def test_a_plantuml_file_that_cannot_be_decoded_is_that_diagrams_failure(
+    store, queue, diagram_library, caplog
+):
+    broken = diagram_library.outcome.files[ReportFormat.PUML][1]
+    broken.write_bytes(b"@startuml\n\xff\xfe\n@enduml\n")
+    renderer = FakeDiagramRenderer()
+    job_id = jobs.submit_endpoint_job(URL, (), job_store=store, queue=queue)
+
+    run_endpoint(store, diagram_library, job_id, renderer=renderer)
+
+    record = store.get(job_id)
+    assert record.state is JobState.COMPLETED_WITH_FAILURES
+    assert [f.split(" could not")[0] for f in record.failures] == [
+        "Class diagram diagram-default--skos"
+    ]
+    assert record.files[ReportFormat.SVG] == ("diagram-default--dct.svg", "diagram-default.svg")
+    assert "diagram-default--skos could not be drawn" in caplog.text  # the warning is logged
+
+
+def test_a_diagram_that_cannot_be_drawn_leaves_the_others_and_the_library_failures(
+    store, queue, diagram_library
+):
+    refused = diagram_library.outcome.files[ReportFormat.PUML][1]
+    renderer = FakeDiagramRenderer()
+    renderer.fail_for = {refused.read_text()}
+    diagram_library.outcome = FingerprintOutcome(
+        files=diagram_library.outcome.files, failures=("a measurement failed",)
+    )
+    job_id = jobs.submit_endpoint_job(URL, (), job_store=store, queue=queue)
+
+    run_endpoint(store, diagram_library, job_id, renderer=renderer)
+
+    record = store.get(job_id)
+    assert record.state is JobState.COMPLETED_WITH_FAILURES
+    assert record.failures == (
+        "a measurement failed",
+        "Class diagram diagram-default--skos could not be drawn: "
+        "the PlantUML server refused the diagram",
+    )
+    assert record.files[ReportFormat.SVG] == ("diagram-default--dct.svg", "diagram-default.svg")
+
+
+def test_a_run_without_diagrams_renders_nothing(store, queue, library):
+    renderer = FakeDiagramRenderer()
+    library.outcome = FingerprintOutcome(files={ReportFormat.HTML: (Path("main.html"),)})
+    job_id = jobs.submit_endpoint_job(URL, (), job_store=store, queue=queue)
+
+    run_endpoint(store, library, job_id, renderer=renderer)
+
+    assert store.get(job_id).state is JobState.COMPLETED
+    assert renderer.rendered == []
+    assert ReportFormat.SVG not in store.get(job_id).files
