@@ -1,32 +1,90 @@
 # The whole stack, from the images built out of this repository (no source mounts).
 # Use `make up` (it passes infra/.env); see infra/.env.example and SECURITY.md (egress, exposure).
+#
+# Networks (`internal` networks have no route out of the stack):
+#   edge     the edge proxy, Flower and the egress proxy: the only network with a route out
+#   app      edge proxy, UI, API
+#   work     API, worker, Redis, Fuseki, PlantUML, egress proxy
+#   monitor  Redis, Flower
+# The API and the worker reach user-given URLs only through the egress proxy (infra/proxy/squid.conf).
 
 name: rdf-fingerprinter-ws
 
-x-service-env: &service-env
+x-settings: &settings
+  # The non-secret settings, from infra/.env. A secret is named by the one service that uses it.
   # The in-network ports of the third-party images; the .env ports are the ones published on the host.
   RDF_FINGERPRINTER_FUSEKI_PORT: "3030"
   RDF_FINGERPRINTER_REDIS_PORT: "6379"
   RDF_FINGERPRINTER_PLANTUML_PORT: "8080"
+  RDF_FINGERPRINTER_API_LOCATION: ${RDF_FINGERPRINTER_API_LOCATION}
+  RDF_FINGERPRINTER_API_PORT: ${RDF_FINGERPRINTER_API_PORT}
+  RDF_FINGERPRINTER_FUSEKI_LOCATION: ${RDF_FINGERPRINTER_FUSEKI_LOCATION}
+  RDF_FINGERPRINTER_REDIS_LOCATION: ${RDF_FINGERPRINTER_REDIS_LOCATION}
+  RDF_FINGERPRINTER_PLANTUML_LOCATION: ${RDF_FINGERPRINTER_PLANTUML_LOCATION}
+  RDF_FINGERPRINTER_FILE_DB: ${RDF_FINGERPRINTER_FILE_DB}
+  RDF_FINGERPRINTER_REPORTS_DB: ${RDF_FINGERPRINTER_REPORTS_DB}
+  RDF_FINGERPRINTER_MAX_UPLOAD_MB: ${RDF_FINGERPRINTER_MAX_UPLOAD_MB}
+  RDF_FINGERPRINTER_LOG_LEVEL: ${RDF_FINGERPRINTER_LOG_LEVEL}
+
+x-egress: &egress
+  # urllib and requests honour these; the stack's own Fuseki and PlantUML are reached directly.
+  HTTP_PROXY: http://egress:3128
+  HTTPS_PROXY: http://egress:3128
+  http_proxy: http://egress:3128
+  https_proxy: http://egress:3128
+  NO_PROXY: fuseki,plantuml
+  no_proxy: fuseki,plantuml
+
+x-fuseki-credentials: &fuseki-credentials
+  RDF_FINGERPRINTER_FUSEKI_USERNAME: ${RDF_FINGERPRINTER_FUSEKI_USERNAME}
+  RDF_FINGERPRINTER_FUSEKI_PASSWORD: ${RDF_FINGERPRINTER_FUSEKI_PASSWORD}
 
 services:
+  edge:
+    # image: pinned exactly; it renders /etc/nginx/templates/*.template with the environment
+    image: nginx:1.27.3-alpine
+    environment:
+      RDF_FINGERPRINTER_API_PORT: ${RDF_FINGERPRINTER_API_PORT}
+      RDF_FINGERPRINTER_UI_PORT: ${RDF_FINGERPRINTER_UI_PORT}
+      RDF_FINGERPRINTER_MAX_UPLOAD_MB: ${RDF_FINGERPRINTER_MAX_UPLOAD_MB}
+    ports:
+      - 127.0.0.1:${RDF_FINGERPRINTER_API_PORT}:${RDF_FINGERPRINTER_API_PORT}
+      - 127.0.0.1:${RDF_FINGERPRINTER_UI_PORT}:${RDF_FINGERPRINTER_UI_PORT}
+    volumes:
+      - ./edge/default.conf.template:/etc/nginx/templates/default.conf.template:ro
+    networks: [edge, app]
+    depends_on:
+      - fingerprinter-ui
+      - fingerprinter-api
+
+  egress:
+    # image: pinned exactly
+    image: ubuntu/squid:6.6-24.04_beta
+    volumes:
+      - ./proxy/squid.conf:/etc/squid/squid.conf:ro
+    networks: [work, edge]
+
   fingerprinter-api:
     build:
       context: ..
       dockerfile: infra/docker/Dockerfile
       target: api
     image: ghcr.io/meaningfy-ws/rdf-fingerprinter-ws-api:local
-    env_file: .env
-    environment: *service-env
-    ports:
-      - 127.0.0.1:${RDF_FINGERPRINTER_API_PORT}:${RDF_FINGERPRINTER_API_PORT}
+    environment:
+      <<: [*settings, *egress, *fuseki-credentials]
+      RDF_FINGERPRINTER_API_SECRET_KEY: ${RDF_FINGERPRINTER_API_SECRET_KEY}
+      RDF_FINGERPRINTER_GUNICORN_API_WORKERS: ${RDF_FINGERPRINTER_GUNICORN_API_WORKERS}
+      RDF_FINGERPRINTER_GUNICORN_TIMEOUT: ${RDF_FINGERPRINTER_GUNICORN_TIMEOUT}
+      SHOW_SWAGGER_UI: ${SHOW_SWAGGER_UI}
     volumes:
       - reports:/app/reports
       - uploads:/app/db
+    networks: [app, work]
     depends_on:
       - redis
       - fuseki
       - plantuml
+      - egress
 
   fingerprinter-ui:
     build:
@@ -34,10 +92,15 @@ services:
       dockerfile: infra/docker/Dockerfile
       target: ui
     image: ghcr.io/meaningfy-ws/rdf-fingerprinter-ws-ui:local
-    env_file: .env
-    environment: *service-env
-    ports:
-      - 127.0.0.1:${RDF_FINGERPRINTER_UI_PORT}:${RDF_FINGERPRINTER_UI_PORT}
+    environment:
+      <<: *settings
+      RDF_FINGERPRINTER_UI_SECRET_KEY: ${RDF_FINGERPRINTER_UI_SECRET_KEY}
+      RDF_FINGERPRINTER_UI_PORT: ${RDF_FINGERPRINTER_UI_PORT}
+      RDF_FINGERPRINTER_GUNICORN_UI_WORKERS: ${RDF_FINGERPRINTER_GUNICORN_UI_WORKERS}
+      RDF_FINGERPRINTER_GUNICORN_UI_THREADS: ${RDF_FINGERPRINTER_GUNICORN_UI_THREADS}
+      RDF_FINGERPRINTER_GUNICORN_TIMEOUT: ${RDF_FINGERPRINTER_GUNICORN_TIMEOUT}
+      RDF_FINGERPRINTER_UI_SECURE_COOKIES: ${RDF_FINGERPRINTER_UI_SECURE_COOKIES}
+    networks: [app]
     depends_on:
       - fingerprinter-api
 
@@ -47,15 +110,17 @@ services:
       dockerfile: infra/docker/Dockerfile
       target: worker
     image: ghcr.io/meaningfy-ws/rdf-fingerprinter-ws-worker:local
-    env_file: .env
-    environment: *service-env
+    environment:
+      <<: [*settings, *egress, *fuseki-credentials]
     volumes:
       - reports:/app/reports
       - uploads:/app/db
+    networks: [work]
     depends_on:
       - redis
       - fuseki
       - plantuml
+      - egress
 
   fingerprinter-flower:
     image: ghcr.io/meaningfy-ws/rdf-fingerprinter-ws-worker:local
@@ -63,18 +128,20 @@ services:
       - sh
       - -c
       - exec celery -A fingerprinter.bootstrap:celery_app flower --port=$${RDF_FINGERPRINTER_FLOWER_PORT}
-    env_file: .env
-    environment: *service-env
+    environment:
+      RDF_FINGERPRINTER_REDIS_LOCATION: ${RDF_FINGERPRINTER_REDIS_LOCATION}
+      RDF_FINGERPRINTER_REDIS_PORT: "6379"
+      RDF_FINGERPRINTER_FLOWER_PORT: ${RDF_FINGERPRINTER_FLOWER_PORT}
     ports:
       - 127.0.0.1:${RDF_FINGERPRINTER_FLOWER_PORT}:${RDF_FINGERPRINTER_FLOWER_PORT}
+    networks: [monitor, edge]
     depends_on:
       - fingerprinter-worker
 
   redis:
     # image: kept equal to tests/containers.py
     image: redis:7-alpine
-    ports:
-      - 127.0.0.1:${RDF_FINGERPRINTER_REDIS_PORT}:6379
+    networks: [work, monitor]
 
   fuseki:
     # image: kept equal to tests/containers.py
@@ -82,10 +149,9 @@ services:
     environment:
       ADMIN_PASSWORD: ${RDF_FINGERPRINTER_FUSEKI_PASSWORD}
       JVM_ARGS: ${RDF_FINGERPRINTER_FUSEKI_JVM_ARGS}
-    ports:
-      - 127.0.0.1:${RDF_FINGERPRINTER_FUSEKI_PORT}:3030
     volumes:
       - fuseki:/fuseki
+    networks: [work]
 
   plantuml:
     # image, size limit and security profile: kept equal to tests/containers.py
@@ -93,8 +159,16 @@ services:
     environment:
       - PLANTUML_LIMIT_SIZE=16384
       - PLANTUML_SECURITY_PROFILE=SANDBOX
-    ports:
-      - 127.0.0.1:${RDF_FINGERPRINTER_PLANTUML_PORT}:8080
+    networks: [work]
+
+networks:
+  edge: {}
+  app:
+    internal: true
+  work:
+    internal: true
+  monitor:
+    internal: true
 
 volumes:
   reports:

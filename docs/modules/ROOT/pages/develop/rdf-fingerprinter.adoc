@@ -98,6 +98,41 @@ Why any user of the library would need it, and why a workaround in the consumer 
 Given/When/Then scenarios that would close the issue.
 ----
 
+[#pending]
+== Pending library change (3.7.0, not yet released)
+
+`meaningfy-ws/rdf-fingerprinter#78` (change `consumer-api-gaps`) closes #69, #75, #76 and #77. When
+it is released, raising the pin here brings:
+
+[cols="1,3"]
+|===
+|Item |Behaviour
+
+|`timeout_seconds` (`RDF_FINGERPRINTER_TIMEOUT_SECONDS`)
+|A deadline for a whole query attempt, checked between reads; `QueryTimeout`, not retried. It can
+overshoot by one blocked read, and slow headers can stretch the connect phase. Worst case per
+query: `(retries + 1) × 2 × timeout_seconds + sum(backoff)`.
+
+|`max_answer_bytes` (`RDF_FINGERPRINTER_MAX_ANSWER_BYTES`, default 268435456)
+|An answer larger than this raises `AnswerTooLarge` (a `PermanentError`), after reading at most the
+limit plus 64 KiB.
+
+|`ConfigurationError` (a `UsageError`)
+|Raised for a bad `RDF_FINGERPRINTER_*` value; a bad URL stays a plain `UsageError`. The graph
+listing here can then map a configuration fault to a 500 and a bad URL to a 400.
+
+|`list_named_graphs`
+|An answer without `?g` raises `PermanentError` (today: `KeyError`, a 500 here). A full run records
+a Q0 failure and profiles the default graph.
+
+|`describe_diagrams(...)`
+|Describes each PlantUML file (graph, overview or module, module prefix, part). The diagram picker
+here then drops its file-name parsing (`modernise-user-interface` L-1).
+|===
+
+Before adopting it, check the library PR's tests were seen failing first: its report says the
+tests for #75, #76 and #77 were written after the code.
+
 == Two repositories, kept apart
 
 * *Each repository plans its own work*, in its own `openspec/`. A change here that needs library

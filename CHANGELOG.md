@@ -5,6 +5,18 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Security
+
+- `infra/compose.yaml` isolates the stack: the `app`, `work` and `monitor` networks are internal; an
+  nginx edge proxy publishes the UI and the API on `127.0.0.1`; a Squid egress proxy is the only way out
+  for the API and the worker and refuses loopback, private, link-local and shared addresses, so a job
+  against `169.254.169.254`, a service of the stack or `127.0.0.1` fails.
+- Each container holds only its secrets (no `env_file`); the API and the UI each require only their own
+  Flask secret key, the worker needs neither.
+- Redis, Fuseki and PlantUML are no longer published by `make up`; `make up-dev` and `make up-deps` add
+  `infra/compose.dev.yaml`, which publishes them on `127.0.0.1`.
+- `make init-env` writes `infra/.env` with random secrets; `make down` needs no `infra/.env`.
+
 Two EPICs land together: the library upgrade (`upgrade-fingerprinter-library`) and the user-interface
 revamp (`modernise-user-interface`).
 

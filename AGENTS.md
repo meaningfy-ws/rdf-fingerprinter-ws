@@ -164,13 +164,19 @@ parallel epic files under `.claude/`.
   `entrypoints/{api,ui,worker}/`, `config.py`, `bootstrap.py`. Tests in `tests/{unit,feature,integration,e2e}/`.
 - **Datastores / external systems:** Fuseki (a temporary dataset per uploaded file), Redis (Celery
   broker), a PlantUML server (class diagrams), the file system (`db/`, `reports/`).
+- **Stack hardening:** `infra/compose.yaml` has four networks (`edge` has a route out; `app`, `work`,
+  `monitor` are internal); the API and worker reach user URLs only through the Squid egress proxy
+  (`infra/proxy/squid.conf`, `NO_PROXY=fuseki,plantuml`); nginx (`infra/edge/`) publishes the UI and
+  API on loopback; Redis, Fuseki and PlantUML are published only by `infra/compose.dev.yaml`
+  (`make up-dev`, `make up-deps`); each container holds only its secrets (no `env_file`);
+  `make init-env` writes `infra/.env`; `tests/unit/test_infra_env.py` pins all of it.
 - **Deployable:** `infra/` holds `compose.yaml`, `.env.example` and one multistage non-root `docker/Dockerfile`
   (targets `api`, `ui`, `worker`; Python 3.13, uv); images are published to
   `ghcr.io/meaningfy-ws/rdf-fingerprinter-ws-{api,ui,worker}` on a GitHub release (`release.yml`); no CD.
 - **Make targets:** `make install`, `make check-all` (= `check-quality` + `test`), `lint`,
-  `typecheck`, `check-architecture`, `check-spec`, `test`, `test-containers`; the stack: `make up`,
-  `up-deps`, `down`, `rebuild`, `build-images`, `logs`, `run-api`, `run-ui`, `run-worker` (settings in `infra/.env`, copied from
-  `infra/.env.example`); docs: `make install-antora`, `build-docs`, `preview-docs`, `check-docs`.
+  `typecheck`, `check-architecture`, `check-spec`, `test`, `test-containers`; the stack: `make init-env`,
+  `up`, `up-dev`, `up-deps`, `down` (needs no `.env`), `rebuild`, `build-images`, `logs`, `run-api`, `run-ui`,
+  `run-worker` (settings in `infra/.env`, written by `make init-env` from `infra/.env.example`); docs: `make install-antora`, `build-docs`, `preview-docs`, `check-docs`.
 - **CI:** `ci.yml` (`check-all`, the `containers` job and the `images` job on Python 3.13, PRs into and pushes to
   `develop`), `docs.yml`, `release.yml` (images to GHCR on a release); every action is pinned to a
   commit SHA with its tag in a comment.

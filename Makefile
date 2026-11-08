@@ -21,14 +21,18 @@ COV_FLAGS = --cov=$(PACKAGE_NAME) \
 # The unit lane never collects the container tests.
 UNIT_LANE = --ignore=$(TEST_PATH)/integration --ignore=$(TEST_PATH)/e2e
 
-COMPOSE_FILE = $(REPO_ROOT)/infra/compose.yaml
-ENV_FILE     = $(REPO_ROOT)/infra/.env
-COMPOSE      = docker compose -f $(COMPOSE_FILE) --env-file $(ENV_FILE)
+COMPOSE_FILE     = $(REPO_ROOT)/infra/compose.yaml
+COMPOSE_DEV_FILE = $(REPO_ROOT)/infra/compose.dev.yaml
+ENV_FILE         = $(REPO_ROOT)/infra/.env
+COMPOSE          = docker compose -f $(COMPOSE_FILE) --env-file $(ENV_FILE)
+# The development override also publishes Redis, Fuseki and PlantUML on 127.0.0.1.
+COMPOSE_DEV      = docker compose -f $(COMPOSE_FILE) -f $(COMPOSE_DEV_FILE) --env-file $(ENV_FILE)
+PROJECT_NAME     = rdf-fingerprinter-ws
 
 .DEFAULT_GOAL := help
 .PHONY: help install-uv install lock format lint lint-fix typecheck check-architecture check-spec \
         test test-unit test-feature test-containers check-quality check-all \
-        check-env up up-deps down rebuild build-images logs run-api run-ui run-worker
+        init-env check-env up up-dev up-deps down rebuild build-images logs run-api run-ui run-worker
 
 #-----------------------------------------------------------------------------
 # Setup
@@ -109,18 +113,31 @@ test-feature: ## Run BDD feature tests only
 #-----------------------------------------------------------------------------
 # Stack (docker compose) and local runs; settings in infra/.env (cp infra/.env.example infra/.env)
 #-----------------------------------------------------------------------------
+init-env: ## Write infra/.env from the example with random secrets (refuses to overwrite one)
+	@ test ! -e $(ENV_FILE) || (echo -e "$(ICON_ERROR) $(ENV_FILE) exists: not overwritten" && exit 1)
+	@ umask 077; while IFS= read -r line; do \
+		case "$$line" in \
+			*=change-me) printf '%s=%s\n' "$${line%%=*}" "$$(openssl rand -hex 32)";; \
+			*) printf '%s\n' "$$line";; \
+		esac; \
+	done < $(REPO_ROOT)/infra/.env.example > $(ENV_FILE)
+	@ echo -e "$(BUILD_PRINT)$(ICON_DONE) Wrote $(ENV_FILE) with random secrets$(END_BUILD_PRINT)"
+
 check-env:
-	@ test -f $(ENV_FILE) || (echo -e "$(ICON_ERROR) Missing $(ENV_FILE). Run: cp infra/.env.example infra/.env" && exit 1)
-	@ ! grep -q '^[^#]*=change-me' $(ENV_FILE) || (echo -e "$(ICON_ERROR) $(ENV_FILE) still holds change-me: replace every one" && exit 1)
+	@ test -f $(ENV_FILE) || (echo -e "$(ICON_ERROR) Missing $(ENV_FILE). Run: make init-env" && exit 1)
+	@ ! grep -q '^[^#]*=change-me' $(ENV_FILE) || (echo -e "$(ICON_ERROR) $(ENV_FILE) still holds change-me: replace every one, or delete it and run: make init-env" && exit 1)
 
 up: check-env ## Start the stack (docker compose up -d)
 	@ $(COMPOSE) up -d
 
-up-deps: check-env ## Start only Redis, Fuseki and PlantUML, for run-api, run-ui and run-worker
-	@ $(COMPOSE) up -d redis fuseki plantuml
+up-dev: check-env ## Start the stack with Redis, Fuseki and PlantUML also published on 127.0.0.1
+	@ $(COMPOSE_DEV) up -d
 
-down: check-env ## Stop and remove the stack's containers (volumes stay)
-	@ $(COMPOSE) down
+up-deps: check-env ## Start only Redis, Fuseki and PlantUML (on 127.0.0.1), for run-api, run-ui and run-worker
+	@ $(COMPOSE_DEV) up -d redis fuseki plantuml
+
+down: ## Stop and remove the stack's containers (volumes stay; needs no infra/.env)
+	@ docker compose -p $(PROJECT_NAME) down
 
 rebuild: check-env ## Rebuild the images and start the stack (docker compose up -d --build)
 	@ $(COMPOSE) up -d --build
@@ -131,6 +148,7 @@ build-images: ## Check the compose file and build the api, ui and worker images
 	if [ ! -f $(ENV_FILE) ]; then cp infra/.env.example $(ENV_FILE); created=1; fi; \
 	trap '[ -z "$$created" ] || rm -f $(ENV_FILE)' EXIT; \
 	docker compose -f $(COMPOSE_FILE) --env-file $(ENV_FILE) config -q; \
+	docker compose -f $(COMPOSE_FILE) -f $(COMPOSE_DEV_FILE) --env-file $(ENV_FILE) config -q; \
 	for target in api ui worker; do \
 		docker build --target $$target -f infra/docker/Dockerfile -t rdf-fingerprinter-ws-$$target:check .; \
 	done
@@ -138,7 +156,7 @@ build-images: ## Check the compose file and build the api, ui and worker images
 logs: check-env ## Follow the stack's logs
 	@ $(COMPOSE) logs -f
 
-# Run one service on the host against the stack's Fuseki, Redis and PlantUML (make up-deps; published on localhost).
+# Run one service on the host against the stack's Fuseki, Redis and PlantUML (make up-deps; published on 127.0.0.1 by the development override).
 # Do not run them next to the full stack: both would take jobs from the same queue and split the job files.
 LOCAL_RUN = set -a && . $(ENV_FILE) && set +a && \
 	RDF_FINGERPRINTER_FUSEKI_LOCATION=http://localhost RDF_FINGERPRINTER_REDIS_LOCATION=redis://localhost \

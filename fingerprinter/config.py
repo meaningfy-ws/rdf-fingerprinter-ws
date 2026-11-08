@@ -51,11 +51,11 @@ def _service_url(name: str, default_location: str, default_port: int) -> str:
     return f"{location}:{os.environ.get(f'RDF_FINGERPRINTER_{name}_PORT', default_port)}"
 
 
-def _required(name: str) -> str:
-    try:
-        return os.environ[name]
-    except KeyError:
-        raise ValueError(f"{name} must be set: it has no default.") from None
+def require_secret(name: str, value: str) -> str:
+    """The value of a secret an app cannot start without; each app checks its own (design H-5)."""
+    if not value:
+        raise ValueError(f"{name} must be set: it has no default.")
+    return value
 
 
 @dataclass(frozen=True)
@@ -86,8 +86,8 @@ class Settings:
             fuseki_url=_service_url("FUSEKI", "http://fuseki", 3030),
             redis_url=_service_url("REDIS", "redis://redis", 6379),
             plantuml_url=_service_url("PLANTUML", "http://plantuml", 8080),
-            api_secret_key=_required("RDF_FINGERPRINTER_API_SECRET_KEY"),
-            ui_secret_key=_required("RDF_FINGERPRINTER_UI_SECRET_KEY"),
+            api_secret_key=env.get("RDF_FINGERPRINTER_API_SECRET_KEY", ""),
+            ui_secret_key=env.get("RDF_FINGERPRINTER_UI_SECRET_KEY", ""),
             fuseki_user=env.get("RDF_FINGERPRINTER_FUSEKI_USERNAME", ""),
             fuseki_password=env.get("RDF_FINGERPRINTER_FUSEKI_PASSWORD", ""),
             file_db=Path(env.get("RDF_FINGERPRINTER_FILE_DB", root / "db")).resolve(),

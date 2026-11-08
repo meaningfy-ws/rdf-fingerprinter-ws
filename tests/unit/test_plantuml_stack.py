@@ -7,7 +7,9 @@ import yaml
 
 from tests import containers
 
-COMPOSE = Path(__file__).parents[2] / "infra" / "compose.yaml"
+INFRA = Path(__file__).parents[2] / "infra"
+COMPOSE = INFRA / "compose.yaml"
+DEV_COMPOSE = INFRA / "compose.dev.yaml"
 SANDBOX = "SANDBOX"
 
 
@@ -48,7 +50,7 @@ def test_no_diagram_can_make_the_server_fetch_a_url(stack_service):
 )
 def test_the_stack_runs_the_images_and_ports_of_the_fixtures(service, image, in_network_port):
     definition = compose_service(service)
-    published = definition["ports"][0]
+    published = yaml.safe_load(DEV_COMPOSE.read_text())["services"][service]["ports"][0]
     assert definition["image"] == image, f"{service}: compose and tests/containers.py differ"
     assert published.endswith(f":{in_network_port}"), (
         f"{service}: in-network port is not {in_network_port}"

@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-from fingerprinter.config import Settings, strtobool
+from fingerprinter.config import Settings, require_secret, strtobool
 
 API_KEY = "RDF_FINGERPRINTER_API_SECRET_KEY"
 UI_KEY = "RDF_FINGERPRINTER_UI_SECRET_KEY"
@@ -93,11 +93,17 @@ def test_trix_uploads_are_sent_as_application_trix_xml(env):
 
 
 @pytest.mark.parametrize("variable", [API_KEY, UI_KEY])
-def test_a_missing_secret_key_stops_the_start_and_names_the_variable(env, variable):
+def test_a_missing_secret_key_does_not_stop_the_settings(env, variable):
+    """Each app checks its own key (bootstrap); the worker needs neither."""
     env.delenv(variable)
 
-    with pytest.raises(ValueError, match=variable):
-        Settings.from_env()
+    assert getattr(Settings.from_env(), variable.removeprefix("RDF_FINGERPRINTER_").lower()) == ""
+
+
+def test_a_secret_is_required_by_name():
+    assert require_secret("SOME_KEY", "value") == "value"
+    with pytest.raises(ValueError, match="SOME_KEY must be set"):
+        require_secret("SOME_KEY", "")
 
 
 def test_secrets_are_not_shown_in_the_repr(env):

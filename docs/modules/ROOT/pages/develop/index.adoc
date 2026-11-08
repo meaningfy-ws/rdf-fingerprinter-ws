@@ -49,7 +49,7 @@ work, commits and keeps the spine. In practice:
 |Path |What it holds
 |`fingerprinter/` |The service package: `domain/`, `services/`, `adapters/` (Fuseki, Celery, PlantUML, the library), `entrypoints/api/` (Flask and Connexion, the OpenAPI contract in `openapi/`), `entrypoints/ui/` (Flask and Jinja), `entrypoints/worker/`, `config.py`, `bootstrap.py`
 |`tests/` |The tests: `unit/`, `feature/`, `integration/`, `e2e/`
-|`infra/` |The Dockerfiles (`api`, `ui`, `worker`), `compose.yaml` and `.env.example`
+|`infra/` |The Dockerfiles (`api`, `ui`, `worker`), `compose.yaml`, `compose.dev.yaml`, `proxy/squid.conf`, `edge/default.conf.template` and `.env.example`
 |`docs/` |This Antora component
 |`openspec/` |The spine: changes and living specs
 |===
@@ -76,7 +76,7 @@ Layers import downward only (Cosmic Python): `bootstrap` over `entrypoints` and 
 |Dependencies |uv, `pyproject.toml`, `uv.lock` (exact pins)
 |Quality |Ruff, mypy, import-linter, OpenSpec validation, docs check, coverage ≥ 80 % (`make check-all`; the docs check alone is `make check-docs`)
 |Tests |pytest, pytest-bdd, Playwright; tiers `unit`, `feature`, `integration`, `e2e` (`make test`, `make test-containers`)
-|Runtime services |Docker Compose in `infra/` (`make up`, `down`, `rebuild`, `logs`): API, UI, worker, Flower, Redis, Fuseki, PlantUML; `make up-deps` starts only Redis, Fuseki and PlantUML for `make run-api`, `run-ui`, `run-worker`
+|Runtime services |Docker Compose in `infra/` (`make init-env`, `up`, `down`, `rebuild`, `logs`): edge proxy (nginx), egress proxy (Squid), API, UI, worker, Flower, Redis, Fuseki, PlantUML on four networks (`edge`, then `app`, `work`, `monitor`, which are internal); `make up-deps` starts only Redis, Fuseki and PlantUML, and `make up-dev` the whole stack, with `infra/compose.dev.yaml` publishing those three on `127.0.0.1` for `make run-api`, `run-ui`, `run-worker`
 |Delivery |GitHub Actions pinned by commit SHA: `ci.yml` (`check-all`, container tests, image build), `docs.yml`, `release.yml` (images to GHCR on a release)
 |Code intelligence |GitNexus (impact before every edit)
 |Docs |Antora (AsciiDoc)
@@ -148,7 +148,7 @@ Evidence lives with the change, in `openspec/changes/<id>/evidence/` (`spike-<to
 * The gates pass: `make check-all`, `make check-docs` when `docs/` changed, and
   `make test-containers` when adapters, `infra/` or the workflows changed (CI runs it on every PR).
 * A change to `infra/` also builds: `make build-images` builds the three images (CI runs it), and
-  `make up` starts the stack from a copy of `infra/.env.example` with the `change-me` values replaced.
+  `make init-env` then `make up` starts the stack with random secrets (pick non-default host ports in `infra/.env` if another stack is running).
 * No workaround of the library; every library issue met is filed and linked from `design.md`.
 * The stage's scenarios were signed off and the traceability check is clean; for a use-case stage,
   the acceptance demo is recorded in `evidence/`.

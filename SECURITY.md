@@ -19,20 +19,33 @@ A vulnerability in the `rdf-fingerprinter` library itself is reported in its own
 ### Outgoing traffic of the worker and the API (SSRF)
 
 The service has no login, and the worker fetches **any** http(s) SPARQL endpoint URL a client submits.
-The API does too: `GET /endpoint-graphs` lists the named graphs of an endpoint the client names. A
-client can therefore make the worker and the API reach whatever their network reaches: the other
-containers (Fuseki, Redis, Flower), the host, and cloud metadata addresses. The service refuses only
-URLs that carry a user name or password.
+The API does too: `GET /endpoint-graphs` lists the named graphs of an endpoint the client names. The
+service itself refuses only URLs that carry a user name or password.
 
-Restrict the egress of the worker **and** the API at the network level; Docker Compose cannot do it
-alone. For instance:
+The stack in `infra/` enforces the egress limit at the network level:
 
-- block the private, loopback and link-local ranges (including `169.254.169.254`) from both, allowing
-  only Redis, Fuseki and PlantUML (and, for the UI, the API) inside the stack;
-- or send their outgoing traffic through an egress proxy that allows only the endpoints you expect;
-- or run the stack in a network that has no route to your internal network.
+- the `app`, `work` and `monitor` networks are `internal` (no route out); the API and the worker have
+  no route to the Internet or the host, and Redis, Fuseki and PlantUML have none at all;
+- the API and the worker send their requests through the Squid egress proxy (`HTTP_PROXY`,
+  `HTTPS_PROXY`), which refuses loopback, private, link-local, shared and unspecified addresses
+  (IPv4 and IPv6) by the address the name resolves to, so `169.254.169.254`, `127.0.0.1`, `redis`
+  and `fingerprinter-api` are all refused and the job fails; every other destination and port is
+  allowed, since users bring their own endpoints;
+- the worker shares no network with Flower or the API.
 
-Flower has no login and must not be reachable from the worker or the API either.
+Residual risks:
+
+- a user URL naming `fuseki` or `plantuml` bypasses the proxy (`NO_PROXY`, which the stack's own
+  traffic needs): Fuseki's admin interface needs the password, and PlantUML runs in `SANDBOX`;
+- Redis has no password: it is reachable only on the internal `work` and `monitor` networks (and on
+  loopback with `make up-dev` or `make up-deps`);
+- a host or cloud firewall is further advice, not shipped: on a Docker host, restrict the egress of
+  the stack's networks in the `DOCKER-USER` chain, and keep the cloud metadata address unreachable
+  from the host's containers.
+
+If you run the images outside this compose file, restrict the egress of the worker **and** the API
+yourself (a proxy like this one, a network without a route to your internal network, or firewall
+rules), and keep Flower unreachable from both.
 
 Known limit: the library applies a timeout to a request as a whole but not to each read, so an endpoint
 that answers slowly, a few bytes at a time, can hold a request open
@@ -52,13 +65,16 @@ setting (`infra/compose.yaml`, and `tests/unit/test_plantuml_stack.py` guards it
 
 ### Secrets
 
-- Settings and secrets live in `infra/.env`, which is git-ignored; start from `infra/.env.example` and
-  replace every `change-me`. Use long random values for the two secret keys and the Fuseki password.
+- Settings and secrets live in `infra/.env`, which is git-ignored; `make init-env` writes it from
+  `infra/.env.example` with a random value for every `change-me` and refuses to overwrite one. Each
+  container receives only its own secrets: the API its secret key and the Fuseki credentials, the UI its
+  secret key, the worker the Fuseki credentials, Flower none. An existing Fuseki volume keeps the admin
+  password it was created with.
 - Never commit a `.env`. The `docker/.env` that earlier versions committed held keys that are
   **burned**; do not reuse any value from the repository's history.
 - The images carry no `.env`, data or credentials, and run as a non-root user.
-- The API, the UI, Redis, Fuseki, PlantUML and Flower are published on `127.0.0.1` only. Redis has no
-  password: it is reachable only on the stack's network and on loopback. Flower has no login: do not
-  expose it.
+- The API and the UI (through the nginx edge proxy) and Flower are published on `127.0.0.1` only. Redis,
+  Fuseki and PlantUML are published only by the development override (`make up-dev`, `make up-deps`),
+  also on `127.0.0.1`. Flower has no login: do not expose it.
 - Secret values use only letters and digits: `make` sources `infra/.env` as shell, and `make check-env`
   refuses a file that still holds `change-me`.

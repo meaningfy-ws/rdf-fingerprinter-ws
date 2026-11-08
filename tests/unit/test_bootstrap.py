@@ -29,6 +29,22 @@ def bootstrap(monkeypatch):
     return importlib.import_module("fingerprinter.bootstrap")
 
 
+@pytest.mark.parametrize(
+    ("kept", "built", "refused"),
+    [("UI", "ui_app", "api_app"), ("API", "api_app", "ui_app")],
+)
+def test_each_app_needs_only_its_own_secret_key(bootstrap, monkeypatch, kept, built, refused):
+    monkeypatch.delenv(
+        "RDF_FINGERPRINTER_API_SECRET_KEY" if kept == "UI" else "RDF_FINGERPRINTER_UI_SECRET_KEY"
+    )
+    bootstrap = importlib.reload(bootstrap)
+    missing = "API" if kept == "UI" else "UI"
+
+    assert getattr(bootstrap, built)() is not None
+    with pytest.raises(ValueError, match=f"RDF_FINGERPRINTER_{missing}_SECRET_KEY must be set"):
+        getattr(bootstrap, refused)()
+
+
 def test_the_celery_app_has_the_redis_broker_and_no_result_backend(bootstrap):
     app = bootstrap.celery_app
 
