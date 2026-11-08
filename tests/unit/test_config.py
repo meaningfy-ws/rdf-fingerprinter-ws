@@ -108,3 +108,15 @@ def test_secrets_are_not_shown_in_the_repr(env):
 
     for secret in ("api-secret", "ui-secret", "fuseki-pw", "redis-pw"):
         assert secret not in shown
+
+
+def test_relative_folders_are_resolved_against_the_working_directory(env, tmp_path):
+    """Flask's send_file reads a relative path against the app package, not the working directory."""
+    env.chdir(tmp_path)
+    env.setenv("RDF_FINGERPRINTER_FILE_DB", "db")
+    env.setenv("RDF_FINGERPRINTER_REPORTS_DB", "reports")
+
+    settings = Settings.from_env()
+
+    assert settings.file_db == tmp_path / "db", "the upload folder must be absolute"
+    assert settings.reports_db == tmp_path / "reports", "the reports folder must be absolute"

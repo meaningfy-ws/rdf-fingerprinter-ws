@@ -24,7 +24,7 @@ cp infra/.env.example infra/.env     # then replace every "change-me" (letters a
 make up                              # start the stack (builds the images the first time)
 make logs                            # follow the logs
 make down                            # stop it (the data volumes stay)
-make rebuild                         # rebuild the images and start (up -d --build)
+make rebuild                         # after pulling new code: rebuild the images and start
 ```
 
 | Service | URL (default ports) | Role |
