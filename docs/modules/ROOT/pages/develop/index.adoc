@@ -47,16 +47,15 @@ work, commits and keeps the spine. In practice:
 [cols="1,3",options="header"]
 |===
 |Path |What it holds
-|`fingerprinter/` |The service package: `entrypoints/api/` (Flask and Connexion, the OpenAPI contract in `openapi/`), `entrypoints/ui/` (Flask and Jinja), `services/`, `adapters/` (Fuseki, Celery), `config.py`
-|`tests/` |The tests (today `unit/`; the tier folders come with the library-upgrade EPIC)
-|`resources/templates/` |Report templates passed to the library
-|`docker/` |The images and the compose file (until stage 4 of the library-upgrade EPIC moves them to `infra/`)
+|`fingerprinter/` |The service package: `domain/`, `services/`, `adapters/` (Fuseki, Celery, PlantUML, the library), `entrypoints/api/` (Flask and Connexion, the OpenAPI contract in `openapi/`), `entrypoints/ui/` (Flask and Jinja), `entrypoints/worker/`, `config.py`, `bootstrap.py`
+|`tests/` |The tests: `unit/`, `feature/`, `integration/`, `e2e/`
+|`infra/` |The Dockerfiles (`api`, `ui`, `worker`), `compose.yaml` and `.env.example`
 |`docs/` |This Antora component
 |`openspec/` |The spine: changes and living specs
 |===
 
-Layers import downward only: `entrypoints → services → adapters` today; the library-upgrade EPIC
-sets the target layering (Cosmic Python) and enforces it with import-linter.
+Layers import downward only (Cosmic Python): `bootstrap` over `entrypoints` and `adapters`, over
+`services`, over `domain`; import-linter enforces it (`make check-architecture`).
 
 == How we code
 
@@ -70,16 +69,17 @@ sets the target layering (Cosmic Python) and enforces it with import-linter.
 
 == Tools
 
-[cols="1,2,2",options="header"]
+[cols="1,3",options="header"]
 |===
-|Area |Today |After the library-upgrade EPIC
-|Runtime |Python 3.13, `rdf-fingerprinter` 3.5 |same
-|Dependencies |uv, `pyproject.toml`, `uv.lock` |same
-|Quality |Ruff, mypy, import-linter, coverage ≥ 80 % (`make check-all`) |same, with the layered contracts
-|Tests |pytest, pytest-bdd, tier markers; unit tests only |plus feature, integration and e2e tiers
-|Runtime services |Docker Compose: API, UI, Celery, Flower, Redis, Fuseki |same, images rebuilt on the new stack
-|Code intelligence |GitNexus (impact before every edit) |same
-|Docs |Antora (AsciiDoc) |same
+|Area |Tool
+|Runtime |Python 3.13, `rdf-fingerprinter` 3.6
+|Dependencies |uv, `pyproject.toml`, `uv.lock` (exact pins)
+|Quality |Ruff, mypy, import-linter, OpenSpec validation, docs check, coverage ≥ 80 % (`make check-all`; the docs check alone is `make check-docs`)
+|Tests |pytest, pytest-bdd, Playwright; tiers `unit`, `feature`, `integration`, `e2e` (`make test`, `make test-containers`)
+|Runtime services |Docker Compose in `infra/` (`make up`, `down`, `rebuild`, `logs`): API, UI, worker, Flower, Redis, Fuseki, PlantUML; `make up-deps` starts only Redis, Fuseki and PlantUML for `make run-api`, `run-ui`, `run-worker`
+|Delivery |GitHub Actions pinned by commit SHA: `ci.yml` (`check-all`, container tests, image build), `docs.yml`, `release.yml` (images to GHCR on a release)
+|Code intelligence |GitNexus (impact before every edit)
+|Docs |Antora (AsciiDoc)
 |===
 
 [#work]
@@ -145,8 +145,10 @@ Evidence lives with the change, in `openspec/changes/<id>/evidence/` (`spike-<to
 [#before-pr]
 == Before a PR
 
-* The gates pass: `make check-all`, and `make check-docs` when `docs/` changed. From stage 2 of the
-  library-upgrade EPIC, also the container tests when adapters or infra changed.
+* The gates pass: `make check-all`, `make check-docs` when `docs/` changed, and
+  `make test-containers` when adapters, `infra/` or the workflows changed (CI runs it on every PR).
+* A change to `infra/` also builds: `make build-images` builds the three images (CI runs it), and
+  `make up` starts the stack from a copy of `infra/.env.example` with the `change-me` values replaced.
 * No workaround of the library; every library issue met is filed and linked from `design.md`.
 * The stage's scenarios were signed off and the traceability check is clean; for a use-case stage,
   the acceptance demo is recorded in `evidence/`.
@@ -162,8 +164,8 @@ row when a run differs a lot.
 |===
 |Target |Tests |Time |Measured |Notes
 |`make check-docs` |– |≈ 1 s |2026-11-08 |
-|`make check-all` |251 |≈ 13 s |2026-11-08 |most of it is `check-spec` (npx)
-|`make test-containers` |27 |≈ 80 s |2026-11-08 |integration and e2e; most of it is starting the Fuseki and Redis containers
+|`make check-all` |570 |≈ 67 s |2026-11-08 |most of it is `check-spec` (npx)
+|`make test-containers` |68 |≈ 220 s |2026-11-08 |integration and e2e (incl. the UI journeys); most of it is starting the Fuseki, Redis and PlantUML containers and Chromium
 |e2e: endpoint job, all seven formats |1 |≈ 1.5 s |2026-11-08 |continents table; job wall time, queued to `completed`
 |e2e: file job (upload, dataset, run, removal) |1 |≈ 4 s |2026-11-08 |treaties table
 |e2e: unreachable endpoint |1 |≈ 5 s |2026-11-08 |the library retries twice before the job fails

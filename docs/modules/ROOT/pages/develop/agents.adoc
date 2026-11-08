@@ -70,10 +70,9 @@ or CRITICAL risk goes to the developer.
 |Gate |When
 |`make check-all` |After every task and before every PR
 |`make check-docs`, `make build-docs` |When docs change, and before a stage's PR
+|`make test-containers` |When adapters, `infra/` or the workflows change, and before a stage's PR
 |The clarity gate (≥ 9/10) |Before a PLAN's first task
 |===
-
-`make test-containers` joins the table when the library-upgrade EPIC adds it.
 
 == Merge and release
 

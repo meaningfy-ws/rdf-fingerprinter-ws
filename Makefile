@@ -21,12 +21,14 @@ COV_FLAGS = --cov=$(PACKAGE_NAME) \
 # The unit lane never collects the container tests.
 UNIT_LANE = --ignore=$(TEST_PATH)/integration --ignore=$(TEST_PATH)/e2e
 
-# The legacy docker/ targets read their settings from docker/.env (stage 4 replaces it with infra/).
--include docker/.env
+COMPOSE_FILE = $(REPO_ROOT)/infra/compose.yaml
+ENV_FILE     = $(REPO_ROOT)/infra/.env
+COMPOSE      = docker compose -f $(COMPOSE_FILE) --env-file $(ENV_FILE)
 
 .DEFAULT_GOAL := help
 .PHONY: help install-uv install lock format lint lint-fix typecheck check-architecture check-spec \
-        test test-unit test-feature test-containers check-quality check-all
+        test test-unit test-feature test-containers check-quality check-all \
+        check-env up up-deps down rebuild build-images logs run-api run-ui run-worker
 
 #-----------------------------------------------------------------------------
 # Setup
@@ -105,29 +107,51 @@ test-feature: ## Run BDD feature tests only
 	@ uv run pytest $(TEST_PATH) $(UNIT_LANE) -m "feature"
 
 #-----------------------------------------------------------------------------
-# Service commands
+# Stack (docker compose) and local runs; settings in infra/.env (cp infra/.env.example infra/.env)
 #-----------------------------------------------------------------------------
-build-services:
-	@ echo -e '$(BUILD_PRINT)Building the containers'
-	@ docker-compose --file docker/docker-compose.yml --env-file docker/.env build
+check-env:
+	@ test -f $(ENV_FILE) || (echo -e "$(ICON_ERROR) Missing $(ENV_FILE). Run: cp infra/.env.example infra/.env" && exit 1)
+	@ ! grep -q '^[^#]*=change-me' $(ENV_FILE) || (echo -e "$(ICON_ERROR) $(ENV_FILE) still holds change-me: replace every one" && exit 1)
 
-start-services:
-	@ echo -e '$(BUILD_PRINT)(dev) Starting the containers'
-	@ docker-compose --file docker/docker-compose.yml --env-file docker/.env up -d
+up: check-env ## Start the stack (docker compose up -d)
+	@ $(COMPOSE) up -d
 
-stop-services:
-	@ echo -e '$(BUILD_PRINT)(dev) Stopping the containers'
-	@ docker-compose --file docker/docker-compose.yml --env-file docker/.env stop
+up-deps: check-env ## Start only Redis, Fuseki and PlantUML, for run-api, run-ui and run-worker
+	@ $(COMPOSE) up -d redis fuseki plantuml
 
-#-----------------------------------------------------------------------------
-# Fuseki helpers
-#-----------------------------------------------------------------------------
+down: check-env ## Stop and remove the stack's containers (volumes stay)
+	@ $(COMPOSE) down
 
-fuseki-create-test-dbs:
-	@ echo "$(BUILD_PRINT)Building "test-dataset" at http://localhost:$(if $(RDF_FINGERPRINTER_FUSEKI_ADMIN_PASSWORD),$(RDF_DIFFER_FUSEKI_PORT),unknown port)/$$/datasets"
-	@ sleep 7
-	@ curl -v --anyauth --user 'admin:$(RDF_FINGERPRINTER_FUSEKI_ADMIN_PASSWORD)' -d 'dbType=mem&dbName=test-dataset'  'http://localhost:$(RDF_FINGERPRINTER_FUSEKI_PORT)/$$/datasets'
-	@ curl -v -X POST -H content-type:application/rdf+xml --anyauth --user 'admin:$(RDF_FINGERPRINTER_FUSEKI_ADMIN_PASSWORD)' -T ./tests/resources/treaties-source-ap.rdf -G http://localhost:$(RDF_FINGERPRINTER_FUSEKI_PORT)/test-dataset/data
+rebuild: check-env ## Rebuild the images and start the stack (docker compose up -d --build)
+	@ $(COMPOSE) up -d --build
+
+# What CI runs: the compose file is valid and the three images build (nothing is pushed).
+build-images: ## Check the compose file and build the api, ui and worker images
+	@ set -e; created=; \
+	if [ ! -f $(ENV_FILE) ]; then cp infra/.env.example $(ENV_FILE); created=1; fi; \
+	trap '[ -z "$$created" ] || rm -f $(ENV_FILE)' EXIT; \
+	docker compose -f $(COMPOSE_FILE) --env-file $(ENV_FILE) config -q; \
+	for target in api ui worker; do \
+		docker build --target $$target -f infra/docker/Dockerfile -t rdf-fingerprinter-ws-$$target:check .; \
+	done
+
+logs: check-env ## Follow the stack's logs
+	@ $(COMPOSE) logs -f
+
+# Run one service on the host against the stack's Fuseki, Redis and PlantUML (make up-deps; published on localhost).
+# Do not run them next to the full stack: both would take jobs from the same queue and split the job files.
+LOCAL_RUN = set -a && . $(ENV_FILE) && set +a && \
+	RDF_FINGERPRINTER_FUSEKI_LOCATION=http://localhost RDF_FINGERPRINTER_REDIS_LOCATION=redis://localhost \
+	RDF_FINGERPRINTER_PLANTUML_LOCATION=http://localhost RDF_FINGERPRINTER_API_LOCATION=http://localhost
+
+run-api: check-env ## Run the API on the host (needs `make up-deps`)
+	@ $(LOCAL_RUN) uv run gunicorn --worker-class uvicorn_worker.UvicornWorker --bind 127.0.0.1:$$RDF_FINGERPRINTER_API_PORT 'fingerprinter.bootstrap:api_app()'
+
+run-ui: check-env ## Run the UI on the host (needs the API)
+	@ $(LOCAL_RUN) uv run gunicorn --worker-class gthread --threads $${RDF_FINGERPRINTER_GUNICORN_UI_THREADS:-8} --bind 127.0.0.1:$$RDF_FINGERPRINTER_UI_PORT 'fingerprinter.bootstrap:ui_app()'
+
+run-worker: check-env ## Run the Celery worker on the host (needs `make up-deps`)
+	@ $(LOCAL_RUN) uv run celery -A fingerprinter.bootstrap:celery_app worker --loglevel $$RDF_FINGERPRINTER_LOG_LEVEL
 
 #-----------------------------------------------------------------------------
 # Docs (Antora)

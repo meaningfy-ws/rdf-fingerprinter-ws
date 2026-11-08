@@ -19,6 +19,7 @@ dependencies = [
     "flower==2.2.0",
     "requests==2.34.2",
     "gunicorn==26.2.0",
+    "uvicorn-worker==0.4.0",
 ]
 
 [dependency-groups]

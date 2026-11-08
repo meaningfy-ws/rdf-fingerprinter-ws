@@ -11,7 +11,7 @@
 
 - Structural fingerprinting of RDF files and SPARQL endpoints: Flask API/UI + Celery, wrapping `rdf-fingerprinter`.
 - Top-level package: `fingerprinter/` (no `/src`). Branches: off `develop`, PRs into `develop`; `main` = releases.
-- Layers: `entrypoints → services → adapters` (legacy; no domain layer, no `.importlinter`).
+- Layers: `bootstrap` over `entrypoints` and `adapters`, over `services`, over `domain` (import-linter, `make check-architecture`).
 - Tooling: uv (`pyproject.toml`, `uv.lock`, Python 3.13); Ruff, mypy, import-linter, pytest (`pytest.ini`); `make check-all` is the gate.
 - Method: developer runbook `docs/modules/ROOT/pages/develop/` (Antora); `make check-docs`, `make build-docs`.
 
@@ -33,7 +33,6 @@
 
 ## Gotchas
 
-- `import fingerprint` fails without a `logging.conf` in the working directory.
-- `rdf-fingerprinter` 0.3.1 does not install on Python 3.12+ (its eds4jinja2 dependency pins numpy 1.24); 3.x requires Python ≥3.12.
-- `docker/.env` and `bash/.env` are committed and hold Flask secret keys.
+- `rdf-fingerprinter` 3.x requires Python >=3.12 (the old 0.3.x did not install on 3.12+).
+- Settings and secrets live in the git-ignored `infra/.env` (template `infra/.env.example`); the keys once committed in `docker/.env` are burned.
 - `resources/templates/json/` is a stub (no `main.json`); the library has no JSON report.

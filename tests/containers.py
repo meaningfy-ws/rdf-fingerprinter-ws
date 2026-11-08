@@ -12,7 +12,7 @@ FUSEKI_PORT = 3030
 FUSEKI_ADMIN_USER = "admin"
 FUSEKI_ADMIN_PASSWORD = "integration-test-password"
 # The PlantUML image, size limit and security profile are those of the plantuml service in
-# docker/docker-compose.yml; tests/unit/test_plantuml_stack.py keeps the two equal.
+# infra/compose.yaml; tests/unit/test_plantuml_stack.py keeps the two equal.
 PLANTUML_IMAGE = "plantuml/plantuml-server:jetty-v1.2024.7"
 PLANTUML_LIMIT_SIZE = "16384"
 PLANTUML_SECURITY_PROFILE = "SANDBOX"  # no diagram can make the server fetch a URL
