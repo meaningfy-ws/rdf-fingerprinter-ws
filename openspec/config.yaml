@@ -1,0 +1,34 @@
+schema: meaningfy
+
+# Project context — injected (wrapped in <context>) into every artifact's instructions.
+# This is OpenSpec's native project-context sink. The durable truth is openspec/specs/;
+# this string is the orientation index. If a generated index is ever wanted, regenerate it
+# deterministically into this field (like codegen, with a CI sync-check) — do NOT hand-curate
+# a parallel MEMORY.md.
+context: |
+  Repo: RDF Fingerprinter WS (rdf-fingerprinter-ws).
+  Purpose: structural fingerprinting (profiling) of RDF files and SPARQL endpoints; a Flask API/UI
+  with Celery workers wrapping the rdf-fingerprinter library (import name `fingerprint`).
+  Architecture: legacy layering (entrypoints, services, adapters; no domain layer, no
+  .importlinter yet). New code follows cosmic-python.
+  Top-level package: fingerprinter (no /src). Python 3.8 in Docker. Deps: requirements/*.txt.
+  Library: rdf-fingerprinter 0.3.1 pinned; latest is 3.x (Python >=3.12). The library-upgrade EPIC
+  moves the repo to uv + Python 3.12+ + Ruff/mypy/import-linter + library 3.x in one change; a UI
+  EPIC follows. No workarounds of the library: gaps become issues in meaningfy-ws/rdf-fingerprinter
+  (docs/modules/ROOT/pages/develop/rdf-fingerprinter.adoc).
+  Branches: off develop, PRs into develop; main receives releases. No AI attribution in commits.
+  Method: developer runbook in docs/modules/ROOT/pages/develop/ (Antora); AGENTS.md is its short form.
+  Commits: Conventional Commits (imperative, no trailing punctuation).
+  Artifact vocabulary: EPIC ≡ proposal.md (Shape-Up work shape);
+  PLAN ≡ design.md + tasks.md (clarity gate scores the pair ≥9/10);
+  normative requirements ≡ specs/ deltas (RFC-2119 SHALL + Given/When/Then, no EARS).
+
+# Per-artifact rules — THIN by design. Only the 3 hard rules; rich per-artifact rules are
+# deferred. Additive to the schema's built-in instructions.
+rules:
+  proposal:
+    - The EPIC MUST state an Appetite and a No-gos section (an EPIC without no-gos is unshaped).
+  specs:
+    - Use RFC-2119 SHALL/MUST; every requirement MUST have at least one #### Scenario (WHEN/THEN). No EARS.
+  tasks:
+    - The PLAN MUST cite its parent EPIC id on the first line (golden thread — cite your parent).
