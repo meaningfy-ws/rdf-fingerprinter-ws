@@ -8,7 +8,7 @@ from playwright.sync_api import Page, expect
 JOB_WAIT_MS = 180_000
 POLL_INTERVAL_MS = 3_000
 SETTLE_MS = 500
-LISTING_WAIT_MS = 70_000  # the library retries an unreachable endpoint before giving up
+LISTING_WAIT_MS = 15_000  # a name that does not resolve fails after the library's first attempts
 
 
 def row_for(page: Page, source: str):
@@ -104,14 +104,14 @@ def test_load_graphs_swaps_the_group_and_keeps_the_focus(
 
     group = page.get_by_role("group", name="Named graphs (optional)")
     expect(group).to_contain_text("This endpoint has no named graphs.")
-    expect(page.locator("#announce")).to_have_text("0 named graphs found.")
+    expect(page.locator("#announce")).to_have_text("No named graphs found.")
     expect(page.get_by_role("button", name="Load graphs")).to_be_focused()
 
 
 def test_an_endpoint_that_cannot_be_reached_for_its_graphs_still_starts_a_job(
-    ui_url: str, quiet_console: None, open_page: Callable[..., Page]
+    ui_url: str, quiet_console: None, unreachable_source: str, open_page: Callable[..., Page]
 ):
-    endpoint = "http://unreachable.invalid/graphs-journey"
+    endpoint = unreachable_source
     page = open_page()
     page.goto(f"{ui_url}/jobs/new")
     page.get_by_label("SPARQL endpoint URL").fill(endpoint)

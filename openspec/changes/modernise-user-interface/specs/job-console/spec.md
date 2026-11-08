@@ -75,7 +75,8 @@ A file well beyond the limit SHALL be refused by the UI without being sent to th
 The endpoint form SHALL offer the endpoint's named graphs, listed through the API (the library's
 `list_named_graphs`, rdf-fingerprinter 3.6.0), as choices; no
 choice SHALL mean all graphs. When the listing fails the form SHALL say why and still accept a
-submission without graphs (DEC-9).
+submission without graphs (DEC-9). A submission with graphs listed for another endpoint URL than the
+one in the form SHALL be refused.
 
 #### Scenario: Two graphs are chosen
 - **GIVEN** an endpoint with the named graphs `http://ex.org/g1`, `http://ex.org/g2` and
@@ -86,6 +87,11 @@ submission without graphs (DEC-9).
 #### Scenario: The endpoint cannot be reached for its graphs
 - **WHEN** a user asks for the graphs of an unreachable endpoint
 - **THEN** the form says the endpoint could not be reached and offers no graph choices
+
+#### Scenario: Graphs belong to another endpoint
+- **GIVEN** graphs listed for `http://e/sparql` and chosen
+- **WHEN** the user changes the URL to `http://other/sparql` and starts the job
+- **THEN** no job is started, and the form says the graphs belong to another endpoint and to load them again
 
 ### Requirement: Cancel and delete ask first
 Cancelling a `queued` or `running` job and deleting a report SHALL be `POST` actions behind a

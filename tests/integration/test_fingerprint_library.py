@@ -156,11 +156,6 @@ def test_the_graphs_of_an_unreachable_endpoint_are_a_listing_failure():
         LibraryFingerprinter().named_graphs("http://unreachable.invalid/sparql")
 
 
-def test_the_graphs_of_an_invalid_url_are_a_listing_failure():
-    with pytest.raises(GraphListingFailed):
-        LibraryFingerprinter().named_graphs("not a url")
-
-
 def test_a_usage_error_raises_value_error(continents_endpoint, tmp_path):
     with pytest.raises(ValueError):
         LibraryFingerprinter().fingerprint("not a url", (), tmp_path)

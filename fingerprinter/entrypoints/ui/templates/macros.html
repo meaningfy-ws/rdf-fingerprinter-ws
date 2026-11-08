@@ -1,9 +1,9 @@
 {# Form fields: the label, the control, its help and its error, tied together for screen readers. #}
-{% macro field(form_field, hint=None) %}
+{% macro field(form_field, hint=None, oob=False) %}
     {% set attrs = {"aria-describedby": form_field.id ~ "-hint " ~ form_field.id ~ "-error"} %}
     {% if form_field.errors %}{% set _ = attrs.update({"aria-invalid": "true"}) %}{% endif %}
     {% set _ = attrs.update(kwargs) %}
-    <div class="field">
+    <div class="field" id="{{ form_field.id }}-field"{% if oob %} hx-swap-oob="outerHTML"{% endif %}>
         {{ form_field.label }}
         {{ form_field(class_="input", **attrs) }}
         <p class="help" id="{{ form_field.id }}-hint">{{ hint or form_field.description }}</p>

@@ -36,7 +36,6 @@ LISTING_FAILURES: Mapping[type[Exception], str] = {
     EndpointUnreachable: "the endpoint could not be reached",
     QueryTimeout: "the endpoint did not answer in time",
     PermanentError: "the endpoint refused the query",
-    ValueError: "the endpoint URL is not valid",
 }
 LISTING_TIMEOUT_SECONDS = 20
 

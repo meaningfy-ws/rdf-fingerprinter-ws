@@ -26,7 +26,7 @@ scenarios and asked to implement them (2026-11-08, `inputs/mockups.md`).
 ## 3. Graph picker (DEC-9; U-10)
 
 - [x] 3.1 U-10: `GraphListingFailed`; `Fingerprinter.named_graphs` over `list_named_graphs` (`tests/integration/test_fingerprint_library.py`: two named graphs listed sorted; an unreachable URL gives `GraphListingFailed`); `_check_endpoint_url` shared; `services.jobs.list_graphs` (`tests/unit/services/test_jobs.py`); `GET /endpoint-graphs` (`tests/unit/api/test_api.py`: `200`, `400`, `502`).
-- [x] 3.2 "Load graphs" (`GET /jobs/new/graphs`, htmx; without JS a GET of the New job page with `?url=` lists them) with checkboxes; chosen graphs submitted; the failure sentence. Tests in `tests/unit/ui/test_new_job.py`, named after "Two graphs are chosen", "The endpoint cannot be reached for its graphs".
+- [x] 3.2 "Load graphs" (`POST /jobs/new/graphs`, htmx; without JS the second submit `load_graphs` of `POST /jobs/endpoint` lists them on the New job page) with checkboxes; chosen graphs submitted, refused when listed for another URL (S3-2); the failure sentence. Tests in `tests/unit/ui/test_new_job.py`, named after "Two graphs are chosen", "The endpoint cannot be reached for its graphs".
 - [ ] 3.3 Docs: the UI pages and fresh screenshots in `docs/modules/ROOT/pages/index.adoc`. Stage 3 PR with `evidence/acceptance-stage-3.md`; archive the change.
 
 ## Test map
@@ -40,7 +40,8 @@ scenarios and asked to implement them (2026-11-08, `inputs/mockups.md`).
 | job-console · A delete without the token is refused / A return address to another site is ignored / Pages are not framed by other sites | unit · `tests/unit/ui/test_confirmations.py`, `tests/unit/ui/test_layout.py` |
 | job-console · A running job reaches completion / Finished jobs do not poll | unit · `tests/unit/ui/test_jobs_page.py`; e2e · `tests/e2e/ui/test_journeys.py` |
 | job-console · An endpoint job is started / An invalid URL is refused / An unsupported file is refused | unit · `tests/unit/ui/test_new_job.py` |
-| job-console · Two graphs are chosen / The endpoint cannot be reached for its graphs | unit · `tests/unit/ui/test_new_job.py`; integration · `tests/integration/test_fingerprint_library.py` (named_graphs) |
+| job-console · Two graphs are chosen / The endpoint cannot be reached for its graphs | unit · `tests/unit/ui/test_new_job.py`, `tests/unit/ui/test_api_client.py`, `tests/unit/adapters/test_fingerprint_library.py`; integration · `tests/integration/test_fingerprint_library.py` (named_graphs); e2e · `tests/e2e/ui/test_journeys.py` |
+| job-console · Graphs listed for another endpoint are refused | unit · `tests/unit/ui/test_new_job.py` (`test_graphs_loaded_for_another_endpoint_are_refused`) |
 | job-console · A running job is cancelled / A delete is abandoned / A finished job offers no cancel | unit · `tests/unit/ui/test_confirmations.py`; e2e journey (delete) |
 | report-viewer · The report is read in the page / The diagram is shown / The diagram failed to render / Downloads are listed / An unreachable endpoint | unit · `tests/unit/ui/test_job_page.py` |
 | report-viewer · The header names the job | unit · `tests/unit/ui/test_job_page.py` (`test_the_header_names_the_source_the_state_the_time_the_duration_and_the_short_id`) |

@@ -210,55 +210,75 @@ def job_state(job_id: str) -> Response | str:
 # --- New job --------------------------------------------------------------------------------------
 
 
-def _typed_url() -> str | None:
-    """The endpoint URL asked about: ``?url=``, or the form's own field when its button sent it."""
-    url = request.args.get("url", request.args.get("sparql_endpoint_url"))
-    return None if url is None else url.strip()
+NO_GRAPHS: dict[str, Any] = {
+    "graphs": None, "graphs_error": None, "url_error": None, "chosen": (), "announce": "",
+    "graphs_url": "",
+}  # fmt: skip
 
 
-def _graphs_context(url: str | None, chosen: list[str]) -> dict[str, Any]:
+def _graphs_context(
+    url: str | None, chosen: list[str], loaded_for: str, *, error: str | None = None
+) -> dict[str, Any]:
     """What the graphs group shows: nothing loaded, the endpoint's graphs, or why there are none.
 
-    ``url`` is ``None`` before anyone asked. A refused URL is said next to the URL field; any other
-    refusal in the group, and the form still submits without graphs (DEC-9).
+    ``url`` is ``None`` when nobody asked for a listing. The ticked graphs stay shown, ticked,
+    unless a listing replaces them; ``graphs_url`` is the endpoint they were listed for, kept until
+    a listing succeeds. A refused URL is said next to the URL field; any other refusal in the
+    group, and the form still submits without graphs (DEC-9).
     """
-    context: dict[str, Any] = {
-        "graphs": None, "graphs_error": None, "url_error": None, "chosen": chosen, "announce": "",
+    context = NO_GRAPHS | {
+        "chosen": chosen, "graphs": tuple(chosen) or None, "graphs_url": loaded_for,
+        "graphs_error": error,
     }  # fmt: skip
     if url is None:
         return context
     if not url:
-        context["url_error"] = labels.PROBLEMS["InvalidSource"]
-        return context
+        return context | {"url_error": labels.PROBLEMS["InvalidSource"]}
     try:
-        context["graphs"] = _api().endpoint_graphs(url)
-    except ApiError as error:
-        sentence = _sentence(error)
-        context["url_error" if error.status == HTTPStatus.BAD_REQUEST else "graphs_error"] = (
-            sentence
-        )
-        context["announce"] = sentence
-    else:
-        context["announce"] = labels.GRAPHS_FOUND.format(count=len(context["graphs"]))
-    return context
+        listed = _api().endpoint_graphs(url)
+    except ApiError as failure:
+        sentence = _sentence(failure)
+        key = "url_error" if failure.status == HTTPStatus.BAD_REQUEST else "graphs_error"
+        return context | {key: sentence, "announce": sentence}
+    return context | {
+        "graphs": listed, "graphs_url": url, "announce": labels.graphs_found(len(listed)),
+    }  # fmt: skip
 
 
-def _submitted_graphs() -> dict[str, Any]:
-    """The group as a refused form shows it again: the graphs it was sent with, still ticked."""
-    chosen = request.form.getlist("graphs")
-    return _graphs_context(None, chosen) | {"graphs": tuple(chosen) if chosen else None}
+def _submitted_url() -> str:
+    return request.form.get("sparql_endpoint_url", "").strip()
 
 
-def graphs() -> str:
-    """The graphs group (and the URL field's sentence) for the "Load graphs" button."""
-    return render_template(
-        "jobs/_graphs_response.html",
-        **_graphs_context(_typed_url() or "", request.args.getlist("graphs")),
+def _listing() -> dict[str, Any]:
+    """The graphs of the endpoint URL the posted form holds, with its ticks kept."""
+    return _graphs_context(
+        _submitted_url(), request.form.getlist("graphs"), request.form.get("graphs_url", "")
     )
 
 
+def _submitted_graphs(*, error: str | None = None) -> dict[str, Any]:
+    """The group as a refused form shows it again: the graphs it was sent with, still ticked."""
+    return _graphs_context(
+        None, request.form.getlist("graphs"), request.form.get("graphs_url", ""), error=error
+    )
+
+
+def _listed_form() -> tuple[FingerprintSPARQLEndpointForm, dict[str, Any]]:
+    """The posted endpoint form and the listing for its URL; a refused URL is said at the field."""
+    form, context = FingerprintSPARQLEndpointForm(), _listing()
+    if context["url_error"]:
+        form.sparql_endpoint_url.errors = [context["url_error"]]
+    return form, context
+
+
+def graphs() -> str:
+    """The graphs group (and the URL field) for the "Load graphs" button."""
+    form, context = _listed_form()
+    return render_template("jobs/_graphs_response.html", form=form, **context)
+
+
 def _new_job_page(
-    tab: labels.Tab, form: Any, status: int = HTTPStatus.OK, **graphs_context: Any
+    tab: labels.Tab, form: Any, graphs_context: dict[str, Any], status: int = HTTPStatus.OK
 ) -> tuple[str, int]:
     config = current_app.config
     page = render_template(
@@ -268,50 +288,58 @@ def _new_job_page(
         accepted=[f".{extension}" for extension in config[CONFIG_ACCEPTED_EXTENSIONS]],
         limit_mb=_upload_limit_mb(),
         formats=labels.FORMATS,
-        **(graphs_context or _submitted_graphs()),
+        **graphs_context,
     )
     return page, status
 
 
 def new_job() -> tuple[str, int]:
     if request.args.get("from") == labels.Tab.FILE:
-        return _new_job_page(labels.Tab.FILE, FingerprintFileForm(formdata=None))
-    url = _typed_url()
-    form = FingerprintSPARQLEndpointForm(formdata=None, sparql_endpoint_url=url)
-    context = _graphs_context(url, request.args.getlist("graphs"))
-    if context["url_error"]:
-        form.sparql_endpoint_url.errors = [context["url_error"]]
-    return _new_job_page(labels.Tab.ENDPOINT, form, **context)
+        return _new_job_page(labels.Tab.FILE, FingerprintFileForm(formdata=None), NO_GRAPHS)
+    return _new_job_page(
+        labels.Tab.ENDPOINT, FingerprintSPARQLEndpointForm(formdata=None), NO_GRAPHS
+    )
 
 
 def _started(
-    form: Any, field: Any, tab: labels.Tab, start: Callable[[], None]
+    form: Any, field: Any, tab: labels.Tab, start: Callable[[], None], shown: dict[str, Any]
 ) -> Response | tuple[str, int]:
     """Start the job; on success back to the console, else the form with the sentence at the field."""
     try:
         start()
     except ApiError as error:
         field.errors = [_sentence(error)]
-        return _new_job_page(tab, form)
+        return _new_job_page(tab, form, shown)
     flash(labels.JOB_STARTED, FLASH_SUCCESS)
     return redirect(url_for("index"))
 
 
+def _graphs_of_another_endpoint(url: str, chosen: list[str]) -> bool:
+    """Graphs were ticked, but the list they came from was loaded for a different URL."""
+    return bool(chosen) and request.form.get("graphs_url", "").strip() != url
+
+
 def start_endpoint_job() -> Response | tuple[str, int]:
+    """Start the job; the second submit button (no JavaScript) only lists the graphs again."""
+    if "load_graphs" in request.form:
+        return _new_job_page(labels.Tab.ENDPOINT, *_listed_form())
     form = FingerprintSPARQLEndpointForm()
-    if form.validate_on_submit():
-        chosen = request.form.getlist("graphs")
-        start = partial(_api().start_endpoint_job, form.sparql_endpoint_url.data or "", chosen)
-        return _started(form, form.sparql_endpoint_url, labels.Tab.ENDPOINT, start)
-    return _new_job_page(labels.Tab.ENDPOINT, form)
+    if not form.validate_on_submit():
+        return _new_job_page(labels.Tab.ENDPOINT, form, _submitted_graphs())
+    url, chosen = _submitted_url(), request.form.getlist("graphs")
+    if _graphs_of_another_endpoint(url, chosen):
+        shown = _submitted_graphs(error=labels.GRAPHS_OTHER_ENDPOINT)
+        return _new_job_page(labels.Tab.ENDPOINT, form, shown)
+    start = partial(_api().start_endpoint_job, url, chosen)
+    return _started(form, form.sparql_endpoint_url, labels.Tab.ENDPOINT, start, _submitted_graphs())
 
 
 def start_file_job() -> Response | tuple[str, int]:
     form = FingerprintFileForm()
     if form.validate_on_submit():
         start = partial(_api().start_file_job, form.data_file.data)
-        return _started(form, form.data_file, labels.Tab.FILE, start)
-    return _new_job_page(labels.Tab.FILE, form)
+        return _started(form, form.data_file, labels.Tab.FILE, start, NO_GRAPHS)
+    return _new_job_page(labels.Tab.FILE, form, NO_GRAPHS)
 
 
 def upload_too_large(_error: Exception) -> tuple[str, int]:
@@ -319,9 +347,7 @@ def upload_too_large(_error: Exception) -> tuple[str, int]:
     form = FingerprintFileForm(formdata=None)
     too_large = {"type": f"{labels.PROBLEM_TYPE_PREFIX}UploadTooLarge"}
     form.data_file.errors = [labels.problem_sentence(too_large, upload_limit_mb=_upload_limit_mb())]
-    # the oversized body is not read again, so there is no submitted form to take the graphs from
-    no_graphs = _graphs_context(None, [])
-    return _new_job_page(labels.Tab.FILE, form, HTTPStatus.REQUEST_ENTITY_TOO_LARGE, **no_graphs)
+    return _new_job_page(labels.Tab.FILE, form, NO_GRAPHS, HTTPStatus.REQUEST_ENTITY_TOO_LARGE)
 
 
 # --- Files and the report -------------------------------------------------------------------------
@@ -439,12 +465,12 @@ def refuse_framing(response: Response) -> Response:
 
 def _expired_endpoint_form() -> tuple[str, int]:
     form = FingerprintSPARQLEndpointForm(formdata=request.form)  # what was typed is kept
-    return _new_job_page(labels.Tab.ENDPOINT, form, HTTPStatus.BAD_REQUEST)
+    return _new_job_page(labels.Tab.ENDPOINT, form, _submitted_graphs(), HTTPStatus.BAD_REQUEST)
 
 
 def _expired_file_form() -> tuple[str, int]:
     form = FingerprintFileForm(formdata=None)
-    return _new_job_page(labels.Tab.FILE, form, HTTPStatus.BAD_REQUEST)
+    return _new_job_page(labels.Tab.FILE, form, NO_GRAPHS, HTTPStatus.BAD_REQUEST)
 
 
 def form_expired(_error: CSRFError) -> tuple[str, int]:
@@ -468,7 +494,7 @@ ROUTES: tuple[tuple[str, Callable[..., Any], tuple[str, ...]], ...] = (
     ("/", index, ("GET",)),
     ("/jobs/rows", job_rows, ("GET",)),
     ("/jobs/new", new_job, ("GET",)),
-    ("/jobs/new/graphs", graphs, ("GET",)),
+    ("/jobs/new/graphs", graphs, ("POST",)),
     ("/jobs/endpoint", start_endpoint_job, ("POST",)),
     ("/jobs/file", start_file_job, ("POST",)),
     ("/jobs/<job_id>", job_page, ("GET",)),

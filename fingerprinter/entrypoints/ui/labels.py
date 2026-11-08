@@ -234,7 +234,16 @@ GRAPHS_HELP = "Leave all unticked to profile every graph, including the default 
 LOAD_GRAPHS = "Load graphs"
 GRAPHS_NOT_LOADED = "Select “Load graphs” to choose from the endpoint’s graphs."
 NO_NAMED_GRAPHS = "This endpoint has no named graphs."
-GRAPHS_FOUND = "{count} named graphs found."
+GRAPHS_OTHER_ENDPOINT = "These graphs belong to another endpoint. Load graphs again."
+
+
+def graphs_found(number: int) -> str:
+    """The announcement after a listing: ``No named graphs found.``, ``1 named graph found.``"""
+    if number == 0:
+        return "No named graphs found."
+    return f"{count(number, 'named graph', 'named graphs')} found."
+
+
 FILE_LABEL = "RDF file"
 
 JOB_STARTED = "Job started."
@@ -271,6 +280,6 @@ def problem_sentence(problem: dict[str, Any] | None, *, upload_limit_mb: int | N
         return PROBLEMS[kind].format(
             limit=upload_limit_mb,
             accepted=", ".join(problem.get("accepted", [])),
-            reason=str(problem.get("detail", "")).rstrip("."),
+            reason=str(problem.get("detail", "")),
         )
     return str(problem.get("detail") or SERVER_ERROR)
