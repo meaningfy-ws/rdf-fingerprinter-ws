@@ -11,10 +11,10 @@ context: |
   with Celery workers wrapping the rdf-fingerprinter library (import name `fingerprint`).
   Architecture: legacy layering (entrypoints, services, adapters; no domain layer, no
   .importlinter yet). New code follows cosmic-python.
-  Top-level package: fingerprinter (no /src). Python 3.8 in Docker. Deps: requirements/*.txt.
-  Library: rdf-fingerprinter 0.3.1 pinned; latest is 3.x (Python >=3.12). The library-upgrade EPIC
-  moves the repo to uv + Python 3.12+ + Ruff/mypy/import-linter + library 3.x in one change; a UI
-  EPIC follows. No workarounds of the library: gaps become issues in meaningfy-ws/rdf-fingerprinter
+  Top-level package: fingerprinter (no /src). uv, Python 3.13, pyproject.toml + uv.lock.
+  Library: rdf-fingerprinter 3.5.0 pinned (stage 1 of upgrade-fingerprinter-library done); gates:
+  make check-all (Ruff, mypy, import-linter, openspec, coverage >= 80). Stages 2-4 of that EPIC
+  bring the layering, every format, infra/ and container tests; the UI EPIC follows. No workarounds of the library: gaps become issues in meaningfy-ws/rdf-fingerprinter
   (docs/modules/ROOT/pages/develop/rdf-fingerprinter.adoc).
   Branches: off develop, PRs into develop; main receives releases. No AI attribution in commits.
   Method: developer runbook in docs/modules/ROOT/pages/develop/ (Antora); AGENTS.md is its short form.

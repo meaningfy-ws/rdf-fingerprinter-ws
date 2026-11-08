@@ -1,4 +1,4 @@
-import logging as logger
+import logging
 from pathlib import Path
 from uuid import uuid4
 
@@ -7,20 +7,23 @@ from werkzeug.datastructures import FileStorage
 from fingerprinter.config import config
 from fingerprinter.services.file import save_file
 
+logger = logging.getLogger(__name__)
 
-def create_db_entry(location: str = config.RDF_FINGERPRINTER_FILE_DB) -> str:
+
+def create_db_entry(location: str | None = None) -> str:
     """
     Create a new entry in the database.
     :param location: location to create the entry
     :return: entry path
     """
-    location_to_save = Path(location) / str(uuid4())
+    location_to_save = Path(location or config.RDF_FINGERPRINTER_FILE_DB) / str(uuid4())
     location_to_save.mkdir()
     return str(location_to_save)
 
 
-def save_file_for_fingerprinting(file_to_fingerprint: FileStorage,
-                                 location_to_save: str) -> str:
+def save_file_for_fingerprinting(
+    file_to_fingerprint: FileStorage, location_to_save: str
+) -> str | None:
     """
     Save a file to the database.
     :param file_to_fingerprint: FileStorage object
@@ -32,6 +35,6 @@ def save_file_for_fingerprinting(file_to_fingerprint: FileStorage,
         saved_file_to_fingerprint = save_file(file_to_fingerprint, location_to_save)
     except TypeError:
         saved_file_to_fingerprint = None
-        logger.debug('no file to save')
+        logger.debug("no file to save")
 
-    return saved_file_to_fingerprint
+    return str(saved_file_to_fingerprint) if saved_file_to_fingerprint else None

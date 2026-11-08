@@ -130,6 +130,11 @@ Library 3.5.0 facts this plan relies on (checked in `/home/lps/work/repos/rdf-fi
   `rdflib`, `selenium`, `requests-toolbelt`, and `shortuuid`/`click` unless an import remains.
   Groups: `test` (pytest, pytest-bdd, pytest-cov, testcontainers, beautifulsoup4), `lint` (ruff,
   mypy, import-linter, types-requests), `dev` (pre-commit).
+  *As built (task 1.1, 2026-11-08):* Celery resolved to 5.7.0 and Connexion to 3.3.0 (the current
+  releases; DEC-6's "5.5" named the then-current minor). `pytz` is replaced by the standard
+  `zoneinfo`; the Fuseki upload streams the file as the request body (Graph Store Protocol), so
+  `requests-toolbelt` goes; the extension lookup that used `rdflib.util.guess_format` is a dict
+  lookup, so `rdflib` goes too. The API's test client is Connexion 3's (Starlette, `httpx` style).
 - **D-11 Tests.** Tier folders `tests/unit/`, `tests/feature/`, `tests/integration/`,
   `tests/e2e/`, markers set by path in `tests/conftest.py` with the `pytest_collection_modifyitems`
   hook of `/home/lps/work/repos/rdf-persistence/tests/conftest.py`. Unit and feature tests use the
@@ -177,6 +182,12 @@ Library 3.5.0 facts this plan relies on (checked in `/home/lps/work/repos/rdf-fi
   confirms `pattern`, `shex` and `pitfalls` render through `generate_representations` and files a
   `documentation` issue in `meaningfy-ws/rdf-fingerprinter`; if one does not render, the task stops
   and files a `bug` issue instead (the strict rule).
+- **L-2** The wheel ships no `py.typed` marker, so mypy treats `fingerprint` as untyped
+  (`meaningfy-ws/rdf-fingerprinter#64`, filed in task 1.6). `mypy.ini` holds a section
+  `[mypy-fingerprint.*] ignore_missing_imports = True`, named and scoped to that package; it changes
+  no behaviour, only what mypy can check at the library boundary. The section is removed in the PR
+  that raises the pin to a release that ships the marker. *Leader's choice:* the gate does not wait
+  for the fix, since nothing in the service compensates for the gap.
 
 ## Algorithm / approach
 
@@ -251,6 +262,30 @@ are shown as a flash message on the page that made the request.
 | Unknown format | Connexion's enum validation | `400` | info | not reachable from the UI |
 | Format with no file | `FormatNotAvailable` | `404` | info | the link is not shown |
 | Missing secret key | `Settings.from_env()` | the process does not start; the message names the variable | critical | — |
+
+### Stage-1 review (five lenses, 2026-11-08): accepted fixes
+
+Recorded before the fixes (Rule of Divergence):
+
+- **R1-1** TriX uploads: the upload now sends the raw file (Graph Store Protocol), so `Content-Type`
+  alone picks Fuseki's parser; `application/xml` is refused (400, checked against
+  `stain/jena-fuseki:4.0.0`). `config.INPUT_MIME_TYPES` maps `trix` to `application/trix+xml`; it is
+  the one table, read by the one lookup (`adapters.helpers.get_file_format`). Any 2xx answer to an
+  upload is a success.
+- **R1-2** Secrets: `config.py` no longer logs the Fuseki password or the secret keys;
+  `.dockerignore` keeps `.env` files, `db/`, `reports/`, `logs/` and local tooling out of the images.
+- **R1-3** The library's `ProfileRun.failures` are logged as a warning until stage 3 records them in
+  the job (DEC-11); the profile file is the named constant `LIBRARY_PROFILE_FILE` (D-15).
+- **R1-4** `strtobool` raises on an unknown value, as `distutils` did.
+- **R1-5** Logging: the API and UI configure the `fingerprinter` logger from
+  `RDF_FINGERPRINTER_LOG_LEVEL` (`fingerprinter/logging_setup.py`); services log through module
+  loggers. Stage 2 moves the call into `bootstrap`.
+- **R1-6** `bash/` and its Makefile targets go now (DEC-14, from stage 4): the scripts could not run
+  on Connexion 3 and pointed at the removed `requirements/`.
+- **R1-7** Tests write only to their own temporary folders (an autouse fixture), never to the
+  repository's `db/` and `reports/`.
+
+Deferred: action pins by SHA and the deprecated `uvicorn.workers` module (stage 4 images).
 
 ## Risks / Trade-offs
 

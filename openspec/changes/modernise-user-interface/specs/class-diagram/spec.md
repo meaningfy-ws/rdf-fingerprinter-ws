@@ -12,9 +12,9 @@ DEC-7).
 - **THEN** the report holds `puml/diagram.svg`, a valid SVG, and the job is `completed`
 
 ### Requirement: A rendering failure does not fail the job
-When the PlantUML server is unreachable, refuses the diagram or exceeds its size limit, the job
-SHALL end `completed_with_failures` with a failure naming the diagram rendering and its cause, and
-every other output SHALL be kept.
+A job SHALL end `completed_with_failures`, with a failure naming the diagram rendering and its
+cause, when the PlantUML server is unreachable, refuses the diagram or exceeds its size limit; every
+other output SHALL be kept.
 
 #### Scenario: The PlantUML server is down
 - **GIVEN** the PlantUML server is not reachable

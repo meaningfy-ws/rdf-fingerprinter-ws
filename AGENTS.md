@@ -20,11 +20,11 @@ the library), [`agents.adoc`](docs/modules/ROOT/pages/develop/agents.adoc) (sess
 stage loop), [`testing.adoc`](docs/modules/ROOT/pages/develop/testing.adoc) (the testing
 checklist). This file is its short form.
 
-> **Modernisation pending.** The code is still the 2022 stack (Python 3.8, pip `requirements/*.txt`,
-> `rdf-fingerprinter` 0.3.1, no Ruff/mypy/import-linter). The **library-upgrade EPIC** moves it to
-> uv, Python 3.12+, the Meaningfy tooling and `rdf-fingerprinter` 3.x in one change; a **UI EPIC**
-> follows. Do not add the new tooling outside that EPIC, and never claim a gate that does not exist
-> yet as run (today: `make test`, `make check-docs`, `make build-docs`).
+> **Modernisation in progress.** Stage 1 of the **library-upgrade EPIC** moved the repo to uv,
+> Python 3.13, `rdf-fingerprinter` 3.5, Connexion 3 / Flask 3 and the gates (`make check-all`).
+> Stages 2–4 bring the cosmic-python layering, every output format, `infra/` and the container
+> tests; a **UI EPIC** follows. Never claim a gate that does not exist yet as run (today:
+> `make check-all`, `make check-docs`, `make build-docs`; no `make test-containers` yet).
 
 ## Skill routing (use the skill for the task)
 
@@ -192,17 +192,20 @@ parallel epic files under `.claude/`.
 - **Top-level package:** `fingerprinter/` (no `/src`): `adapters/`, `services/`,
   `entrypoints/{api,ui}/`, `config.py`. Tests in `tests/unit/`.
 - **Datastores / external systems:** Fuseki (a temporary dataset per uploaded file), Redis (Celery
-  broker), the file system (`db/`, `reports/`), report templates in `resources/templates/`.
+  broker), the file system (`db/`, `reports/`).
 - **Deployable:** Docker images under `docker/` (`api`, `ui`; compose with Celery, Flower, Redis,
   Fuseki); images published to Docker Hub on a GitHub release (`package.yml`); no CD.
-- **Make targets today:** `make install-dev`, `make test`, `make start-services` /
-  `stop-services`; docs: `make install-antora`, `build-docs`, `preview-docs`, `check-docs`.
-- **CI:** `tests.yml` (pytest on Python 3.8, every push), `package.yml` (images on release).
+- **Make targets today:** `make install`, `make check-all` (= `check-quality` + `test`), `lint`,
+  `typecheck`, `check-architecture`, `check-spec`, `test`; `make start-services` /
+  `stop-services` (legacy `docker/`); docs: `make install-antora`, `build-docs`, `preview-docs`,
+  `check-docs`.
+- **CI:** `ci.yml` (`make check-all` on Python 3.13, PRs into and pushes to `develop`), `docs.yml`,
+  `package.yml` (images on release, until stage 4).
 - **In-flight changes:** `upgrade-fingerprinter-library` (PLAN gated, next to implement);
   `modernise-user-interface` (EPIC shaped; PLAN derived once the upgrade is archived; stage 3
   blocked by `meaningfy-ws/rdf-fingerprinter#63`); `data-profiling-tool` (parked; blocked on the
   library upgrade, its DEC-4).
-- **Library quirks (0.3.1):** `import fingerprint` needs a `logging.conf` in the working
-  directory; 0.3.1 installs only on Python ≤3.11. 3.x needs Python ≥3.12 and no longer configures
-  logging on import.
+- **Library quirks (3.5.0):** no `py.typed` (mypy override, `meaningfy-ws/rdf-fingerprinter#64`);
+  it configures no logging on import; `resolve_settings` lives in
+  `fingerprint.service_layer.settings`.
 - **Scratch:** `temp/` for throwaway files; `site/` for the prototype (both git-ignored).

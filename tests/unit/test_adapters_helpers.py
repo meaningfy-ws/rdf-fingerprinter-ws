@@ -10,24 +10,22 @@ from fingerprinter.adapters.helpers import get_file_format
 
 
 def test_get_file_format_success_default_file_types():
-    file = '/location/file.rdf'
+    file = "/location/file.rdf"
     file_format = get_file_format(file)
 
-    assert file_format == 'application/rdf+xml'
+    assert file_format == "application/rdf+xml"
 
 
 def test_get_file_format_success_custom_file_types():
-    file = '/location/file.pdf'
-    types = {
-        'pdf': 'application/pdf'
-    }
+    file = "/location/file.pdf"
+    types = {"pdf": "application/pdf"}
     file_format = get_file_format(file, types)
 
-    assert file_format == 'application/pdf'
+    assert file_format == "application/pdf"
 
 
 def test_get_file_format_not_accepted():
-    file = '/location/file.docx'
+    file = "/location/file.docx"
     with pytest.raises(ValueError) as e:
         _ = get_file_format(file)
 

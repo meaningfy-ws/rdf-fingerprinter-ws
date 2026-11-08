@@ -1,12 +1,15 @@
-import logging as logger
+import logging
+from typing import Any
 
 from celery.result import AsyncResult
 
 from fingerprinter.adapters.celery import celery_worker
 from fingerprinter.services.report_handling import delete_report
 
+logger = logging.getLogger(__name__)
 
-def flatten_active_tasks(tasks: dict) -> list:
+
+def flatten_active_tasks(tasks: dict) -> Any:
     """
     Flatten a dict of active tasks
     example:
@@ -20,7 +23,7 @@ def flatten_active_tasks(tasks: dict) -> list:
     return tasks.get(list(tasks.keys())[0], [])
 
 
-def retrieve_active_tasks(worker=None) -> dict:
+def retrieve_active_tasks(worker=None) -> Any:
     """
     Get all currently running tasks
     :param worker: which celery worker to get tasks from
@@ -65,10 +68,10 @@ def kill_task(task: dict, db_location: str):
     :param db_location: which db to be used for cleanup
     :return:
     """
-    revoke_task(task['id'], True)
-    logger.debug('cleanup fingerprinting create')
+    revoke_task(task["id"], True)
+    logger.debug("cleanup fingerprinting create")
 
-    cleanup_fingerprinting(uid=task['id'], db_location=db_location)
+    cleanup_fingerprinting(uid=task["id"], db_location=db_location)
 
 
 def cleanup_fingerprinting(uid: str, db_location: str):
@@ -78,5 +81,5 @@ def cleanup_fingerprinting(uid: str, db_location: str):
     :param uid: fingerprinting id
     :param db_location: which db to be used for cleanup
     """
-    logger.debug('request to revoke task received. initiating cleanup process.')
+    logger.debug("request to revoke task received. initiating cleanup process.")
     delete_report(uid, db_location)

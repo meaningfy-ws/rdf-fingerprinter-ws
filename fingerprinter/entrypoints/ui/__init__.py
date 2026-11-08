@@ -3,7 +3,7 @@
 # __init__.py
 # Date:  14/10/2020
 # Author: Mihai Coșleț
-# Email: coslet.mihai@gmail.com 
+# Email: coslet.mihai@gmail.com
 
 """
 Module for configuring and exposing the ui server using the Flask framework.
@@ -15,6 +15,6 @@ from fingerprinter.config import config
 
 app = Flask(__name__)
 
-app.config['SECRET_KEY'] = config.RDF_FINGERPRINTER_UI_SECRET_KEY
+app.config["SECRET_KEY"] = config.RDF_FINGERPRINTER_UI_SECRET_KEY
 
-from . import views
+from . import views  # noqa: E402, F401  (registers the routes on app)

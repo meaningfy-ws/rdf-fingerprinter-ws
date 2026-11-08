@@ -1,0 +1,19 @@
+; =============================================================================
+; Import Linter — architecture guardrails for rdf-fingerprinter-ws
+; =============================================================================
+; Run with:  make check-architecture   (wraps `uv run lint-imports`)
+;
+; Stage 1 (task 1.6): one contract that today's code meets. Stage 2 replaces this file with the
+; layered contracts of design D-16 (bootstrap > entrypoints | adapters > services > domain).
+
+[importlinter]
+root_package = fingerprinter
+
+[importlinter:contract:no-upward-imports]
+name = services and adapters do not import entrypoints
+type = forbidden
+source_modules =
+    fingerprinter.services
+    fingerprinter.adapters
+forbidden_modules =
+    fingerprinter.entrypoints

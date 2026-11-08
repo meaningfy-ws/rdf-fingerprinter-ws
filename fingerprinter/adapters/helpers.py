@@ -4,20 +4,12 @@
 # Date:  18/10/2020
 # Author: Mihai Coșleț
 # Email: coslet.mihai@gmail.com
-from rdflib.util import guess_format
+from pathlib import PurePath
 
-INPUT_MIME_TYPES = {
-    'rdf': 'application/rdf+xml',
-    'trix': 'application/xml',
-    'nq': 'application/n-quads',
-    'nt': 'application/n-triples',
-    'jsonld': 'application/ld+json',
-    'n3': 'text/n3',
-    'ttl': 'text/turtle',
-}
+from fingerprinter.config import config
 
 
-def get_file_format(file: str, types: dict = None) -> str:
+def get_file_format(file: str, types: dict[str, str] | None = None) -> str:
     """
     Helper method to check get the format of the provided file, and to check whether they are from the
     acceptable file formats.
@@ -25,10 +17,9 @@ def get_file_format(file: str, types: dict = None) -> str:
     :param types: a dictionary of expected fle types for the file to be checked on
     :return: format of the file
     """
-    if types is None:
-        types = INPUT_MIME_TYPES
-
-    file_format = guess_format(str(file), types)
+    file_format = (config.INPUT_MIME_TYPES if types is None else types).get(
+        PurePath(str(file)).suffix.lstrip(".").lower()
+    )
     if file_format is None:
         raise ValueError(f'Format of "{file}" is not supported.')
 

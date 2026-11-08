@@ -1,17 +1,20 @@
-#!/usr/bin/python3
+"""Root test configuration.
 
-# conftest.py
-# Date:  14/10/2020
-# Author: Mihai Coșleț
-# Email: coslet.mihai@gmail.com
+Test-type markers (``unit``, ``feature``, ``integration``, ``e2e``) are stamped onto every collected
+test by file path in ``pytest_collection_modifyitems``, not by per-file ``pytestmark``: a
+``pytestmark`` in a ``conftest.py`` is silently ignored (a conftest is a plugin, not a test
+module). The markers are registered in ``pytest.ini``.
+"""
+
+from pathlib import Path
+
 import pytest
 import requests
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.chrome.webdriver import WebDriver
 
-from fingerprinter.adapters.sparql_adapter import FusekiSPARQLAdapter, AbstractSPARQLAdapter
+from fingerprinter.adapters.sparql_adapter import AbstractSPARQLAdapter, FusekiSPARQLAdapter
 from fingerprinter.config import TestingConfig
 from fingerprinter.entrypoints.api import app as api_app
+from fingerprinter.entrypoints.api import connexion_app
 from fingerprinter.entrypoints.ui import app as ui_app
 
 
@@ -27,6 +30,8 @@ class FakeRequests:
 
     def post(self, url, data=None, json=None, **kwargs):
         self.url = url
+        self.sent_body = data.read() if hasattr(data, "read") else data
+        self.sent_headers = kwargs.get("headers", {})
         return self
 
     def json(self):
@@ -40,41 +45,52 @@ class FakeSPARQLAdapter(AbstractSPARQLAdapter):
         self.actions = list()
 
     def create_dataset(self, dataset_name: str):
-        self.actions.append(('CREATE', dataset_name))
+        self.actions.append(("CREATE", dataset_name))
 
     def delete_dataset(self, dataset_name: str):
-        self.actions.append(('DELETE', dataset_name))
+        self.actions.append(("DELETE", dataset_name))
 
     def get_dataset(self, dataset_name: str) -> dict:
-        self.actions.append(('GET', dataset_name))
-        return {'name': dataset_name}
+        self.actions.append(("GET", dataset_name))
+        return {"name": dataset_name}
 
     def upload_file(self, dataset_name: str, file_path: str):
-        self.actions.append(('UPLOAD', (dataset_name, file_path)))
+        self.actions.append(("UPLOAD", (dataset_name, file_path)))
 
 
-@pytest.fixture(scope='function')
+@pytest.fixture(autouse=True)
+def isolated_folders(tmp_path, monkeypatch):
+    """Uploads and reports go to the test's own folders, never to the repository's db/ and reports/."""
+    for variable, folder in (
+        ("RDF_FINGERPRINTER_FILE_DB", "service-db"),
+        ("RDF_FINGERPRINTER_REPORTS_DB", "service-reports"),
+    ):
+        (tmp_path / folder).mkdir()
+        monkeypatch.setenv(variable, str(tmp_path / folder))
+
+
+@pytest.fixture(scope="function")
 def fake_requests():
     return FakeRequests()
 
 
 # used for testing the adapter
-def helper_sparql_wrapper(triplestore_service_url: str = "http://localhost:3030",
-                          http_client=FakeRequests()):
-    return FusekiSPARQLAdapter(triplestore_service_url=triplestore_service_url,
-                               http_client=http_client)
+def helper_sparql_wrapper(triplestore_service_url: str = "http://localhost:3030", http_client=None):
+    return FusekiSPARQLAdapter(
+        triplestore_service_url=triplestore_service_url, http_client=http_client or FakeRequests()
+    )
 
 
 # used for testing the services where the adapter is used
-@pytest.fixture(scope='function')
+@pytest.fixture(scope="function")
 def fake_sparql_adapter():
-    return FakeSPARQLAdapter('http://localhost:3030', requests)
+    return FakeSPARQLAdapter("http://localhost:3030", requests)
 
 
 @pytest.fixture
 def api_client():
     api_app.config.from_object(TestingConfig())
-    return api_app.test_client()
+    return connexion_app.test_client()
 
 
 @pytest.fixture
@@ -88,15 +104,31 @@ def scenario_context():
     return {}
 
 
-@pytest.fixture(scope="session")
-def browser():
-    chrome_options = Options()
-    chrome_options.add_argument("--headless")
-    chrome_options.add_argument("--no-sandbox")
-    chrome_driver_args = ["--whitelisted-ips=", "--log-path=chromedriver.log"]
-    _browser = WebDriver(chrome_options=chrome_options,
-                         service_args=chrome_driver_args)
-    _browser.maximize_window()
-    yield _browser
-    _browser.close()
-    _browser.quit()
+TESTS_ROOT_DIR = Path(__file__).parent
+
+# The first directory that starts a test's path below tests/ gives its marker.
+_MARKERS_BY_DIR = (
+    ("unit/", "unit"),
+    ("feature/", "feature"),
+    ("integration/", "integration"),
+    ("e2e/", "e2e"),
+)
+
+
+def marker_for_path(path: str) -> str | None:
+    """The marker implied by the directory a test file lives in, matched below ``tests/`` only."""
+    try:
+        relative = Path(path).relative_to(TESTS_ROOT_DIR).as_posix()
+    except ValueError:
+        return None
+    return next(
+        (marker for directory, marker in _MARKERS_BY_DIR if relative.startswith(directory)), None
+    )
+
+
+def pytest_collection_modifyitems(items: list) -> None:
+    """Stamp each collected test with the marker of its directory."""
+    for item in items:
+        marker = marker_for_path(str(item.path))
+        if marker:
+            item.add_marker(getattr(pytest.mark, marker))
