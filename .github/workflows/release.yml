@@ -1,5 +1,7 @@
-# Release: on a published GitHub release, build the three images and push them to GHCR,
-# tagged with the release's tag and `latest`. Authenticates with the workflow's GITHUB_TOKEN.
+# Release: on a published GitHub release, build the three images and push them to GHCR, tagged with
+# the release's version (1.2.3 from v1.2.3) and the git sha; no `latest`, stacks pin a version.
+# Authenticates with the workflow's GITHUB_TOKEN. Releases are cut from `main`, whose commits passed
+# CI, so the gates are not run again here.
 name: release
 
 on:
@@ -21,10 +23,14 @@ jobs:
       fail-fast: false
       matrix:
         image: [api, ui, worker]
+    outputs:
+      digest: ${{ steps.push.outputs.digest }}
     env:
       IMAGE: ghcr.io/meaningfy-ws/rdf-fingerprinter-ws-${{ matrix.image }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
 
       - uses: docker/login-action@8aa5831fb8d48d8f76594c7ddde61ae58019f550 # v4.8.0
         with:
@@ -32,14 +38,24 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+      - id: meta
+        uses: docker/metadata-action@c299e40c65443455700f0fdfc63efafe5b349051 # v5.10.0
+        with:
+          images: ${{ env.IMAGE }}
+          tags: |
+            type=semver,pattern={{version}}
+            type=sha
+
+      - id: push
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
           context: .
-          file: infra/${{ matrix.image }}/Dockerfile
+          file: infra/docker/Dockerfile
+          target: ${{ matrix.image }}
           push: true
-          tags: |
-            ${{ env.IMAGE }}:${{ github.event.release.tag_name }}
-            ${{ env.IMAGE }}:latest
-          labels: |
-            org.opencontainers.image.source=https://github.com/${{ github.repository }}
-            org.opencontainers.image.version=${{ github.event.release.tag_name }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+
+      - run: echo "${IMAGE}@${DIGEST}" >> "$GITHUB_STEP_SUMMARY"
+        env:
+          DIGEST: ${{ steps.push.outputs.digest }}

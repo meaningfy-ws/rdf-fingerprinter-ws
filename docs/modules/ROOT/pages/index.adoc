@@ -24,7 +24,7 @@ image::report-example.png[An example report]
 
 == What it runs on
 
-The stack is `infra/compose.yaml` (`make up`; settings in `infra/.env`, from `infra/.env.example`).
+The stack is `infra/compose.yaml` (`make up`; settings in `infra/.env`, from `infra/.env.example`; the API and UI are published on localhost only).
 
 [cols="1,3",options="header"]
 |===
@@ -38,10 +38,9 @@ The stack is `infra/compose.yaml` (`make up`; settings in `infra/.env`, from `in
 |`fingerprinter-flower` |Flower, a view of the Celery jobs
 |===
 
-The API, UI and worker images are built from `infra/{api,ui,worker}/Dockerfile` (Python 3.13, uv,
+The API, UI and worker images are built from the targets of `infra/docker/Dockerfile` (Python 3.13, uv,
 non-root) and published to `ghcr.io/meaningfy-ws/rdf-fingerprinter-ws-{api,ui,worker}` on each GitHub
-release. The worker fetches any endpoint URL a client submits: restrict its egress at the network level
-(see `SECURITY.md`).
+release. Read `SECURITY.md` before exposing the stack.
 
 image::fingerprinter-api.png[The API's Swagger UI]
 

@@ -1,9 +1,5 @@
 # The whole stack, from the images built out of this repository (no source mounts).
-# Use `make up` (it passes infra/.env); see infra/.env.example.
-#
-# Egress (SECURITY.md): the worker fetches any SPARQL endpoint URL a client submits, so it can reach
-# whatever its network reaches. Restrict its outgoing traffic at the network level (firewall, egress
-# proxy, a Docker network with only the allowed routes); compose cannot do it alone.
+# Use `make up` (it passes infra/.env); see infra/.env.example and SECURITY.md (egress, exposure).
 
 name: rdf-fingerprinter-ws
 
@@ -17,12 +13,13 @@ services:
   fingerprinter-api:
     build:
       context: ..
-      dockerfile: infra/api/Dockerfile
+      dockerfile: infra/docker/Dockerfile
+      target: api
     image: ghcr.io/meaningfy-ws/rdf-fingerprinter-ws-api:local
     env_file: .env
     environment: *service-env
     ports:
-      - ${RDF_FINGERPRINTER_API_PORT}:${RDF_FINGERPRINTER_API_PORT}
+      - 127.0.0.1:${RDF_FINGERPRINTER_API_PORT}:${RDF_FINGERPRINTER_API_PORT}
     volumes:
       - reports:/app/reports
       - uploads:/app/db
@@ -34,19 +31,21 @@ services:
   fingerprinter-ui:
     build:
       context: ..
-      dockerfile: infra/ui/Dockerfile
+      dockerfile: infra/docker/Dockerfile
+      target: ui
     image: ghcr.io/meaningfy-ws/rdf-fingerprinter-ws-ui:local
     env_file: .env
     environment: *service-env
     ports:
-      - ${RDF_FINGERPRINTER_UI_PORT}:${RDF_FINGERPRINTER_UI_PORT}
+      - 127.0.0.1:${RDF_FINGERPRINTER_UI_PORT}:${RDF_FINGERPRINTER_UI_PORT}
     depends_on:
       - fingerprinter-api
 
   fingerprinter-worker:
     build:
       context: ..
-      dockerfile: infra/worker/Dockerfile
+      dockerfile: infra/docker/Dockerfile
+      target: worker
     image: ghcr.io/meaningfy-ws/rdf-fingerprinter-ws-worker:local
     env_file: .env
     environment: *service-env
@@ -59,9 +58,6 @@ services:
       - plantuml
 
   fingerprinter-flower:
-    build:
-      context: ..
-      dockerfile: infra/worker/Dockerfile
     image: ghcr.io/meaningfy-ws/rdf-fingerprinter-ws-worker:local
     command:
       - sh
@@ -75,11 +71,13 @@ services:
       - fingerprinter-worker
 
   redis:
+    # image: kept equal to tests/containers.py
     image: redis:7-alpine
     ports:
       - 127.0.0.1:${RDF_FINGERPRINTER_REDIS_PORT}:6379
 
   fuseki:
+    # image: kept equal to tests/containers.py
     image: stain/jena-fuseki:5.1.0
     environment:
       ADMIN_PASSWORD: ${RDF_FINGERPRINTER_FUSEKI_PASSWORD}

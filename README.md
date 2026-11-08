@@ -20,35 +20,36 @@ make check-all    # lint, type check, architecture, spec, docs and the tests
 ## Run the stack
 
 ```bash
-cp infra/.env.example infra/.env     # then replace every "change-me"
-make up                              # build the images and start the stack
+cp infra/.env.example infra/.env     # then replace every "change-me" (letters and digits only)
+make up                              # start the stack (builds the images the first time)
 make logs                            # follow the logs
 make down                            # stop it (the data volumes stay)
-make rebuild                         # rebuild the images from scratch and start
+make rebuild                         # rebuild the images and start (up -d --build)
 ```
 
 | Service | URL (default ports) | Role |
 |---|---|---|
-| `fingerprinter-ui` | <http://localhost:8020> | the web UI, a client of the API |
-| `fingerprinter-api` | <http://localhost:4020> | the REST API; Swagger UI at <http://localhost:4020/ui> |
+| `fingerprinter-ui` | <http://localhost:8020> | the web UI, a client of the API (localhost only) |
+| `fingerprinter-api` | <http://localhost:4020> | the REST API (localhost only); Swagger UI at <http://localhost:4020/ui> |
 | `fingerprinter-flower` | <http://localhost:5557> | Flower, a view of the Celery jobs (localhost only) |
 | `fingerprinter-worker` | – | runs the fingerprinting jobs |
 | `fuseki`, `redis`, `plantuml` | localhost only | temporary datasets of uploaded files, the Celery broker, the class diagrams |
 
 `infra/.env` (git-ignored) holds the settings and the secrets; `infra/.env.example` lists every one.
-The images are built from `infra/{api,ui,worker}/Dockerfile` and published to
+The images are built from the targets `api`, `ui` and `worker` of `infra/docker/Dockerfile` and published to
 `ghcr.io/meaningfy-ws/rdf-fingerprinter-ws-{api,ui,worker}` on each release.
 
-To work on one service on the host against the stack's Redis, Fuseki and PlantUML, use
-`make run-api`, `make run-ui` and `make run-worker`.
+To work on one service on the host, run `make up-deps` (only Redis, Fuseki and PlantUML), then
+`make run-api`, `make run-ui` and `make run-worker`. Do not run them next to the full stack: both would
+take jobs from the same queue.
 
-**Security.** The worker fetches whatever SPARQL endpoint URL a client submits, so restrict its
-outgoing traffic at the network level. See [SECURITY.md](SECURITY.md).
+**Security.** The API and UI are published on `127.0.0.1` only and have no login; the worker and the
+API fetch the endpoint URLs clients submit. See [SECURITY.md](SECURITY.md) before exposing the stack.
 
 ## The API
 
-The contract is `fingerprinter/entrypoints/api/openapi/fingerprinter.yml`; the running API serves it
-at `/ui`. Errors are `application/problem+json`.
+The authoritative contract is `fingerprinter/entrypoints/api/openapi/fingerprinter.yml`; the table
+below is a summary, and the running API serves the contract at `/ui`. Errors are `application/problem+json`.
 
 | Method and path | Does | Answers |
 |---|---|---|

@@ -74,22 +74,12 @@ Layers import downward only (Cosmic Python): `bootstrap` over `entrypoints` and 
 |Area |Tool
 |Runtime |Python 3.13, `rdf-fingerprinter` 3.6
 |Dependencies |uv, `pyproject.toml`, `uv.lock` (exact pins)
-|Quality |Ruff, mypy, import-linter, OpenSpec validation, coverage ≥ 80 % (`make check-all`)
+|Quality |Ruff, mypy, import-linter, OpenSpec validation, docs check, coverage ≥ 80 % (`make check-all`; the docs check alone is `make check-docs`)
 |Tests |pytest, pytest-bdd, Playwright; tiers `unit`, `feature`, `integration`, `e2e` (`make test`, `make test-containers`)
-|Runtime services |Docker Compose in `infra/` (`make up`, `down`, `rebuild`, `logs`): API, UI, worker, Flower, Redis, Fuseki, PlantUML; `make run-api`, `run-ui`, `run-worker` run one on the host
-|Delivery |GitHub Actions pinned by commit SHA: `ci.yml` (`check-all`, container tests), `docs.yml`, `release.yml` (images to GHCR on a release)
+|Runtime services |Docker Compose in `infra/` (`make up`, `down`, `rebuild`, `logs`): API, UI, worker, Flower, Redis, Fuseki, PlantUML; `make up-deps` starts only Redis, Fuseki and PlantUML for `make run-api`, `run-ui`, `run-worker`
+|Delivery |GitHub Actions pinned by commit SHA: `ci.yml` (`check-all`, container tests, image build), `docs.yml`, `release.yml` (images to GHCR on a release)
 |Code intelligence |GitNexus (impact before every edit)
 |Docs |Antora (AsciiDoc)
-|===
-
-|Area |Today |After the library-upgrade EPIC
-|Runtime |Python 3.13, `rdf-fingerprinter` 3.5 |same
-|Dependencies |uv, `pyproject.toml`, `uv.lock` |same
-|Quality |Ruff, mypy, import-linter, coverage ≥ 80 % (`make check-all`) |same, with the layered contracts
-|Tests |pytest, pytest-bdd, tier markers; unit tests only |plus feature, integration and e2e tiers
-|Runtime services |Docker Compose: API, UI, Celery, Flower, Redis, Fuseki |same, images rebuilt on the new stack
-|Code intelligence |GitNexus (impact before every edit) |same
-|Docs |Antora (AsciiDoc) |same
 |===
 
 [#work]
@@ -157,7 +147,8 @@ Evidence lives with the change, in `openspec/changes/<id>/evidence/` (`spike-<to
 
 * The gates pass: `make check-all`, `make check-docs` when `docs/` changed, and
   `make test-containers` when adapters, `infra/` or the workflows changed (CI runs it on every PR).
-* A change to `infra/` also builds: `make up` starts the stack from a copy of `infra/.env.example`.
+* A change to `infra/` also builds: `make build-images` builds the three images (CI runs it), and
+  `make up` starts the stack from a copy of `infra/.env.example` with the `change-me` values replaced.
 * No workaround of the library; every library issue met is filed and linked from `design.md`.
 * The stage's scenarios were signed off and the traceability check is clean; for a use-case stage,
   the acceptance demo is recorded in `evidence/`.

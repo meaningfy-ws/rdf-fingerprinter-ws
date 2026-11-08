@@ -146,4 +146,6 @@ temp/
 test-results.xml
 
 # Local stack settings (secrets); the committed template is infra/.env.example
-infra/.env
+**/.env
+**/.env.*
+!infra/.env.example

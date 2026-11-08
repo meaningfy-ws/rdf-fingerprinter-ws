@@ -28,7 +28,7 @@ COMPOSE      = docker compose -f $(COMPOSE_FILE) --env-file $(ENV_FILE)
 .DEFAULT_GOAL := help
 .PHONY: help install-uv install lock format lint lint-fix typecheck check-architecture check-spec \
         test test-unit test-feature test-containers check-quality check-all \
-        check-env up down rebuild logs run-api run-ui run-worker
+        check-env up up-deps down rebuild build-images logs run-api run-ui run-worker
 
 #-----------------------------------------------------------------------------
 # Setup
@@ -111,32 +111,46 @@ test-feature: ## Run BDD feature tests only
 #-----------------------------------------------------------------------------
 check-env:
 	@ test -f $(ENV_FILE) || (echo -e "$(ICON_ERROR) Missing $(ENV_FILE). Run: cp infra/.env.example infra/.env" && exit 1)
+	@ ! grep -q 'change-me' $(ENV_FILE) || (echo -e "$(ICON_ERROR) $(ENV_FILE) still holds change-me: replace every one" && exit 1)
 
-up: check-env ## Build if needed and start the stack (docker compose up -d)
-	@ $(COMPOSE) up -d --build
+up: check-env ## Start the stack (docker compose up -d)
+	@ $(COMPOSE) up -d
+
+up-deps: check-env ## Start only Redis, Fuseki and PlantUML, for run-api, run-ui and run-worker
+	@ $(COMPOSE) up -d redis fuseki plantuml
 
 down: check-env ## Stop and remove the stack's containers (volumes stay)
 	@ $(COMPOSE) down
 
-rebuild: check-env ## Rebuild the images from scratch and start the stack
-	@ $(COMPOSE) build --no-cache
-	@ $(COMPOSE) up -d
+rebuild: check-env ## Rebuild the images and start the stack (docker compose up -d --build)
+	@ $(COMPOSE) up -d --build
+
+# What CI runs: the compose file is valid and the three images build (nothing is pushed).
+build-images: ## Check the compose file and build the api, ui and worker images
+	@ set -e; created=; \
+	if [ ! -f $(ENV_FILE) ]; then cp infra/.env.example $(ENV_FILE); created=1; fi; \
+	trap '[ -z "$$created" ] || rm -f $(ENV_FILE)' EXIT; \
+	docker compose -f $(COMPOSE_FILE) --env-file $(ENV_FILE) config -q; \
+	for target in api ui worker; do \
+		docker build --target $$target -f infra/docker/Dockerfile -t rdf-fingerprinter-ws-$$target:check .; \
+	done
 
 logs: check-env ## Follow the stack's logs
 	@ $(COMPOSE) logs -f
 
-# Run one service on the host against the stack's Fuseki, Redis and PlantUML (published on localhost).
+# Run one service on the host against the stack's Fuseki, Redis and PlantUML (make up-deps; published on localhost).
+# Do not run them next to the full stack: both would take jobs from the same queue and split the job files.
 LOCAL_RUN = set -a && . $(ENV_FILE) && set +a && \
 	RDF_FINGERPRINTER_FUSEKI_LOCATION=http://localhost RDF_FINGERPRINTER_REDIS_LOCATION=redis://localhost \
 	RDF_FINGERPRINTER_PLANTUML_LOCATION=http://localhost RDF_FINGERPRINTER_API_LOCATION=http://localhost
 
-run-api: check-env ## Run the API on the host (needs the stack's Redis, Fuseki and PlantUML)
-	@ $(LOCAL_RUN) uv run gunicorn --worker-class uvicorn_worker.UvicornWorker --bind 0.0.0.0:$$RDF_FINGERPRINTER_API_PORT 'fingerprinter.bootstrap:api_app()'
+run-api: check-env ## Run the API on the host (needs `make up-deps`)
+	@ $(LOCAL_RUN) uv run gunicorn --worker-class uvicorn_worker.UvicornWorker --bind 127.0.0.1:$$RDF_FINGERPRINTER_API_PORT 'fingerprinter.bootstrap:api_app()'
 
 run-ui: check-env ## Run the UI on the host (needs the API)
-	@ $(LOCAL_RUN) uv run gunicorn --bind 0.0.0.0:$$RDF_FINGERPRINTER_UI_PORT 'fingerprinter.bootstrap:ui_app()'
+	@ $(LOCAL_RUN) uv run gunicorn --worker-class gthread --threads $${RDF_FINGERPRINTER_GUNICORN_UI_THREADS:-8} --bind 127.0.0.1:$$RDF_FINGERPRINTER_UI_PORT 'fingerprinter.bootstrap:ui_app()'
 
-run-worker: check-env ## Run the Celery worker on the host (needs the stack's Redis, Fuseki and PlantUML)
+run-worker: check-env ## Run the Celery worker on the host (needs `make up-deps`)
 	@ $(LOCAL_RUN) uv run celery -A fingerprinter.bootstrap:celery_app worker --loglevel $$RDF_FINGERPRINTER_LOG_LEVEL
 
 #-----------------------------------------------------------------------------

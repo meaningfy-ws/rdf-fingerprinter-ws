@@ -392,7 +392,8 @@ the deprecated `uvicorn.workers` module (#37).
 
 ### Stage 4 as built (2026-11-08)
 
-- **D-12/DEC-12** `infra/{api,ui,worker}/Dockerfile` (builder stage `uv sync --frozen
+- **D-12/DEC-12** `infra/docker/Dockerfile`, one file with the targets `api`, `ui`, `worker` over a
+  shared `base` stage (builder stage `uv sync --frozen
   --no-default-groups --no-install-project`: `--no-dev` would keep the `test` and `lint` groups;
   runtime stage `python:3.13-slim`, user `app` uid 10001, source copied, no tests or docs).
   `infra/compose.yaml` is the project `rdf-fingerprinter-ws`: no source mounts, named volumes for
@@ -405,6 +406,51 @@ the deprecated `uvicorn.workers` module (#37).
   gives): `SECURITY.md` and the compose header say to restrict it at the network level.
 - Images go to `ghcr.io/meaningfy-ws/rdf-fingerprinter-ws-{api,ui,worker}` on a published release
   (`release.yml`, `GITHUB_TOKEN`); every action in `.github/workflows` is pinned to a commit SHA.
+
+### Stage-4 review (five lenses, 2026-11-08): accepted fixes
+
+Recorded before the fixes (Rule of Divergence). *Leader's choices* are marked.
+
+- **R4-1** The API and UI are published on `127.0.0.1` like the other services; the README and
+  `SECURITY.md` say to open them only behind a proxy with access control. `run-api`/`run-ui` bind
+  `127.0.0.1`.
+- **R4-2** `make check-env` refuses an `infra/.env` that still holds `change-me`.
+- **R4-3** One `infra/docker/Dockerfile` (project-setup layout) with a shared `base` stage and the
+  targets `api`, `ui`, `worker`; no BuildKit cache mount, so a plain `docker build` works; the code is
+  copied owned by root (only `db/` and `reports/` writable by `app`). Flower uses the worker image
+  without its own `build:`.
+- **R4-4** Redis is pinned to the fixture's exact tag; a unit test asserts that the Fuseki, Redis and
+  PlantUML images (and in-network ports) of `infra/compose.yaml` equal those of
+  `tests/containers.py` (D-13).
+- **R4-5** `tests/unit/test_infra_env.py`: every variable interpolated in `compose.yaml` and the
+  Dockerfile is in `.env.example`; the config scan must find a known name; the D-15 check covers
+  compose `environment:` and the workflows' `env:`; the Fuseki password is a placeholder too; asserts
+  carry messages; the example-loads test asserts a value.
+- **R4-6** CI gains an `images` job (`make build-images`: `compose config -q` and a build of the three
+  targets, no push). `release.yml` tags with `docker/metadata-action` (semver and git sha; *leader's
+  choice:* no `latest`, stacks pin a version), exposes the digest, and checks out with
+  `persist-credentials: false`. Releases are cut from `main`, whose commits passed CI, so the release
+  workflow does not re-run the gates.
+- **R4-7** Make targets as in rdf-persistence: `up` = `up -d`, `rebuild` = `up -d --build`; a new
+  `up-deps` starts only Redis, Fuseki and PlantUML for `run-api`/`run-ui`/`run-worker` (running the
+  host processes next to the full stack splits the job files). `.env.example` says secrets use only
+  `[A-Za-z0-9]` (the Makefile sources it as shell).
+- **R4-8** Docs: the leftover old Tools table goes; `AGENTS.md` states the cosmic layering and "run
+  Python tooling through uv"; stale `.claude/memory/MEMORY.md` lines go; the egress warning lives in
+  `SECURITY.md`, other places point to it; the runbook's Quality row names the docs check; the
+  README names `fingerprinter.yml` as the authoritative API contract; `.gitignore` ignores every
+  `.env` except `infra/.env.example`.
+- **R4-9** (from the stage-3 review of the UI, S3-3 and S3-5) The UI image runs gunicorn with
+  `--worker-class gthread --threads ${RDF_FINGERPRINTER_GUNICORN_UI_THREADS:-8}` (variable in
+  `.env.example`; `make run-ui` too), so one slow request (the graph listing waits up to 75 s) does
+  not block other pages. `SECURITY.md` says the API also fetches user-given endpoint URLs
+  (`GET /endpoint-graphs`), so the egress restriction covers the API as well as the worker, Flower
+  must not be reachable from either, and the per-read timeout limit is tracked in
+  meaningfy-ws/rdf-fingerprinter#76.
+
+Deferred, with their home: per-service secrets (every process requires both secret keys today,
+`config.py`; a later change); image digest pins with an update bot; Redis `requirepass` (noted in
+`SECURITY.md`: Redis is reachable only on the stack network and loopback); compose healthchecks.
 
 ## Risks / Trade-offs
 

@@ -129,10 +129,9 @@ test follows `develop/testing.adoc`. What this repo adds:
 
 ## Working conventions
 
-- Layers today: `entrypoints → services → adapters` (legacy: no `domain` layer, no `.importlinter`).
-  The library-upgrade EPIC sets the target layering (cosmic-python) and its import-linter contract.
-- Prefer the `make` targets. After the upgrade, run Python tooling through uv (`uv run …`), never
-  bare `python`/`pytest`.
+- Layers (cosmic-python, enforced by import-linter, `make check-architecture`): `bootstrap` over
+  `entrypoints` and `adapters`, over `services`, over `domain`; imports go downward only.
+- Prefer the `make` targets. Run Python tooling through uv (`uv run …`), never bare `python`/`pytest`.
 - **Subagents share this checkout and branch.** Implementers run one after another; the lead
   commits after each task. Parallel writers only on disjoint files, and they never stage or commit.
   Read-only agents may run in parallel freely. Use a worktree (`isolation: "worktree"`) only for
@@ -164,14 +163,14 @@ parallel epic files under `.claude/`.
   `entrypoints/{api,ui,worker}/`, `config.py`, `bootstrap.py`. Tests in `tests/{unit,feature,integration,e2e}/`.
 - **Datastores / external systems:** Fuseki (a temporary dataset per uploaded file), Redis (Celery
   broker), a PlantUML server (class diagrams), the file system (`db/`, `reports/`).
-- **Deployable:** `infra/` holds `compose.yaml`, `.env.example` and multistage non-root Dockerfiles
-  (`api`, `ui`, `worker`; Python 3.13, uv); images are published to
+- **Deployable:** `infra/` holds `compose.yaml`, `.env.example` and one multistage non-root `docker/Dockerfile`
+  (targets `api`, `ui`, `worker`; Python 3.13, uv); images are published to
   `ghcr.io/meaningfy-ws/rdf-fingerprinter-ws-{api,ui,worker}` on a GitHub release (`release.yml`); no CD.
 - **Make targets:** `make install`, `make check-all` (= `check-quality` + `test`), `lint`,
   `typecheck`, `check-architecture`, `check-spec`, `test`, `test-containers`; the stack: `make up`,
-  `down`, `rebuild`, `logs`, `run-api`, `run-ui`, `run-worker` (settings in `infra/.env`, copied from
+  `up-deps`, `down`, `rebuild`, `build-images`, `logs`, `run-api`, `run-ui`, `run-worker` (settings in `infra/.env`, copied from
   `infra/.env.example`); docs: `make install-antora`, `build-docs`, `preview-docs`, `check-docs`.
-- **CI:** `ci.yml` (`check-all` and the `containers` job on Python 3.13, PRs into and pushes to
+- **CI:** `ci.yml` (`check-all`, the `containers` job and the `images` job on Python 3.13, PRs into and pushes to
   `develop`), `docs.yml`, `release.yml` (images to GHCR on a release); every action is pinned to a
   commit SHA with its tag in a comment.
 - **In-flight changes:** `upgrade-fingerprinter-library` (stages 1-3 done; stage 4, `infra/` and
