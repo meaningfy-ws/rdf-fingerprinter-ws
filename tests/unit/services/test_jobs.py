@@ -6,6 +6,7 @@ import pytest
 
 from fingerprinter.domain.exceptions import (
     DiagramServerUnavailable,
+    GraphListingFailed,
     InvalidSource,
     JobNotCancellable,
     JobNotFound,
@@ -574,3 +575,29 @@ def test_a_run_without_diagrams_renders_nothing(store, queue, library):
     assert store.get(job_id).state is JobState.COMPLETED
     assert renderer.rendered == []
     assert ReportFormat.SVG not in store.get(job_id).files
+
+
+# --- listing the graphs of an endpoint ---------------------------------------------------------------
+
+
+def test_the_graphs_of_an_endpoint_are_listed(library):
+    library.graphs = ("http://g/1", "http://g/2")
+
+    assert jobs.list_graphs(URL, fingerprinter=library) == ("http://g/1", "http://g/2")
+    assert library.listed == [URL]
+
+
+@pytest.mark.parametrize(
+    "url",
+    ["ftp://example.org/sparql", "example.org", "", "https://user:secret@example.org/sparql"],
+)
+def test_the_graphs_of_an_invalid_endpoint_are_not_asked_for(url, library):
+    with pytest.raises(InvalidSource):
+        jobs.list_graphs(url, fingerprinter=library)
+    assert library.listed == []
+
+
+def test_a_listing_failure_is_not_swallowed(library):
+    library.graph_listing_error = GraphListingFailed("the endpoint could not be reached")
+    with pytest.raises(GraphListingFailed, match="could not be reached"):
+        jobs.list_graphs(URL, fingerprinter=library)

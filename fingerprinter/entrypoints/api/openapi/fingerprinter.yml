@@ -132,6 +132,18 @@ components:
           items:
             type: string
 
+    EndpointGraphs:
+      type: object
+      description: The named graphs of an endpoint.
+      properties:
+        graphs:
+          type: array
+          description: The named graph IRIs, sorted; the default graph is not listed.
+          items:
+            type: string
+      required:
+        - graphs
+
     Message:
       type: object
       properties:
@@ -188,6 +200,8 @@ components:
       description: The file is larger than the upload limit.
     Unavailable:
       description: The job queue is unavailable.
+    BadGateway:
+      description: The endpoint's graphs could not be listed; the problem's detail says why.
 
 paths:
   /fingerprint-sparql-endpoint:
@@ -211,6 +225,28 @@ paths:
           $ref: '#/components/responses/BadRequest'
         503:
           $ref: '#/components/responses/Unavailable'
+  /endpoint-graphs:
+    get:
+      operationId: fingerprinter.entrypoints.api.handlers.get_endpoint_graphs
+      description: List the named graphs of a SPARQL endpoint.
+      parameters:
+        - name: url
+          in: query
+          required: true
+          description: The endpoint's query URL.
+          schema:
+            type: string
+      responses:
+        200:
+          description: The named graphs.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EndpointGraphs'
+        400:
+          $ref: '#/components/responses/BadRequest'
+        502:
+          $ref: '#/components/responses/BadGateway'
   /fingerprint-file:
     post:
       operationId: fingerprinter.entrypoints.api.handlers.fingerprint_file

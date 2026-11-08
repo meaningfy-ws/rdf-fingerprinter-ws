@@ -11,6 +11,7 @@ from fingerprint.service_layer.settings import resolve_settings
 
 from fingerprinter.adapters.fingerprint_library import LibraryFingerprinter
 from fingerprinter.adapters.fuseki import FusekiDatasetStore
+from fingerprinter.domain.exceptions import GraphListingFailed
 from fingerprinter.domain.model import ReportFormat
 from fingerprinter.entrypoints.ui.presenters import DIAGRAM_PREFIX, SVG_SUFFIX, diagram_choices
 from tests.containers import FusekiServer
@@ -127,6 +128,37 @@ def test_a_selected_graph_restricts_the_profile(two_graphs_endpoint, tmp_path):
 def test_an_unreachable_endpoint_raises_endpoint_unreachable(tmp_path):
     with pytest.raises(EndpointUnreachable):
         LibraryFingerprinter().fingerprint("http://unreachable.invalid/sparql", (), tmp_path)
+
+
+def test_the_named_graphs_of_an_endpoint_are_listed_sorted(fuseki):
+    datasets = FusekiDatasetStore(
+        fuseki.url, fuseki.user, fuseki.password, {"rdf": "application/rdf+xml"}
+    )
+    datasets.create("lib-listing")
+    graphs = {"http://example.org/b": "courts", "http://example.org/a": "treaties"}
+    for graph, table in graphs.items():
+        requests.post(
+            f"{fuseki.url}/lib-listing/data",
+            params={"graph": graph},
+            data=(RESOURCES / f"{table}-source-ap.rdf").read_bytes(),
+            headers={"Content-Type": "application/rdf+xml"},
+            auth=(fuseki.user, fuseki.password),
+            timeout=60,
+        ).raise_for_status()
+
+    listed = LibraryFingerprinter().named_graphs(datasets.sparql_url("lib-listing"))
+
+    assert listed == ("http://example.org/a", "http://example.org/b")
+
+
+def test_the_graphs_of_an_unreachable_endpoint_are_a_listing_failure():
+    with pytest.raises(GraphListingFailed, match="could not be reached"):
+        LibraryFingerprinter().named_graphs("http://unreachable.invalid/sparql")
+
+
+def test_the_graphs_of_an_invalid_url_are_a_listing_failure():
+    with pytest.raises(GraphListingFailed):
+        LibraryFingerprinter().named_graphs("not a url")
 
 
 def test_a_usage_error_raises_value_error(continents_endpoint, tmp_path):

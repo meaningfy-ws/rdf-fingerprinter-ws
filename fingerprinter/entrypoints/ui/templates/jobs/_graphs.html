@@ -1,0 +1,19 @@
+{# The named graphs of the endpoint as checkboxes; /jobs/new/graphs answers it (design U-10). #}
+<fieldset id="graphs-picker" class="field graphs">
+    <legend>{{ labels.GRAPHS_LABEL }}</legend>
+    <p class="help">{{ labels.GRAPHS_HELP }}</p>
+    {% if graphs_error %}
+        <p class="field-error">{{ graphs_error }}</p>
+    {% elif graphs is none %}
+        <p class="help">{{ labels.GRAPHS_NOT_LOADED }}</p>
+    {% elif not graphs %}
+        <p class="help">{{ labels.NO_NAMED_GRAPHS }}</p>
+    {% else %}
+        {% for graph in graphs %}
+        <div class="graph">
+            <input type="checkbox" name="graphs" id="graph-{{ loop.index }}" value="{{ graph }}"{% if graph in chosen %} checked{% endif %}>
+            <label for="graph-{{ loop.index }}"><code>{{ graph }}</code></label>
+        </div>
+        {% endfor %}
+    {% endif %}
+</fieldset>

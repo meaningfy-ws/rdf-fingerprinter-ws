@@ -305,6 +305,18 @@ Sentences live in `labels.py`; the upgrade's design, section *Error matrix*, is 
 - **Cropped diagrams** above 16384 px: accepted; the PlantUML file is still downloadable.
 - **Polling load**: 3 s per open page, only while something is active.
 
+## As built in stage 3 (tasks 3.1–3.2, 2026-11-08)
+
+- **U-10** The adapter maps each library error to a fixed reason ("the endpoint could not be
+  reached", "did not answer in time", "refused the query", "URL is not valid"); no library message
+  or URL is passed on, so no user info can leak.
+- **U-10** "Load graphs" is an htmx `type="button"` sending the form's `sparql_endpoint_url`
+  (`GET /jobs/new/graphs` reads `url`, else `sparql_endpoint_url`); the no-JS submit sits in
+  `<noscript>`, so Enter in the URL field still starts the job when JS runs. Without JS the GET
+  carries the form's CSRF token in the query, which the server ignores.
+- **U-10** Ticks survive reloading the list and a refused submission; the list swap also updates the
+  URL field's error and `#announce` out of band.
+
 ## Beyond the original specs (recorded 2026-11-08)
 
 Behaviour built and tested in stages 1 and 2 that the specs did not state, now written into them:

@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 
 from fingerprinter.config import OUTPUT_MIME_TYPES
-from fingerprinter.domain.exceptions import QueueUnavailable, UploadTooLarge
+from fingerprinter.domain.exceptions import GraphListingFailed, QueueUnavailable, UploadTooLarge
 from fingerprinter.domain.model import (
     JobRecord,
     JobState,
@@ -411,3 +411,36 @@ def test_a_finished_task_cannot_be_cancelled(client, services):
     assert response.status_code == 409
     assert response.json()["type"] == "urn:fingerprinter:JobNotCancellable"
     assert services.queue.cancelled == []
+
+
+def test_the_graphs_of_an_endpoint_are_listed(client, services):
+    services.fingerprinter.graphs = ("http://g/1", "http://g/2")
+
+    response = client.get("/endpoint-graphs", params={"url": ENDPOINT})
+
+    assert response.status_code == 200
+    assert response.json() == {"graphs": ["http://g/1", "http://g/2"]}
+    assert services.fingerprinter.listed == [ENDPOINT]
+
+
+def test_listing_the_graphs_of_an_invalid_url_is_a_400_problem(client, services):
+    response = client.get("/endpoint-graphs", params={"url": "ftp://example.org"})
+
+    assert response.status_code == 400
+    assert response.json()["type"] == "urn:fingerprinter:InvalidSource"
+    assert services.fingerprinter.listed == []
+
+
+def test_listing_the_graphs_without_a_url_is_a_400(client):
+    assert client.get("/endpoint-graphs").status_code == 400
+
+
+def test_a_listing_that_fails_is_a_502_problem_with_the_reason(client, services):
+    services.fingerprinter.graph_listing_error = GraphListingFailed("the endpoint is unreachable")
+
+    response = client.get("/endpoint-graphs", params={"url": ENDPOINT})
+
+    assert response.status_code == 502
+    assert response.headers["content-type"].startswith("application/problem+json")
+    assert response.json()["type"] == "urn:fingerprinter:GraphListingFailed"
+    assert response.json()["detail"] == "the endpoint is unreachable"

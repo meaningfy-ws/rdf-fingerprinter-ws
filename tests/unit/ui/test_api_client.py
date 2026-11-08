@@ -87,6 +87,32 @@ def test_an_endpoint_job_without_graphs_sends_none(client, requests_double):
     assert requests_double.calls[0][2]["json"] == {"sparql_endpoint_url": "http://e/sparql"}
 
 
+def test_the_graphs_of_an_endpoint_are_asked_with_the_url_as_a_query_value(client, requests_double):
+    requests_double.answer = Answer(200, {"graphs": ["http://g/1", "http://g/2"]})
+
+    graphs = client.endpoint_graphs("http://e/sparql?a=b")
+
+    assert graphs == ("http://g/1", "http://g/2")
+    assert requests_double.calls == [
+        (
+            "GET",
+            f"{API}/endpoint-graphs",
+            {"params": {"url": "http://e/sparql?a=b"}, "timeout": REQUEST_TIMEOUT_SECONDS},
+        )
+    ]
+    assert REQUEST_TIMEOUT_SECONDS == 60
+
+
+@pytest.mark.parametrize("body", [{"no": "graphs"}, ["g"], {"graphs": 7}, ValueError])
+def test_a_graph_listing_that_is_not_one_is_a_server_error(client, requests_double, body):
+    requests_double.answer = Answer(200, body)
+
+    with pytest.raises(ApiError) as error:
+        client.endpoint_graphs("http://e/sparql")
+
+    assert error.value.status == 502
+
+
 def test_a_file_job_posts_the_file_as_multipart(client, requests_double):
     upload = FileStorage(BytesIO(b"data"), "data.ttl", content_type="text/turtle")
 

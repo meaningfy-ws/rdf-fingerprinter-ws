@@ -25,8 +25,8 @@ scenarios and asked to implement them (2026-11-08, `inputs/mockups.md`).
 
 ## 3. Graph picker (DEC-9; U-10)
 
-- [ ] 3.1 U-10: `GraphListingFailed`; `Fingerprinter.named_graphs` over `list_named_graphs` (`tests/integration/test_fingerprint_library.py`: two named graphs listed sorted; an unreachable URL gives `GraphListingFailed`); `_check_endpoint_url` shared; `services.jobs.list_graphs` (`tests/unit/services/test_jobs.py`); `GET /endpoint-graphs` (`tests/unit/api/test_api.py`: `200`, `400`, `502`).
-- [ ] 3.2 "Load graphs" (`GET /jobs/new/graphs`, htmx; without JS a GET of the New job page with `?url=` lists them) with checkboxes; chosen graphs submitted; the failure sentence. Tests in `tests/unit/ui/test_new_job.py`, named after "Two graphs are chosen", "The endpoint cannot be reached for its graphs".
+- [x] 3.1 U-10: `GraphListingFailed`; `Fingerprinter.named_graphs` over `list_named_graphs` (`tests/integration/test_fingerprint_library.py`: two named graphs listed sorted; an unreachable URL gives `GraphListingFailed`); `_check_endpoint_url` shared; `services.jobs.list_graphs` (`tests/unit/services/test_jobs.py`); `GET /endpoint-graphs` (`tests/unit/api/test_api.py`: `200`, `400`, `502`).
+- [x] 3.2 "Load graphs" (`GET /jobs/new/graphs`, htmx; without JS a GET of the New job page with `?url=` lists them) with checkboxes; chosen graphs submitted; the failure sentence. Tests in `tests/unit/ui/test_new_job.py`, named after "Two graphs are chosen", "The endpoint cannot be reached for its graphs".
 - [ ] 3.3 Docs: the UI pages and fresh screenshots in `docs/modules/ROOT/pages/index.adoc`. Stage 3 PR with `evidence/acceptance-stage-3.md`; archive the change.
 
 ## Test map
@@ -53,7 +53,7 @@ scenarios and asked to implement them (2026-11-08, `inputs/mockups.md`).
 
 - [x] 1.0 · [x] 1.1 · [x] 1.2 · [x] 1.3 · [x] 1.4 · [x] 1.5 · [x] 1.6 · [x] 1.7
 - [x] 2.1 · [x] 2.2 · [x] 2.3 · [x] 2.4
-- [ ] 3.1 · [ ] 3.2 · [ ] 3.3
+- [x] 3.1 · [x] 3.2 · [ ] 3.3
 
 ## Verification
 

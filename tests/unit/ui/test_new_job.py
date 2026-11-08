@@ -37,12 +37,9 @@ def test_the_endpoint_tab_is_the_default_and_names_its_fields(client):
     url = soup.find("input", id="sparql_endpoint_url")
     assert soup.find("label", attrs={"for": "sparql_endpoint_url"}).text == "SPARQL endpoint URL"
     assert url["name"] == "sparql_endpoint_url"
-    graphs = soup.find("textarea", id="graphs")
-    assert soup.find("label", attrs={"for": "graphs"}).text == "Named graphs (optional)"
-    assert "One graph IRI per line, or separated by spaces." in soup.find(id="graphs-hint").text
     assert soup.find("form")["action"] == "/jobs/endpoint"
-    assert graphs["aria-describedby"] == "graphs-hint graphs-error"
-    assert soup.find("button", type="submit").text == "Start fingerprinting"
+    assert soup.find("textarea") is None
+    assert soup.find("button", string="Start fingerprinting")["type"] == "submit"
     assert soup.find("a", string="Cancel")["href"] == "/"
 
 
@@ -96,7 +93,7 @@ def test_an_endpoint_job_is_started(client, api):
     ]
     response = client.post(
         "/jobs/endpoint",
-        data={"sparql_endpoint_url": "http://example.org/sparql", "graphs": ""},
+        data={"sparql_endpoint_url": "http://example.org/sparql"},
         follow_redirects=True,
     )
 
@@ -107,21 +104,6 @@ def test_an_endpoint_job_is_started(client, api):
     row = soup.find("tr", id="job-j1")
     assert "http://example.org/sparql" in row.get_text()
     assert row.find(class_="badge").get_text(strip=True) == "Queued"
-
-
-def test_named_graphs_are_split_on_lines_and_spaces(client, api):
-    client.post(
-        "/jobs/endpoint",
-        data={"sparql_endpoint_url": "http://e/sparql", "graphs": "http://g/1\r\nhttp://g/2 http://g/3\n"},
-    )  # fmt: skip
-
-    assert api.calls == [
-        (
-            "start_endpoint_job",
-            "http://e/sparql",
-            ["http://g/1", "http://g/2", "http://g/3"],
-        )
-    ]
 
 
 # --- An invalid URL is refused -----------------------------------------------------------------------
@@ -135,7 +117,7 @@ def test_an_invalid_url_is_refused(client, api):
     )
 
     assert soup.find("input", id="sparql_endpoint_url")["value"] == "not a url"
-    assert soup.find("textarea", id="graphs").text.strip() == "g1"
+    assert soup.find("input", attrs={"name": "graphs"})["value"] == "g1"
     assert error_next_to(soup, "sparql_endpoint_url") == URL_REFUSED
     assert soup.find("input", id="sparql_endpoint_url")["aria-invalid"] == "true"
     assert soup.find(class_="flash") is None
@@ -238,3 +220,123 @@ def test_a_response_with_no_json_is_still_a_sentence(client, api):
         error_next_to(soup, "sparql_endpoint_url")
         == "Something went wrong on the server. Try again."
     )
+
+
+# --- Two graphs are chosen -----------------------------------------------------------------------------
+
+URL = "http://e/sparql"
+G1, G2, G3 = "http://ex.org/g1", "http://ex.org/g2", "http://ex.org/g3"
+
+
+def choices(soup):
+    return [(box["value"], box.has_attr("checked")) for box in soup.select("input[name=graphs]")]
+
+
+def test_before_graphs_are_loaded_the_form_offers_to_load_them(client):
+    soup = page(client.get("/jobs/new"))
+
+    group = soup.find("fieldset", id="graphs-picker")
+    assert group.find("legend").text == "Named graphs (optional)"
+    assert "Leave all unticked to profile every graph, including the default graph." in group.text
+    assert "Select “Load graphs” to choose from the endpoint’s graphs." in group.text
+    assert choices(soup) == []
+    button = soup.find("button", string="Load graphs")
+    assert (button["type"], button["hx-get"]) == ("button", "/jobs/new/graphs")
+    assert button["hx-target"] == "#graphs-picker"
+    without_script = soup.find("noscript").find("button")  # Enter must not load graphs
+    assert without_script["formaction"] == "/jobs/new" and without_script["formmethod"] == "get"
+
+
+def test_two_graphs_are_chosen(client, api):
+    api.answers["endpoint_graphs"] = (G1, G2, G3)
+
+    fragment = page(client.get("/jobs/new/graphs", query_string={"url": URL}))
+
+    assert ("endpoint_graphs", URL) in api.calls
+    assert choices(fragment) == [(G1, False), (G2, False), (G3, False)]
+    first = fragment.find("input", value=G1)
+    assert fragment.find("label", attrs={"for": first["id"]}).find("code").text == G1
+    assert fragment.find(id="announce").text == "3 named graphs found."
+
+    client.post("/jobs/endpoint", data={"sparql_endpoint_url": URL, "graphs": [G1, G3]})
+
+    assert ("start_endpoint_job", URL, [G1, G3]) in api.calls
+
+
+def test_graphs_are_listed_without_javascript_on_the_new_job_page(client, api):
+    api.answers["endpoint_graphs"] = (G1, G2)
+
+    soup = page(client.get("/jobs/new", query_string={"url": URL, "graphs": G2}))
+
+    assert soup.find("input", id="sparql_endpoint_url")["value"] == URL
+    assert choices(soup) == [(G1, False), (G2, True)]
+    assert soup.find("form")["action"] == "/jobs/endpoint"
+
+
+def test_a_failed_submission_keeps_the_chosen_graphs_ticked(client, api):
+    api.answers["start_endpoint_job"] = problem(503, "QueueUnavailable")
+
+    soup = page(client.post("/jobs/endpoint", data={"sparql_endpoint_url": URL, "graphs": [G1]}))
+
+    assert choices(soup) == [(G1, True)]
+
+
+def test_an_endpoint_without_named_graphs_says_so(client, api):
+    api.answers["endpoint_graphs"] = ()
+
+    fragment = page(client.get("/jobs/new/graphs", query_string={"url": URL}))
+
+    assert choices(fragment) == []
+    assert "This endpoint has no named graphs." in fragment.find("fieldset").text
+
+
+# --- The endpoint cannot be reached for its graphs -----------------------------------------------------
+
+
+def test_the_endpoint_cannot_be_reached_for_its_graphs(client, api):
+    detail = "the endpoint could not be reached"
+    api.answers["endpoint_graphs"] = problem(502, "GraphListingFailed", detail=detail)
+
+    fragment = page(client.get("/jobs/new/graphs", query_string={"url": URL}))
+
+    group = fragment.find("fieldset", id="graphs-picker")
+    assert "Could not list the graphs: the endpoint could not be reached." in group.text
+    assert choices(fragment) == []
+    assert "Could not list the graphs" in fragment.find(id="announce").text
+
+    client.post("/jobs/endpoint", data={"sparql_endpoint_url": URL})  # still submits, no graphs
+
+    assert ("start_endpoint_job", URL, []) in api.calls
+
+
+def test_an_api_that_gives_no_answer_for_the_graphs_is_said(client, api):
+    api.answers["endpoint_graphs"] = unreachable()
+
+    fragment = page(client.get("/jobs/new/graphs", query_string={"url": URL}))
+
+    assert "The service is not reachable." in fragment.find("fieldset").text
+
+
+def test_an_invalid_url_for_the_graphs_is_said_next_to_the_url(client, api):
+    api.answers["endpoint_graphs"] = problem(400, "InvalidSource")
+
+    fragment = page(client.get("/jobs/new/graphs", query_string={"url": "not a url"}))
+
+    error = fragment.find(id="sparql_endpoint_url-error")
+    assert error["hx-swap-oob"] == "innerHTML" and error.text.strip() == URL_REFUSED
+    assert choices(fragment) == []
+    full = page(client.get("/jobs/new", query_string={"url": "not a url"}))
+    assert error_next_to(full, "sparql_endpoint_url") == URL_REFUSED
+
+
+def test_a_good_url_clears_an_earlier_url_error(client, api):
+    fragment = page(client.get("/jobs/new/graphs", query_string={"url": URL}))
+
+    assert fragment.find(id="sparql_endpoint_url-error").text.strip() == ""
+
+
+def test_an_empty_url_for_the_graphs_is_refused_without_asking_the_api(client, api):
+    fragment = page(client.get("/jobs/new/graphs"))
+
+    assert fragment.find(id="sparql_endpoint_url-error").text.strip() == URL_REFUSED
+    assert api.calls == []

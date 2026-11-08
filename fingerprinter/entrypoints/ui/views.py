@@ -210,7 +210,56 @@ def job_state(job_id: str) -> Response | str:
 # --- New job --------------------------------------------------------------------------------------
 
 
-def _new_job_page(tab: labels.Tab, form: Any, status: int = HTTPStatus.OK) -> tuple[str, int]:
+def _typed_url() -> str | None:
+    """The endpoint URL asked about: ``?url=``, or the form's own field when its button sent it."""
+    url = request.args.get("url", request.args.get("sparql_endpoint_url"))
+    return None if url is None else url.strip()
+
+
+def _graphs_context(url: str | None, chosen: list[str]) -> dict[str, Any]:
+    """What the graphs group shows: nothing loaded, the endpoint's graphs, or why there are none.
+
+    ``url`` is ``None`` before anyone asked. A refused URL is said next to the URL field; any other
+    refusal in the group, and the form still submits without graphs (DEC-9).
+    """
+    context: dict[str, Any] = {
+        "graphs": None, "graphs_error": None, "url_error": None, "chosen": chosen, "announce": "",
+    }  # fmt: skip
+    if url is None:
+        return context
+    if not url:
+        context["url_error"] = labels.PROBLEMS["InvalidSource"]
+        return context
+    try:
+        context["graphs"] = _api().endpoint_graphs(url)
+    except ApiError as error:
+        sentence = _sentence(error)
+        context["url_error" if error.status == HTTPStatus.BAD_REQUEST else "graphs_error"] = (
+            sentence
+        )
+        context["announce"] = sentence
+    else:
+        context["announce"] = labels.GRAPHS_FOUND.format(count=len(context["graphs"]))
+    return context
+
+
+def _submitted_graphs() -> dict[str, Any]:
+    """The group as a refused form shows it again: the graphs it was sent with, still ticked."""
+    chosen = request.form.getlist("graphs")
+    return _graphs_context(None, chosen) | {"graphs": tuple(chosen) if chosen else None}
+
+
+def graphs() -> str:
+    """The graphs group (and the URL field's sentence) for the "Load graphs" button."""
+    return render_template(
+        "jobs/_graphs_response.html",
+        **_graphs_context(_typed_url() or "", request.args.getlist("graphs")),
+    )
+
+
+def _new_job_page(
+    tab: labels.Tab, form: Any, status: int = HTTPStatus.OK, **graphs_context: Any
+) -> tuple[str, int]:
     config = current_app.config
     page = render_template(
         "jobs/new.html",
@@ -219,6 +268,7 @@ def _new_job_page(tab: labels.Tab, form: Any, status: int = HTTPStatus.OK) -> tu
         accepted=[f".{extension}" for extension in config[CONFIG_ACCEPTED_EXTENSIONS]],
         limit_mb=_upload_limit_mb(),
         formats=labels.FORMATS,
+        **(graphs_context or _submitted_graphs()),
     )
     return page, status
 
@@ -226,7 +276,12 @@ def _new_job_page(tab: labels.Tab, form: Any, status: int = HTTPStatus.OK) -> tu
 def new_job() -> tuple[str, int]:
     if request.args.get("from") == labels.Tab.FILE:
         return _new_job_page(labels.Tab.FILE, FingerprintFileForm(formdata=None))
-    return _new_job_page(labels.Tab.ENDPOINT, FingerprintSPARQLEndpointForm(formdata=None))
+    url = _typed_url()
+    form = FingerprintSPARQLEndpointForm(formdata=None, sparql_endpoint_url=url)
+    context = _graphs_context(url, request.args.getlist("graphs"))
+    if context["url_error"]:
+        form.sparql_endpoint_url.errors = [context["url_error"]]
+    return _new_job_page(labels.Tab.ENDPOINT, form, **context)
 
 
 def _started(
@@ -245,8 +300,8 @@ def _started(
 def start_endpoint_job() -> Response | tuple[str, int]:
     form = FingerprintSPARQLEndpointForm()
     if form.validate_on_submit():
-        graphs = (form.graphs.data or "").split()
-        start = partial(_api().start_endpoint_job, form.sparql_endpoint_url.data or "", graphs)
+        chosen = request.form.getlist("graphs")
+        start = partial(_api().start_endpoint_job, form.sparql_endpoint_url.data or "", chosen)
         return _started(form, form.sparql_endpoint_url, labels.Tab.ENDPOINT, start)
     return _new_job_page(labels.Tab.ENDPOINT, form)
 
@@ -264,7 +319,9 @@ def upload_too_large(_error: Exception) -> tuple[str, int]:
     form = FingerprintFileForm(formdata=None)
     too_large = {"type": f"{labels.PROBLEM_TYPE_PREFIX}UploadTooLarge"}
     form.data_file.errors = [labels.problem_sentence(too_large, upload_limit_mb=_upload_limit_mb())]
-    return _new_job_page(labels.Tab.FILE, form, HTTPStatus.REQUEST_ENTITY_TOO_LARGE)
+    # the oversized body is not read again, so there is no submitted form to take the graphs from
+    no_graphs = _graphs_context(None, [])
+    return _new_job_page(labels.Tab.FILE, form, HTTPStatus.REQUEST_ENTITY_TOO_LARGE, **no_graphs)
 
 
 # --- Files and the report -------------------------------------------------------------------------
@@ -411,6 +468,7 @@ ROUTES: tuple[tuple[str, Callable[..., Any], tuple[str, ...]], ...] = (
     ("/", index, ("GET",)),
     ("/jobs/rows", job_rows, ("GET",)),
     ("/jobs/new", new_job, ("GET",)),
+    ("/jobs/new/graphs", graphs, ("GET",)),
     ("/jobs/endpoint", start_endpoint_job, ("POST",)),
     ("/jobs/file", start_file_job, ("POST",)),
     ("/jobs/<job_id>", job_page, ("GET",)),

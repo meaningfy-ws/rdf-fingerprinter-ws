@@ -68,6 +68,14 @@ class ApiClient:
         except (ValueError, KeyError, TypeError, AttributeError) as error:
             raise ApiError(None, HTTPStatus.BAD_GATEWAY) from error
 
+    def endpoint_graphs(self, url: str) -> tuple[str, ...]:
+        """The endpoint's named graphs; the API's listing waits for the library's retries."""
+        response = self._send("GET", "/endpoint-graphs", params={"url": url})
+        try:
+            return tuple(str(graph) for graph in response.json()["graphs"])
+        except (ValueError, KeyError, TypeError, AttributeError) as error:
+            raise ApiError(None, HTTPStatus.BAD_GATEWAY) from error
+
     def start_endpoint_job(self, sparql_endpoint_url: str, graphs: list[str]) -> None:
         data: dict[str, str | list[str]] = {"sparql_endpoint_url": sparql_endpoint_url}
         if graphs:
