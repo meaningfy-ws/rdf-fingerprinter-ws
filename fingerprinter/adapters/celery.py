@@ -22,7 +22,7 @@ CELERY_FINGERPRINT_FILE = "fingerprint_file"
 
 @celery_worker.task(name=CELERY_FINGERPRINT_URL, bind=True)
 def async_fingerprint_sparql_endpoint(
-    self, sparql_endpoint_url: str, db_cleanup_location: str, graphs: list = None
+    self, sparql_endpoint_url: str, db_cleanup_location: str, graphs: list | None = None
 ):
     """
     Task to fingeprint a SPARQL endpoint

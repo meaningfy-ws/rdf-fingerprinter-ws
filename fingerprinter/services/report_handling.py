@@ -11,8 +11,10 @@ Service layer for report generation.
 
 import logging as logger
 import shutil
+from collections.abc import Callable
 from json import dumps, loads
 from pathlib import Path
+from typing import Any
 from uuid import uuid4
 from zipfile import ZipFile
 
@@ -106,7 +108,7 @@ def generate_meta_file(
     html_report: str = "",
     json_report: str = "",
     zip_report: str = "",
-    graphs: list = None,
+    graphs: list | None = None,
 ) -> str:
     """
     method to generate meta file
@@ -145,7 +147,7 @@ def generate_meta_file(
     return str(meta_file)
 
 
-def read_meta_file(report_base_location: str, meta_file_name: str = "") -> dict:
+def read_meta_file(report_base_location: str, meta_file_name: str = "") -> Any:
     """
     method to read data from meta file
     :param report_base_location: report location
@@ -157,7 +159,7 @@ def read_meta_file(report_base_location: str, meta_file_name: str = "") -> dict:
 
 
 def fingerprint_sparql_endpoint(
-    sparql_endpoint: str, output_location: str, graphs: list = None
+    sparql_endpoint: str, output_location: str, graphs: list | None = None
 ) -> tuple:
     """
         Fingerprint a SPARQL endpoint with the rdf-fingerprinter library: its report page and its profile.
@@ -183,7 +185,7 @@ def fingerprint_sparql_endpoint(
 
 
 def build_report_from_sparql_endpoint(
-    location: str, sparql_endpoint: str, graphs: list = None, uid: str = ""
+    location: str, sparql_endpoint: str, graphs: list | None = None, uid: str = ""
 ) -> str:
     """
     Build a report from a SPARQL endpoint using the fingerprinter
@@ -223,7 +225,7 @@ def build_report_from_file(
     file: str,
     uid: str = "",
     fuseki_service_location: str = config.RDF_FINGERPRINTER_FUSEKI_SERVICE,
-    fuseki_sparql_adapter: AbstractSPARQLAdapter = None,
+    fuseki_sparql_adapter: Callable[[str, Any], AbstractSPARQLAdapter] | None = None,
 ) -> str:
     """
     Build reports from file using the fingerprinter

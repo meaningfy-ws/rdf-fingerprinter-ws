@@ -17,7 +17,7 @@ INPUT_MIME_TYPES = {
 }
 
 
-def get_file_format(file: str, types: dict = None) -> str:
+def get_file_format(file: str, types: dict[str, str] | None = None) -> str:
     """
     Helper method to check get the format of the provided file, and to check whether they are from the
     acceptable file formats.
@@ -25,10 +25,7 @@ def get_file_format(file: str, types: dict = None) -> str:
     :param types: a dictionary of expected fle types for the file to be checked on
     :return: format of the file
     """
-    if types is None:
-        types = INPUT_MIME_TYPES
-
-    file_format = types.get(PurePath(str(file)).suffix.lstrip(".").lower())
+    file_format = (types or INPUT_MIME_TYPES).get(PurePath(str(file)).suffix.lstrip(".").lower())
     if file_format is None:
         raise ValueError(f'Format of "{file}" is not supported.')
 

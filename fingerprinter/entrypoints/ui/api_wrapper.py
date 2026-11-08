@@ -22,7 +22,7 @@ def fingerprint_sparql_endpoint(sparql_endpoint_url: str, graphs: list) -> tuple
     :param graphs: a list of named graphs to restrict the fingerprint calculation to
     :return: file, int
     """
-    data = {
+    data: dict[str, str | list[str]] = {
         "sparql_endpoint_url": sparql_endpoint_url,
     }
 

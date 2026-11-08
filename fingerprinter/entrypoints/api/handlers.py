@@ -12,7 +12,7 @@ OpenAPI method handlers.
 import logging
 from json import dumps
 
-from flask import send_file
+from flask import Response, send_file
 from werkzeug.datastructures import FileStorage
 from werkzeug.exceptions import NotAcceptable, NotFound, UnsupportedMediaType
 
@@ -51,7 +51,7 @@ def fingerprint_sparql_endpoint(body: dict) -> tuple:
     :rtype:
     """
     logger.debug("start fingerprinting sparql endpoint")
-    sparql_endpoint_url = body.get("sparql_endpoint_url")
+    sparql_endpoint_url = body["sparql_endpoint_url"]  # required by the OpenAPI contract
     check_is_url(sparql_endpoint_url)
 
     graphs = body.get("graphs", [])
@@ -105,7 +105,7 @@ def get_fingerprintings() -> tuple:
     return fingerprintings, 200
 
 
-def get_fingerprinting_report(uid: str, report_type: str = config.DEFAULT_REPORT_TYPE) -> tuple:
+def get_fingerprinting_report(uid: str, report_type: str = config.DEFAULT_REPORT_TYPE) -> Response:
     """
     API method to return a fingerprinting report.
     :param uid: the uid of the fingerprinting report

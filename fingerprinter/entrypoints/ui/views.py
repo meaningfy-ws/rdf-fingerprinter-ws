@@ -60,7 +60,8 @@ def fingerprint_sparql_endpoint():
 
     if form.validate_on_submit():
         response, status = api_fingerprint_sparql_endpoint(
-            sparql_endpoint_url=form.sparql_endpoint_url.data, graphs=form.graphs.data.split()
+            sparql_endpoint_url=form.sparql_endpoint_url.data or "",
+            graphs=(form.graphs.data or "").split(),
         )
 
         if status != 200:

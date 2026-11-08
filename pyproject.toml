@@ -35,6 +35,7 @@ lint = [
     "mypy==2.4.1",
     "import-linter==2.16",
     "types-requests==2.33.0.20261030",
+    "types-wtforms==3.3.0.20261104",
 ]
 
 [tool.uv]

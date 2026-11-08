@@ -1,4 +1,5 @@
 import logging as logger
+from typing import Any
 
 from celery.result import AsyncResult
 
@@ -6,7 +7,7 @@ from fingerprinter.adapters.celery import celery_worker
 from fingerprinter.services.report_handling import delete_report
 
 
-def flatten_active_tasks(tasks: dict) -> list:
+def flatten_active_tasks(tasks: dict) -> Any:
     """
     Flatten a dict of active tasks
     example:
@@ -20,7 +21,7 @@ def flatten_active_tasks(tasks: dict) -> list:
     return tasks.get(list(tasks.keys())[0], [])
 
 
-def retrieve_active_tasks(worker=None) -> dict:
+def retrieve_active_tasks(worker=None) -> Any:
     """
     Get all currently running tasks
     :param worker: which celery worker to get tasks from

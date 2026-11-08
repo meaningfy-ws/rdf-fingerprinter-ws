@@ -190,7 +190,7 @@ class FingerprinterConfig:
 
     @property
     def DEFAULT_REPORT_TYPE(self) -> str:
-        value = self.REPORT_TYPES[0]
+        value: str = self.REPORT_TYPES[0]
         self.logger.debug(value)
         return value
 

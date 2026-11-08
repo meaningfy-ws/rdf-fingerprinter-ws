@@ -182,6 +182,12 @@ Library 3.5.0 facts this plan relies on (checked in `/home/lps/work/repos/rdf-fi
   confirms `pattern`, `shex` and `pitfalls` render through `generate_representations` and files a
   `documentation` issue in `meaningfy-ws/rdf-fingerprinter`; if one does not render, the task stops
   and files a `bug` issue instead (the strict rule).
+- **L-2** The wheel ships no `py.typed` marker, so mypy treats `fingerprint` as untyped
+  (`meaningfy-ws/rdf-fingerprinter#64`, filed in task 1.6). `mypy.ini` holds a section
+  `[mypy-fingerprint.*] ignore_missing_imports = True`, named and scoped to that package; it changes
+  no behaviour, only what mypy can check at the library boundary. The section is removed in the PR
+  that raises the pin to a release that ships the marker. *Leader's choice:* the gate does not wait
+  for the fix, since nothing in the service compensates for the gap.
 
 ## Algorithm / approach
 

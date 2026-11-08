@@ -11,6 +11,7 @@ Adapter for the SPARQL wrapper library
 
 from abc import ABC, abstractmethod
 from json import JSONDecodeError
+from typing import Any
 from urllib.parse import urljoin
 
 from requests.auth import HTTPBasicAuth
@@ -47,7 +48,7 @@ class AbstractSPARQLAdapter(ABC):
         """
 
     @abstractmethod
-    def get_dataset(self, dataset_name: str) -> dict:
+    def get_dataset(self, dataset_name: str) -> Any:
         """
             Get dataset general info
         :param dataset_name: The dataset identifier. This should be short alphanumeric string uniquely
@@ -106,7 +107,7 @@ class FusekiSPARQLAdapter(AbstractSPARQLAdapter):
         if response.status_code == 404:
             raise FusekiException("The dataset to be deleted doesn't exist.")
 
-    def get_dataset(self, dataset_name: str) -> dict:
+    def get_dataset(self, dataset_name: str) -> Any:
         """
             Get dataset general info
         :param dataset_name: The dataset identifier. This should be short alphanumeric string uniquely
@@ -128,7 +129,7 @@ class FusekiSPARQLAdapter(AbstractSPARQLAdapter):
         except JSONDecodeError:
             return response.text
 
-    def upload_file(self, dataset_name: str, file_path: str) -> dict:
+    def upload_file(self, dataset_name: str, file_path: str) -> Any:
         """
             Upload the file to the Fuseki dataset
         :param dataset_name: The dataset identifier. This should be short alphanumeric string uniquely

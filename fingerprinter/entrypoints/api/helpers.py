@@ -20,10 +20,10 @@ from fingerprinter.config import config
 logger = logging.getLogger(__name__)
 
 
-def _guess_file_type(file: str, accepted_types: dict = None):
-    if accepted_types is None:
-        accepted_types = config.INPUT_MIME_TYPES
-    return accepted_types.get(PurePath(str(file)).suffix.lstrip(".").lower())
+def _guess_file_type(file: str | None, accepted_types: dict[str, str] | None = None) -> str | None:
+    return (accepted_types or config.INPUT_MIME_TYPES).get(
+        PurePath(file or "").suffix.lstrip(".").lower()
+    )
 
 
 def is_url(url: str) -> bool:

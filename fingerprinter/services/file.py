@@ -42,7 +42,7 @@ def save_file(file_to_save: FileStorage, location_to_save: str | Path, file_name
 
     try:
         saved_file = build_secure_filename(
-            str(location_to_save), file_name or file_to_save.filename
+            str(location_to_save), file_name or file_to_save.filename or ""
         )
         file_to_save.save(str(saved_file))
         return saved_file
