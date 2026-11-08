@@ -1,0 +1,111 @@
+= Building on rdf-fingerprinter
+:description: What the rdf-fingerprinter library does for this service, what the service does itself, and what to do when the library falls short.
+
+_Which part of the work belongs to the library, and what happens when the library gets in the way?_
+
+This service wraps the `rdf-fingerprinter` library
+(https://github.com/meaningfy-ws/rdf-fingerprinter[`meaningfy-ws/rdf-fingerprinter`], PyPI
+`rdf-fingerprinter`, import name `fingerprint`). The library is developed in its own repository,
+with its own spine, and released to PyPI from its `master` branch.
+
+== Common questions
+
+*The library does not do what I need. Can I add it here?*::
+No. Report it in the library as a GitHub issue and wait for the release. See <<strict>>.
+
+*Where does a new statistic, query or report section go?*::
+Into the library. See <<split>>.
+
+*Which library version does the service use?*::
+A released version from PyPI, pinned in this repository. Never an unreleased branch.
+
+[#split]
+== Who does what
+
+[cols="1,3",options="header"]
+|===
+|Owner |Work
+|The library |Querying a SPARQL endpoint for the dataset's structure; the statistics; the fingerprint (JSON) and the rendered reports (HTML and the report templates); the `fingerprint` command line
+|This service |The REST API and its OpenAPI contract; the UI; running jobs asynchronously (Celery); loading an uploaded file into a temporary Fuseki dataset and removing it; storing, listing and packaging reports
+|===
+
+Where a change belongs: anything that any user of the library could need (a statistic, a report
+format, a query optimisation, a bug in the output) goes to the library; only what a web service
+needs (upload, jobs, API, screens) stays here. In doubt, ask the developer, with a recommendation;
+the default is the library.
+
+[#strict]
+== The strict rule: no workarounds
+
+When the library has a bug, a gap in its docs, an awkward API or lacks a capability this service
+needs, this service does *not* compensate. Never:
+
+* patch, monkeypatch or subclass library internals, or import a private submodule;
+* copy library code, or write a SPARQL query, a statistic or a report renderer that is the
+  library's job;
+* post-process the library's output to correct it;
+* weaken a requirement, a test or a check to fit;
+* leave a shim, a `TODO` or a skipped test standing in for the fix.
+
+Instead:
+
+. *Stop* the task; other tasks may go on. Reproduce the problem with the library alone and confirm
+  it is the library's, not a misuse.
+. *Search* the open issues (`gh issue list -R meaningfy-ws/rdf-fingerprinter --search "…"`) and
+  comment on a match instead of opening a duplicate.
+. *File an issue* in the shape of <<issue>>.
+. *Record* it: `tasks.md` marks the task `blocked by meaningfy-ws/rdf-fingerprinter#<n>`;
+  `design.md` lists it under library dependencies.
+. *Tell the developer*: the link, what is blocked, what goes on. The developer schedules the fix.
+. *Resume* once the fix is released to PyPI, raising the pin in this repository's PR.
+
+The leader files library issues without asking first; members report them under *Library findings*
+and never file.
+
+[#issue]
+=== The shape of a library issue
+
+An issue must let a library developer act without asking this service anything.
+
+* *Title*: what is wrong or missing, in the library's words, not the service's.
+* *Labels*: `bug`, `enhancement` or `documentation`.
+* *Body*, with these headings:
+
+[source,markdown]
+----
+## Summary
+One or two sentences: what fails, or what capability is missing.
+
+## Context
+- Consumer: rdf-fingerprinter-ws, change `<change-id>`, task `<n>`.
+- What the consumer is trying to do, in one paragraph.
+- Library version: `<version from the lock>`.
+
+## Current behaviour            (for a bug)
+A minimal reproduction with the library alone: the data, the call, the actual output or error.
+
+## What is missing              (for a feature)
+The gap, and what a user of the library cannot do today because of it.
+
+## Expected behaviour / proposed capability
+How it should behave, in generic terms: the API sketch, a code example of the intended use, the
+error raised when it is used wrongly.
+
+## Why it belongs in rdf-fingerprinter
+Why any user of the library would need it, and why a workaround in the consumer is not acceptable.
+
+## Acceptance
+Given/When/Then scenarios that would close the issue.
+----
+
+== Two repositories, kept apart
+
+* *Each repository plans its own work*, in its own `openspec/`. A change here that needs library
+  work names the library's change id or issue.
+* *Where to work.* The developer's clone `../rdf-fingerprinter` is read-only for agents (only
+  `git fetch` and `git worktree add/remove`). Library work happens in a worktree off the library's
+  `develop` branch, under that repository's own `AGENTS.md`.
+* *Order.* The library change is merged and released first; this repository then raises its pin.
+  To try an unreleased library branch locally, install the worktree as editable; never commit a
+  dependency that points at it.
+* *One repository per commit*, each citing its own change id.

@@ -1,0 +1,58 @@
+= Testing checklist
+:description: The rules every test in this repository follows, given to every builder and deep tester.
+
+_What makes a test acceptable here?_
+
+Every builder, fixer and deep tester brief points to this page (see
+xref:develop/agents.adoc[Working with agents]). Where a rule names a tool that the library-upgrade
+EPIC introduces (tier folders, markers, the coverage floor), it applies from that EPIC on.
+
+== Where tests live
+
+. A test lives in the tier folder of what it tests: `tests/unit/` (no I/O), `tests/feature/`
+  (Gherkin scenarios with fakes), `tests/integration/` (Fuseki, Redis), `tests/e2e/` (the running
+  service and UI). The folder gives the marker.
+. Nothing outside the integration and end-to-end tests touches the network or a real Fuseki.
+
+== Test doubles and data
+
+[start=3]
+. For this repository's own ports, prefer one fake that implements the real port over `MagicMock`
+  stubs.
+. Never fake the library's internals. Call its public API, on small RDF fixtures under
+  `tests/resources/`; a library behaviour a test cannot rely on is a library issue
+  (xref:develop/rdf-fingerprinter.adoc#strict[Building on rdf-fingerprinter]).
+. Shared read-only data is session-scoped; mutable state is function-scoped (`tmp_path`).
+
+== Assertions
+
+[start=6]
+. Assert on RDF by parsing it into a graph and comparing with `rdflib.compare.isomorphic`; never
+  compare Turtle as strings.
+. Assert on JSON reports by their parsed structure, not their text.
+. Assert on API errors by status code and error type, not by message text.
+. Gherkin uses business language, a Scenario Outline for variants and one shared step library.
+  Each `Then` asserts one thing.
+. One assert per idea, each with a message.
+
+== Time and containers
+
+[start=11]
+. No real sleeps or timing-based asserts. In unit and feature tests, Celery tasks run eagerly or behind a fake; a
+  test that waits for a job polls a condition with a deadline.
+. Container tests start their containers once per session, and each test uses its own dataset. In
+  CI a missing Docker is a failure, not a skip.
+
+== Traceability
+
+[start=13]
+. Every feature test names the spec scenario it covers, and every spec scenario of the change has
+  at least one test; the verifier checks both before a stage's PR.
+. Gherkin scenarios are implemented only after the developer has signed them off
+  (xref:develop/index.adoc#vv[Verification and validation]).
+
+== The report
+
+Every member that runs tests reports, for each make target it ran, the approximate wall-clock time
+and the number of tests. The leader keeps the xref:develop/index.adoc#durations[durations table]
+current. Do not profile.

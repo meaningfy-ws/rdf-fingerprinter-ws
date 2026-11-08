@@ -1,0 +1,29 @@
+# Docs workflow: the nav check, then the Antora build. Every step calls a `make` target.
+name: docs
+
+on:
+  push:
+    branches: [develop]
+    paths: ["docs/**"]
+  pull_request:
+    branches: [develop]
+    paths: ["docs/**"]
+
+permissions:
+  contents: read
+
+jobs:
+  docs:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - run: make check-docs
+      - run: make install-antora
+      - run: make build-docs

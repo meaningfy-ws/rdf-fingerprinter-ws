@@ -1,0 +1,41 @@
+= RDF Fingerprinter WS
+:description: A web service and UI that fingerprint an RDF file or a SPARQL endpoint with the rdf-fingerprinter library.
+
+_What is this service, and what does it run on?_
+
+RDF Fingerprinter WS fingerprints an RDF dataset: it guesses the application profile (the data
+shapes) that the dataset instantiates and writes a report. The fingerprinting itself is done by the
+https://github.com/meaningfy-ws/rdf-fingerprinter[`rdf-fingerprinter`] library; this service puts an
+API, a UI and asynchronous jobs around it.
+
+== What it does
+
+* *Fingerprint a SPARQL endpoint*: give the endpoint URL, optionally the named graphs to restrict it to, and get the report.
+* *Fingerprint a file*: upload an RDF file; the service loads it into a temporary Fuseki dataset,
+  fingerprints that, and removes the dataset.
+* *Follow the jobs*: fingerprinting runs as Celery tasks; the UI lists the active ones and the
+  finished reports.
+
+image::sparql-endpoint-ui.png[Fingerprinting a SPARQL endpoint from the UI]
+
+image::file-ui.png[Fingerprinting a file from the UI]
+
+image::report-example.png[An example report]
+
+== What it runs on
+
+[cols="1,3",options="header"]
+|===
+|Container |Role
+|`fingerprinter-api` |The REST API (Flask and Connexion; Swagger UI at `/ui`)
+|`fingerprinter-ui` |The web UI (Flask and Jinja), a client of the API
+|`fingerprinter-celery-worker` |Runs the fingerprinting jobs
+|`redis` |The Celery broker
+|`fuseki` |Holds the temporary datasets of uploaded files
+|`fingerprinter-dashboard` |Flower, a view of the Celery jobs
+|===
+
+image::fingerprinter-api.png[The API's Swagger UI]
+
+Installation and usage are in the repository's `README.md`; how the service is developed is in the
+xref:develop/index.adoc[developer runbook].

@@ -116,3 +116,26 @@ $(addprefix $(STEPS_FOLDER)/test_, $(notdir $(STEPS_FOLDER)/%.py)): $(FEATURES_F
 	@ echo "$(BUILD_PRINT)Generating the testfile "$@"  from "$<" feature file"
 	@ pytest-bdd generate $< > $@
 	@ sed -i  's|features|../features|' $@
+#-----------------------------------------------------------------------------
+# Docs (Antora)
+#-----------------------------------------------------------------------------
+.PHONY: install-antora build-docs preview-docs check-docs clean-docs
+
+DOCS_DIR  = docs
+DOCS_SITE = $(DOCS_DIR)/build/site
+DOCS_PORT ?= 8082
+
+install-antora: ## Install the Antora doc toolchain (npm) in docs/
+	@ cd $(DOCS_DIR) && npm install
+
+build-docs: ## Build the documentation site from the working tree to docs/build/site/
+	@ cd $(DOCS_DIR) && npx antora --fetch antora-playbook.local.yml
+
+preview-docs: build-docs ## Build then serve the docs at http://localhost:$(DOCS_PORT)
+	@ python3 -m http.server --directory $(DOCS_SITE) $(DOCS_PORT)
+
+check-docs: ## Every docs page is in the navigation
+	@ python3 -I $(DOCS_DIR)/tools/check_docs.py
+
+clean-docs: ## Remove the built docs and node_modules
+	@ rm -rf $(DOCS_DIR)/build $(DOCS_DIR)/node_modules
