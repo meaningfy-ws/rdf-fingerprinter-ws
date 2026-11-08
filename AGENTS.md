@@ -182,8 +182,9 @@ parallel epic files under `.claude/`.
   commit SHA with its tag in a comment.
 - **In-flight changes:** `data-profiling-tool` (parked; DEC-4 points 4-5 and DEC-6 resolved by the
   upgrade; points 1-3 and 6 to check against the library when it resumes). Archived:
-  `upgrade-fingerprinter-library`, `modernise-user-interface`. Open library issues the service
-  waits on: `meaningfy-ws/rdf-fingerprinter#69`, `#75`, `#76`, `#77`.
+  `upgrade-fingerprinter-library`, `modernise-user-interface`, `harden-deployment`. Pending library
+  release: `meaningfy-ws/rdf-fingerprinter#78` (closes #69, #75, #76, #77; see
+  `develop/rdf-fingerprinter.adoc#pending`).
 - **Library quirks (3.6.0):** typed (`py.typed`); `list_named_graphs` lists an endpoint's named
   graphs (for the UI's graph picker); it configures no logging on import; `resolve_settings` lives in
   `fingerprint.service_layer.settings`.
