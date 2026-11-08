@@ -149,6 +149,46 @@ def test_everything_is_zipped(store, tmp_path):
         assert sorted(archive.namelist()) == ["html/main.html", "json/profile.json"]
 
 
+def test_everything_is_zipped_with_all_seven_formats(store, tmp_path):
+    store.create(record())
+    store.save_outputs(
+        "job-1",
+        outcome(
+            tmp_path,
+            html=("main.html",),
+            json=("profile.json",),
+            shacl=("shapes.ttl",),
+            puml=("a.puml", "b.puml"),
+            pattern=("p1.md", "p2.csv"),
+            shex=("shapes.shex",),
+            pitfalls=("pitfalls.tsv",),
+        ),
+    )
+
+    assert len(store.get("job-1").formats) == 7
+    with zipfile.ZipFile(store.file_for("job-1", ReportFormat.ZIP)) as archive:
+        assert sorted(archive.namelist()) == [
+            "html/main.html",
+            "json/profile.json",
+            "pattern/p1.md",
+            "pattern/p2.csv",
+            "pitfalls/pitfalls.tsv",
+            "puml/a.puml",
+            "puml/b.puml",
+            "shacl/shapes.ttl",
+            "shex/shapes.shex",
+        ]
+
+
+def test_a_format_without_files_is_not_listed_in_the_record_or_the_zip(store, tmp_path):
+    store.create(record())
+    store.save_outputs("job-1", outcome(tmp_path, html=("main.html",), shacl=()))
+
+    assert store.get("job-1").formats == (ReportFormat.HTML,)
+    with zipfile.ZipFile(store.file_for("job-1", ReportFormat.ZIP)) as archive:
+        assert archive.namelist() == ["html/main.html"]
+
+
 def test_save_outputs_refuses_a_job_that_already_has_outputs(store, tmp_path):
     store.create(record())
     store.save_outputs("job-1", outcome(tmp_path, html=("main.html",)))
