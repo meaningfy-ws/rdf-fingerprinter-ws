@@ -16,7 +16,7 @@ context: |
   openspec, docs, coverage >= 80) and make test-containers (integration and e2e on Docker).
   Infra: infra/ (compose.yaml, .env.example, api/ui/worker Dockerfiles); images to
   ghcr.io/meaningfy-ws/rdf-fingerprinter-ws-{api,ui,worker} on a release (release.yml).
-  The upgrade EPIC is in stage 4 (infra, delivery); the UI EPIC (modernise-user-interface) is in delivery.
+  The upgrade EPIC and the UI EPIC (modernise-user-interface) are archived (2026-11-08); data-profiling-tool is parked.
   No workarounds of the library: gaps become issues in meaningfy-ws/rdf-fingerprinter
   (docs/modules/ROOT/pages/develop/rdf-fingerprinter.adoc).
   Branches: off develop, PRs into develop; main receives releases. No AI attribution in commits.

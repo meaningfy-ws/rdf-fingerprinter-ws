@@ -20,11 +20,12 @@ the library), [`agents.adoc`](docs/modules/ROOT/pages/develop/agents.adoc) (what
 here when agents deliver; the method is skillery's `epic-delivery`), [`testing.adoc`](docs/modules/ROOT/pages/develop/testing.adoc) (the testing
 checklist). This file is its short form.
 
-> **Modernisation in progress.** The **library-upgrade EPIC** (uv, Python 3.13, `rdf-fingerprinter`
-> 3.6, Connexion 3 / Flask 3, the cosmic-python layering, every output format, `infra/` and the
-> container tests) is in its last stage; the **UI EPIC** is under way. The gates that exist:
-> `make check-all`, `make test-containers`, `make check-docs`, `make build-docs`. Never claim one as
-> run unless it ran.
+> **Modernised (2026-11-08).** The library-upgrade EPIC (uv, Python 3.13, `rdf-fingerprinter` 3.6,
+> Connexion 3 / Flask 3, the cosmic-python layering, every output format, `infra/`, the container
+> tests) and the UI EPIC (the job console, report viewer, class diagrams and graph picker) are
+> archived; their requirements are in `openspec/specs/`. The gates: `make check-all`,
+> `make test-containers`, `make build-images`, `make check-docs`, `make build-docs`. Never claim
+> one as run unless it ran.
 
 ## Skill routing (use the skill for the task)
 
@@ -173,9 +174,10 @@ parallel epic files under `.claude/`.
 - **CI:** `ci.yml` (`check-all`, the `containers` job and the `images` job on Python 3.13, PRs into and pushes to
   `develop`), `docs.yml`, `release.yml` (images to GHCR on a release); every action is pinned to a
   commit SHA with its tag in a comment.
-- **In-flight changes:** `upgrade-fingerprinter-library` (stages 1-3 done; stage 4, `infra/` and
-  delivery, in progress); `modernise-user-interface` (stages 1-2 delivered; the graph picker, stage 3,
-  follows); `data-profiling-tool` (parked; blocked on the library upgrade, its DEC-4).
+- **In-flight changes:** `data-profiling-tool` (parked; DEC-4 points 4-5 and DEC-6 resolved by the
+  upgrade; points 1-3 and 6 to check against the library when it resumes). Archived:
+  `upgrade-fingerprinter-library`, `modernise-user-interface`. Open library issues the service
+  waits on: `meaningfy-ws/rdf-fingerprinter#69`, `#75`, `#76`, `#77`.
 - **Library quirks (3.6.0):** typed (`py.typed`); `list_named_graphs` lists an endpoint's named
   graphs (for the UI's graph picker); it configures no logging on import; `resolve_settings` lives in
   `fingerprint.service_layer.settings`.

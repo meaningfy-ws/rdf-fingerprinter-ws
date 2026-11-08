@@ -66,13 +66,16 @@ hard-coded.
   5. install on current Python (3.12 and later);
   6. compact class headings as well as properties and types through the prefix map in its HTML report.
 
+  *Points 4 and 5 resolved (2026-11-08, `upgrade-fingerprinter-library` archived):* rdf-fingerprinter
+  3.6.0 configures no logging on import and installs on Python 3.13, which this service now uses.
+  Points 1–3 and 6 are still to be checked against the library when this EPIC resumes.
+
   Rejected: replacing the library with the prototype's queries; keeping 0.3.1.
 - **DEC-5 (open)**: Where each output comes from. The library could also produce the prefix
   inference, the SHACL and the PlantUML, or this repository renders them from the JSON. Decide once
   the upgraded library's scope is known.
-- **DEC-6 (open)**: The Python version. The service's Docker images use 3.8; the upgraded library
-  may require a newer one. Either the images move up, which this change would have to cover, or the
-  CLI runs outside them.
+- **DEC-6 (resolved 2026-11-08)**: The Python version. The service's images now run Python 3.13 with
+  uv (`upgrade-fingerprinter-library`, `infra/docker/Dockerfile`), so the CLI can run in them.
 - **DEC-7 (open)**: Instance IRIs used as predicates. The prototype counts them per class and
   leaves them out of the diagram and the shapes. Keep that, summarise them per collection, or
   describe them. The first consumer has the same question open.
