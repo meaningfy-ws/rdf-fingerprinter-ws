@@ -326,6 +326,9 @@ Sentences live in `labels.py`; the upgrade's design, section *Error matrix*, is 
   library's own reason: "Could not list the graphs: the endpoint did not answer in time." (the same
   `GraphListingFailed` problem the API sends, so no UI-only problem type), not as "service not
   reachable". `ApiClient` parses JSON answers through one helper (`_parsed`).
+- **U-9** (found taking the stage-3 screenshots) The PlantUML server reads a POST body without a
+  charset as Latin-1, so the library's em dashes came out as "â". The adapter sends
+  `Content-Type: text/plain; charset=utf-8`; an integration test draws a title with an em dash.
 
 ## Stage-3 review (five lenses, 2026-11-08): accepted fixes
 

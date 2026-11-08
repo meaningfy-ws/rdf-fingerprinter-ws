@@ -10,17 +10,31 @@ API, a UI and asynchronous jobs around it.
 
 == What it does
 
-* *Fingerprint a SPARQL endpoint*: give the endpoint URL, optionally the named graphs to restrict it to, and get the report.
+* *Fingerprint a SPARQL endpoint*: give the endpoint URL, choose among its named graphs (or none,
+  for every graph), and start the job.
 * *Fingerprint a file*: upload an RDF file; the service loads it into a temporary Fuseki dataset,
   fingerprints that, and removes the dataset.
-* *Follow the jobs*: fingerprinting runs as Celery tasks; the UI lists the active ones and the
-  finished reports.
+* *Follow the jobs*: jobs run in the background; the *Jobs* page lists every job with its state,
+  updates by itself while one is queued or running, and filters by state. Cancel and delete ask
+  first.
+* *Read the result*: a job's page shows the report, the class diagrams (drawn by a PlantUML server
+  in the stack, one for the whole model and one per vocabulary) and every download, with the parts
+  that could not be produced.
 
-image::sparql-endpoint-ui.png[Fingerprinting a SPARQL endpoint from the UI]
+.The Jobs page
+image::ui-jobs.png[The Jobs page: each job with its source, start time, status and outputs]
 
-image::file-ui.png[Fingerprinting a file from the UI]
+.A new job, with two named graphs listed and one chosen
+image::ui-new-job.png[The New job page with the endpoint URL, Load graphs and the named graphs]
 
-image::report-example.png[An example report]
+.A job's report, read in the page
+image::ui-report.png[The Job page on its Report tab]
+
+.A job's class diagram
+image::ui-class-diagram.png[The Job page on its Class diagram tab, with the diagram picker]
+
+.A job's downloads
+image::ui-downloads.png[The Job page on its Downloads tab, each format with its description]
 
 == What it runs on
 

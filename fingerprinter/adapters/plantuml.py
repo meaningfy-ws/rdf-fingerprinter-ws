@@ -6,6 +6,8 @@ from fingerprinter.domain.exceptions import DiagramRenderFailed, DiagramServerUn
 
 TIMEOUT_SECONDS = 30
 XML_DECLARATION_END = "?>"
+# without a charset the server reads the body as Latin-1 and mangles the library's em dashes
+TEXT_UTF8 = {"Content-Type": "text/plain; charset=utf-8"}
 
 
 def _is_svg(body: str) -> bool:
@@ -23,7 +25,10 @@ class PlantUmlRenderer:
         """The SVG of the diagram; the causes name the server's behaviour, never its address."""
         try:
             response = requests.post(
-                f"{self.base_url}/svg", data=puml_text.encode(), timeout=TIMEOUT_SECONDS
+                f"{self.base_url}/svg",
+                data=puml_text.encode(),
+                headers=TEXT_UTF8,
+                timeout=TIMEOUT_SECONDS,
             )
         except requests.Timeout as error:
             raise DiagramServerUnavailable("the PlantUML server did not answer in time") from error
