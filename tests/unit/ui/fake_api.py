@@ -87,6 +87,9 @@ class FakeApi:
     def cancel_job(self, job_id: str) -> None:
         self._answer("cancel_job", job_id)
 
+    def endpoint_graphs(self, url: str) -> tuple[str, ...]:
+        return self._answer("endpoint_graphs", url, default=())
+
     def start_endpoint_job(self, url: str, graphs: list[str]) -> None:
         self._answer("start_endpoint_job", url, graphs)
 

@@ -9,6 +9,10 @@ class InvalidSource(Exception):
     """The endpoint URL is not an http or https URL, or carries user info (400)."""
 
 
+class GraphListingFailed(Exception):
+    """The endpoint's named graphs could not be listed; the message is the plain reason (502)."""
+
+
 class UnsupportedFileType(Exception):
     """The uploaded file's extension is not accepted (415)."""
 

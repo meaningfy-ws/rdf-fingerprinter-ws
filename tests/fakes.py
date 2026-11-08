@@ -37,6 +37,15 @@ class FakeFingerprinter:
         self.outcome = outcome
         self.error: Exception | None = None
         self.calls: list[tuple[str, tuple[str, ...]]] = []
+        self.graphs: tuple[str, ...] = ()
+        self.graph_listing_error: Exception | None = None
+        self.listed: list[str] = []
+
+    def named_graphs(self, url: str) -> tuple[str, ...]:
+        self.listed.append(url)
+        if self.graph_listing_error:
+            raise self.graph_listing_error
+        return self.graphs
 
     def fingerprint(
         self, endpoint_url: str, graphs: tuple[str, ...], work_folder: Path

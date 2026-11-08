@@ -8,6 +8,7 @@ from playwright.sync_api import Page, expect
 JOB_WAIT_MS = 180_000
 POLL_INTERVAL_MS = 3_000
 SETTLE_MS = 500
+LISTING_WAIT_MS = 15_000  # a name that does not resolve fails after the library's first attempts
 
 
 def row_for(page: Page, source: str):
@@ -90,3 +91,36 @@ def test_open_a_jobs_report_diagram_and_a_download(
     with page.expect_download() as download:
         page.get_by_role("link", name="Download Profile (JSON)").click()
     assert download.value.suggested_filename.endswith(".json")
+
+
+def test_load_graphs_swaps_the_group_and_keeps_the_focus(
+    ui_url: str, continents_endpoint: str, open_page: Callable[..., Page]
+):
+    page = open_page()
+    page.goto(f"{ui_url}/jobs/new")
+    page.get_by_label("SPARQL endpoint URL").fill(continents_endpoint)
+
+    page.get_by_role("button", name="Load graphs").click()
+
+    group = page.get_by_role("group", name="Named graphs (optional)")
+    expect(group).to_contain_text("This endpoint has no named graphs.")
+    expect(page.locator("#announce")).to_have_text("No named graphs found.")
+    expect(page.get_by_role("button", name="Load graphs")).to_be_focused()
+
+
+def test_an_endpoint_that_cannot_be_reached_for_its_graphs_still_starts_a_job(
+    ui_url: str, quiet_console: None, unreachable_source: str, open_page: Callable[..., Page]
+):
+    endpoint = unreachable_source
+    page = open_page()
+    page.goto(f"{ui_url}/jobs/new")
+    page.get_by_label("SPARQL endpoint URL").fill(endpoint)
+
+    page.get_by_role("button", name="Load graphs").click()
+
+    group = page.get_by_role("group", name="Named graphs (optional)")
+    expect(group).to_contain_text(
+        "Could not list the graphs: the endpoint could not be reached.", timeout=LISTING_WAIT_MS
+    )
+    page.get_by_role("button", name="Start fingerprinting").click()
+    expect(page.get_by_role("status")).to_have_text("Job started.")

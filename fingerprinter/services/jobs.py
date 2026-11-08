@@ -53,15 +53,25 @@ def _fail_submission(job_id: str, job_store: JobStore) -> QueueUnavailable:
     return QueueUnavailable(QUEUE_UNAVAILABLE)
 
 
-def submit_endpoint_job(
-    url: str, graphs: tuple[str, ...], *, job_store: JobStore, queue: JobQueue
-) -> str:
+def _check_endpoint_url(url: str) -> None:
     parsed = urlparse(url)
     if parsed.scheme not in ("http", "https") or not parsed.netloc:
         raise InvalidSource("Enter an http or https SPARQL endpoint URL.")
     if parsed.username is not None or parsed.password is not None:
         # records are readable by every client: credentials in the URL would leak
         raise InvalidSource("The endpoint URL must not contain a user name or password.")
+
+
+def list_graphs(url: str, *, fingerprinter: Fingerprinter) -> tuple[str, ...]:
+    """The named graphs of an endpoint, for the user to choose from."""
+    _check_endpoint_url(url)
+    return fingerprinter.named_graphs(url)
+
+
+def submit_endpoint_job(
+    url: str, graphs: tuple[str, ...], *, job_store: JobStore, queue: JobQueue
+) -> str:
+    _check_endpoint_url(url)
     job_id = str(uuid.uuid4())
     job_store.create(_new_record(job_id, Source(endpoint=url, graphs=graphs)))
     try:

@@ -210,3 +210,8 @@ textarea { min-height: 6rem; }
 .diagram { overflow: auto; margin-bottom: 1rem; padding: 1rem; background: #fff; border: 1px solid var(--line); border-radius: var(--radius); }
 .diagram img { max-width: none; display: block; margin: 0 auto; }
 .table .name { font-weight: 600; }
+
+.graphs { border: 0; padding: 0; min-inline-size: 0; }
+.graphs legend { padding: 0; font-weight: 600; }
+.graph { display: flex; gap: .5rem; align-items: baseline; margin-top: .375rem; overflow-wrap: anywhere; }
+.graph-actions { margin: -.75rem 0 1.25rem; }

@@ -2,7 +2,7 @@
 
 from flask_wtf import FlaskForm
 from flask_wtf.file import FileField, FileRequired
-from wtforms import StringField, TextAreaField
+from wtforms import StringField
 from wtforms.validators import DataRequired
 
 from fingerprinter.entrypoints.ui import labels
@@ -14,7 +14,6 @@ class FingerprintSPARQLEndpointForm(FlaskForm):
         description=labels.ENDPOINT_URL_HELP,
         validators=[DataRequired(message=labels.PROBLEMS["InvalidSource"])],
     )
-    graphs = TextAreaField(labels.GRAPHS_LABEL, description=labels.GRAPHS_HELP)
 
 
 class FingerprintFileForm(FlaskForm):

@@ -93,6 +93,11 @@ def finished_source(tag: str) -> str:
 
 
 @pytest.fixture(scope="module")
+def unreachable_source(tag: str) -> str:
+    return UNREACHABLE.format(f"{tag}-graphs")
+
+
+@pytest.fixture(scope="module")
 def finished_job(api_url: str, start_job: Callable[[str], str], finished_source: str) -> str:
     """A job in a final state, quickly: its endpoint does not exist."""
     job_id = start_job(finished_source)

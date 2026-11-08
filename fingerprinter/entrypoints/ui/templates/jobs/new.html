@@ -36,9 +36,16 @@
         <form class="card" method="post" action="{{ url_for('start_endpoint_job') }}" novalidate>
             {{ form.csrf_token }}
             {{ macros.field(form.sparql_endpoint_url, type="url", autocomplete="url") }}
-            {{ macros.field(form.graphs, rows=4) }}
+            <p class="graph-actions">
+                {# type=button: Enter in the URL field must start the job, not load graphs #}
+                <button type="button" class="btn" hx-post="{{ url_for('graphs') }}" hx-include="closest form"
+                        hx-target="#graphs-picker" hx-swap="outerHTML">{{ labels.LOAD_GRAPHS }}</button>
+            </p>
+            {% include "jobs/_graphs.html" %}
             <div class="form-actions">
                 <button type="submit" class="btn btn-primary">{{ labels.START_FINGERPRINTING }}</button>
+                {# after the button that starts the job, so Enter starts it; with JavaScript the button above loads #}
+                <noscript><button type="submit" class="btn" name="load_graphs" value="1" formnovalidate>{{ labels.LOAD_GRAPHS }}</button></noscript>
                 <a class="btn" href="{{ url_for('index') }}">{{ labels.CANCEL }}</a>
             </div>
         </form>

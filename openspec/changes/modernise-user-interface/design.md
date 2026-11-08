@@ -64,7 +64,7 @@ WCAG 2.2 AA in light and dark; no external assets. Non-goals: the EPIC's no-gos.
   | `GET /jobs/<id>/diagrams/<file>` | one SVG for `<img>`: inline, only for a file of format `svg` listed in the record, with `Content-Security-Policy: default-src 'none'; style-src 'unsafe-inline'; sandbox` and `nosniff` |
   | `GET /jobs/<id>/delete?next=`, `POST /jobs/<id>/delete` | the confirmation page, then the delete (CSRF); redirects to `/` |
   | `GET /jobs/<id>/cancel?next=`, `POST /jobs/<id>/cancel` | the same for cancelling; redirects to `next` (a local path: `/` or `/jobs/<id>`; anything else becomes `/`) |
-  | `GET /jobs/new/graphs?url=` | stage 3: the checkboxes fragment, or the sentence why the graphs could not be listed |
+  | `POST /jobs/new/graphs` | stage 3, htmx (CSRF token in the form): the checkboxes fragment and the URL field, or the sentence why the graphs could not be listed |
 
   The confirmation is a page drawn as the mockup's dialog over a dimmed page (`role=alertdialog`,
   "Keep it" focused first; "Keep it" links back to `next`). After a `POST`, the outcome is a flash
@@ -126,12 +126,12 @@ WCAG 2.2 AA in light and dark; no external assets. Non-goals: the EPIC's no-gos.
   container fixture uses the same image.
 - **U-10 Graph listing** (stage 3, DEC-9). `Fingerprinter.named_graphs(url) -> tuple[str, ...]`:
   the adapter calls `list_named_graphs(url, resolve_settings(env={}, config={"timeout_seconds": 20}))`
-  and turns `EndpointUnreachable`, `QueryTimeout`, `PermanentError` and `ValueError` (`UsageError`)
-  into `GraphListingFailed(reason)` (domain). `services.jobs.list_graphs(url, *, fingerprinter)`
+  and turns `EndpointUnreachable`, `QueryTimeout` and `PermanentError` into
+  `GraphListingFailed(reason)` (domain; `ValueError` is not mapped, S3-4). `services.jobs.list_graphs(url, *, fingerprinter)`
   checks the URL with the same function `submit_endpoint_job` uses (`_check_endpoint_url`, extracted:
   http/https, a host, no user info → `InvalidSource`). `GET /endpoint-graphs?url=` → `200
   {"graphs": [...]}`, `400` `InvalidSource`, `502` `GraphListingFailed` (added to `PROBLEM_STATUS`).
-  The UI calls it with a 60 s timeout (the library's 20 s per query, with its retries).
+  The UI calls it with a 75 s timeout (the library's worst case is about 65 s, S3-3).
 - **U-11 Report frame** (DEC-5). `<iframe src="/jobs/<id>/report" sandbox="allow-scripts"
   title="Report for <source>">` (80vh), plus "Open in a new tab" (same route, so the CSP sandbox
   applies there too). The UI never alters the page.
@@ -304,6 +304,70 @@ Sentences live in `labels.py`; the upgrade's design, section *Error matrix*, is 
 - **Playwright in CI** is slow and downloads a browser: only in the container job.
 - **Cropped diagrams** above 16384 px: accepted; the PlantUML file is still downloadable.
 - **Polling load**: 3 s per open page, only while something is active.
+
+## As built in stage 3 (tasks 3.1–3.2, 2026-11-08)
+
+- **U-10** The adapter maps each library error to a fixed reason ("the endpoint could not be
+  reached", "did not answer in time", "refused the query", "URL is not valid"); no library message
+  or URL is passed on, so no user info can leak.
+- **U-10** "Load graphs" is an htmx `type="button"`: `hx-post="/jobs/new/graphs"` with
+  `hx-include="closest form"` (the CSRF token goes along). The no-JS submit is a second button
+  `name="load_graphs"` in `<noscript>`, after "Start fingerprinting" (so Enter starts the job);
+  `POST /jobs/endpoint` with `load_graphs` lists the graphs and shows the New job page again, with the
+  URL and the ticks, instead of starting a job. The field has one name, `sparql_endpoint_url`; the GET
+  routes `/jobs/new/graphs` and `/jobs/new?url=` are gone (S3-1).
+- **U-10** The picker carries a hidden `graphs_url`, the URL it was listed for; a submission whose
+  ticked graphs come from another URL is refused with "These graphs belong to another endpoint. Load
+  graphs again." (S3-2). A failed reload keeps the ticked graphs, ticked, and the old `graphs_url`.
+- **U-10** Ticks survive reloading the list and a refused submission. The list swap also replaces the
+  whole URL field (`id="sparql_endpoint_url-field"`, out of band, `aria-invalid` follows) and `#announce`.
+  A reply that arrives while the user types in the URL field replaces what was typed since the click.
+- **U-10** The listing call waits 75 s (`LISTING_TIMEOUT_SECONDS`). A UI-side timeout is shown as the
+  library's own reason: "Could not list the graphs: the endpoint did not answer in time." (the same
+  `GraphListingFailed` problem the API sends, so no UI-only problem type), not as "service not
+  reachable". `ApiClient` parses JSON answers through one helper (`_parsed`).
+- **U-9** (found taking the stage-3 screenshots) The PlantUML server reads a POST body without a
+  charset as Latin-1, so the library's em dashes came out as "â". The adapter sends
+  `Content-Type: text/plain; charset=utf-8`; an integration test draws a title with an em dash.
+
+## Stage-3 review (five lenses, 2026-11-08): accepted fixes
+
+Recorded before the fixes (Rule of Divergence). *Leader's choices* are marked.
+
+- **S3-1** *(leader's choice)* Loading graphs is a `POST` with the CSRF token, so no other site can
+  make the UI query a URL and nothing lands in a query string: htmx `hx-post="/jobs/new/graphs"`
+  including the form; without JS, a second submit button `name="load_graphs"` placed **after**
+  "Start fingerprinting" (so Enter starts the job) posts the endpoint form, and `POST /jobs/endpoint`
+  lists the graphs and shows the page again instead of starting a job. The GET routes
+  `/jobs/new/graphs` and `/jobs/new?url=` go; the field has one name, `sparql_endpoint_url`. The
+  API's `GET /endpoint-graphs?url=` stays (its URL is logged; user info is refused).
+- **S3-2** The picker remembers the URL it was loaded for (a hidden `graphs_url`); a submission whose
+  ticked graphs came from another URL is refused with "These graphs belong to another endpoint. Load
+  graphs again." A failed reload keeps the ticked graphs, ticked, under the failure sentence.
+- **S3-3** Timing: the library's worst case is 3 attempts × 20 s per read plus 5 s backoff ≈ 65 s, and
+  the timeout is per read (`meaningfy-ws/rdf-fingerprinter#76`). The UI's listing call waits 75 s; a
+  UI-side timeout says "Could not list the graphs: the endpoint did not answer in time." rather than
+  "service not reachable".
+  The UI image runs gunicorn with threads (`gthread`) so one listing does not block other pages
+  (stage-4 `infra/`).
+- **S3-4** `ValueError` is no longer mapped to "URL is not valid": the URL is checked before the
+  library is called, so a remaining `UsageError` is a configuration fault and surfaces as a 500 and a
+  log line; an answer without `?g` also gives a 500 until `meaningfy-ws/rdf-fingerprinter#77`.
+- **S3-5** The listing runs in the API process: the egress rule of `SECURITY.md` (#35) covers the
+  API container as well as the worker (stage 4).
+- **S3-6** Copy and markup: "1 named graph found." / "No named graphs found." through `labels.count`;
+  the out-of-band swap replaces the whole URL field (its `aria-invalid` follows); the fieldset is
+  described by its hint and error; the `.rstrip(".")` goes.
+- **S3-7** Tests: requests carry `sparql_endpoint_url` as the page sends it; ticks survive an htmx
+  reload and a failed one; the rendered checkboxes sit inside the endpoint form and their data makes
+  the POST; each library error maps to its reason and no reason holds the URL; a graph IRI with markup
+  is escaped; a cross-site GET lists nothing; the e2e wait is about 15 s and uses the module's
+  unreachable-URL tag.
+- **S3-8** `ApiClient` parses answers through one helper; the graphs context starts from one constant;
+  no hidden read of `request.form` in `_new_job_page`.
+
+Deferred: a cap on concurrent listings in the API (503 when full) and a rate limit at the proxy, until
+#76 bounds each query. Kept as is: the reasons' wording in the adapter (one consumer).
 
 ## Beyond the original specs (recorded 2026-11-08)
 

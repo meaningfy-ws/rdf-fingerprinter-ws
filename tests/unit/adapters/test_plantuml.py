@@ -40,6 +40,7 @@ def test_the_text_is_posted_unchanged_to_the_svg_endpoint_with_a_timeout(rendere
     assert url == f"{INTERNAL_URL}/svg"
     assert kwargs["data"] == PUML.encode()
     assert kwargs["timeout"] == 30
+    assert kwargs["headers"] == {"Content-Type": "text/plain; charset=utf-8"}
 
 
 @pytest.mark.parametrize(

@@ -1,7 +1,8 @@
 """``Fingerprinter`` on the rdf-fingerprinter library; the only module that imports ``fingerprint``.
 
-Library errors (``ValueError`` for usage errors, ``EndpointUnreachable``) are not caught here: the
-job service turns them into a failed job (design D-15).
+Library errors of a run (``ValueError`` for usage errors, ``EndpointUnreachable``) are not caught
+here: the job service turns them into a failed job (design D-15). Those of a graph listing become
+``GraphListingFailed``.
 """
 
 import shutil
@@ -10,10 +11,12 @@ from pathlib import Path
 from typing import Any
 
 from fingerprint import config as library_config
-from fingerprint.service_layer.handlers import fingerprint_report
+from fingerprint.adapters.exceptions import EndpointUnreachable, PermanentError, QueryTimeout
+from fingerprint.service_layer.handlers import fingerprint_report, list_named_graphs
 from fingerprint.service_layer.representations import generate_representations
 from fingerprint.service_layer.settings import resolve_settings
 
+from fingerprinter.domain.exceptions import GraphListingFailed
 from fingerprinter.domain.model import FingerprintOutcome, ReportFormat
 
 
@@ -26,6 +29,15 @@ def describe_failure(failure: Any) -> str:
     ]
     reason = f": {failure.message}" if failure.message else ""
     return " ".join([f"{failure.query_kind} failed", *where]) + reason
+
+
+# Why a graph listing failed, in words for the user: the library's messages can name the URL.
+LISTING_FAILURES: Mapping[type[Exception], str] = {
+    EndpointUnreachable: "the endpoint could not be reached",
+    QueryTimeout: "the endpoint did not answer in time",
+    PermanentError: "the endpoint refused the query",
+}
+LISTING_TIMEOUT_SECONDS = 20
 
 
 def _move_into(report_format: ReportFormat, source: Path, work_folder: Path) -> Path:
@@ -58,6 +70,14 @@ def _generate(run: Any, work_folder: Path) -> dict[ReportFormat, tuple[Path, ...
 
 
 class LibraryFingerprinter:
+    def named_graphs(self, url: str) -> tuple[str, ...]:
+        settings = resolve_settings(env={}, config={"timeout_seconds": LISTING_TIMEOUT_SECONDS})
+        try:
+            return tuple(list_named_graphs(url, settings))
+        except tuple(LISTING_FAILURES) as error:
+            reason = next(why for kind, why in LISTING_FAILURES.items() if isinstance(error, kind))
+            raise GraphListingFailed(reason) from error
+
     def fingerprint(
         self, endpoint_url: str, graphs: tuple[str, ...], work_folder: Path
     ) -> FingerprintOutcome:
