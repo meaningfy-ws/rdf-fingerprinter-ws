@@ -67,3 +67,39 @@ def test_sparql_wrapper_adapter_upload_file_failure_fuseki_exception(tmpdir, fak
         _ = sparql_wrapper_adapter.upload_file("dataset", str(file))
 
     assert "Error connecting to fuseki: internal error" in str(e)
+
+
+@pytest.mark.parametrize(
+    ("extension", "content_type"),
+    [
+        ("rdf", "application/rdf+xml"),
+        ("trix", "application/trix+xml"),
+        ("nq", "application/n-quads"),
+        ("nt", "application/n-triples"),
+        ("jsonld", "application/ld+json"),
+        ("n3", "text/n3"),
+        ("ttl", "text/turtle"),
+    ],
+)
+def test_upload_streams_the_file_with_its_rdf_content_type(
+    tmpdir, fake_requests, extension, content_type
+):
+    fake_requests.status_code = 200
+    file = tmpdir.join(f"data.{extension}")
+    file.write("the data")
+
+    helper_sparql_wrapper(http_client=fake_requests).upload_file("dataset", str(file))
+
+    assert fake_requests.url.endswith("/dataset/data")
+    assert fake_requests.sent_body == b"the data"
+    assert fake_requests.sent_headers == {"Content-Type": content_type}
+
+
+@pytest.mark.parametrize("status", [201, 204])
+def test_upload_accepts_every_success_status(tmpdir, fake_requests, status):
+    fake_requests.status_code = status
+    fake_requests.text = ""
+    file = tmpdir.join("data.ttl")
+    file.write("the data")
+
+    helper_sparql_wrapper(http_client=fake_requests).upload_file("dataset", str(file))

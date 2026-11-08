@@ -1,4 +1,4 @@
-import logging as logger
+import logging
 from pathlib import Path
 from uuid import uuid4
 
@@ -7,14 +7,16 @@ from werkzeug.datastructures import FileStorage
 from fingerprinter.config import config
 from fingerprinter.services.file import save_file
 
+logger = logging.getLogger(__name__)
 
-def create_db_entry(location: str = config.RDF_FINGERPRINTER_FILE_DB) -> str:
+
+def create_db_entry(location: str | None = None) -> str:
     """
     Create a new entry in the database.
     :param location: location to create the entry
     :return: entry path
     """
-    location_to_save = Path(location) / str(uuid4())
+    location_to_save = Path(location or config.RDF_FINGERPRINTER_FILE_DB) / str(uuid4())
     location_to_save.mkdir()
     return str(location_to_save)
 

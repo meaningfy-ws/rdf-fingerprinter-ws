@@ -153,7 +153,7 @@ class FusekiSPARQLAdapter(AbstractSPARQLAdapter):
                 headers={"Content-Type": get_file_format(file_path)},
             )
 
-        if response.status_code != 200:
+        if not 200 <= response.status_code < 300:
             raise FusekiException(f"Error connecting to fuseki: {response.text}")
 
         try:

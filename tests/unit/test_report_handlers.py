@@ -1,6 +1,6 @@
 from json import dumps, loads
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 from uuid import uuid4
 from zipfile import ZipFile
 
@@ -47,7 +47,7 @@ def test_copy_report_files(tmpdir, monkeypatch):
     monkeypatch.setenv("RDF_FINGERPRINTER_ZIP_REPORT_NAME", "report.zip")
     monkeypatch.setenv("RDF_FINGERPRINTER_HTML_REPORT_NAME", "report.html")
     monkeypatch.setenv("RDF_FINGERPRINTER_JSON_REPORT_NAME", "report.json")
-    monkeypatch.setenv("RDF_FINGERPRINTER_REPORTS_DB_LOCATION", str(reports_location))
+    monkeypatch.setenv("RDF_FINGERPRINTER_REPORTS_DB", str(reports_location))
 
     zip_report = reports_location.join("report.zip")
     zip_report.write("zip")
@@ -233,7 +233,7 @@ def test_fingerprint_sparql_endpoint(mock_fingerprint_report, tmpdir):
     def write_report(url, folder, settings, **kwargs):
         (Path(folder) / "main.html").write_text("html")
         (Path(folder) / "profile.json").write_text("json")
-        return Path(folder) / "main.html", None
+        return Path(folder) / "main.html", MagicMock(failures=[])
 
     mock_fingerprint_report.side_effect = write_report
 
@@ -309,3 +309,45 @@ def test_generate_reports_from_file(mock_fingerprint_sparql_endpoint, tmpdir):
     assert (Path(reports_location) / "report.html").read_text() == "html"
     assert (Path(reports_location) / "report.json").read_text() == "json"
     assert (Path(reports_location) / "report.zip").read_text() == "zip"
+
+
+@patch("fingerprinter.services.report_handling.fingerprint_report")
+def test_library_settings_ignore_the_service_environment(
+    mock_fingerprint_report, tmpdir, monkeypatch
+):
+    """D-15: collection settings never come from the worker's environment."""
+    monkeypatch.setenv("RDF_FINGERPRINTER_TIMEOUT_SECONDS", "1")
+    folder = Path(str(tmpdir))
+
+    def write_report(url, folder, settings, **kwargs):
+        (Path(folder) / "main.html").write_text("html")
+        (Path(folder) / "profile.json").write_text("json")
+        return Path(folder) / "main.html", MagicMock(failures=[])
+
+    mock_fingerprint_report.side_effect = write_report
+
+    fingerprint_sparql_endpoint(
+        sparql_endpoint="http://example.com/sparql", output_location=str(folder), graphs=[]
+    )
+
+    settings = mock_fingerprint_report.call_args.args[2]
+    assert settings.timeout_seconds == 60
+    assert settings.selected_graphs is None
+
+
+@patch("fingerprinter.services.report_handling.fingerprint_report")
+def test_failed_measurements_are_logged(mock_fingerprint_report, tmpdir, caplog):
+    folder = Path(str(tmpdir))
+
+    def write_report(url, folder, settings, **kwargs):
+        (Path(folder) / "main.html").write_text("html")
+        (Path(folder) / "profile.json").write_text("json")
+        return Path(folder) / "main.html", MagicMock(failures=["q1 timed out", "q2 timed out"])
+
+    mock_fingerprint_report.side_effect = write_report
+
+    fingerprint_sparql_endpoint(
+        sparql_endpoint="http://example.com/sparql", output_location=str(folder)
+    )
+
+    assert "2 failed measurements" in caplog.text

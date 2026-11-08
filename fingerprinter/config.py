@@ -15,7 +15,13 @@ from pathlib import Path
 
 
 def strtobool(value: str) -> bool:
-    return value.strip().lower() in ("1", "true", "yes", "on", "y", "t")
+    """The truth value of a setting, as distutils.util.strtobool (removed in Python 3.12) gave it."""
+    normalised = value.strip().lower()
+    if normalised in ("1", "true", "yes", "on", "y", "t"):
+        return True
+    if normalised in ("0", "false", "no", "off", "n", "f"):
+        return False
+    raise ValueError(f"invalid truth value {value!r}")
 
 
 class FingerprinterConfig:
@@ -79,19 +85,19 @@ class FingerprinterConfig:
     @property
     def RDF_FINGERPRINTER_FUSEKI_PASSWORD(self) -> str:
         value = os.environ.get("RDF_FINGERPRINTER_FUSEKI_PASSWORD", "")
-        self.logger.debug(value)
+        # a secret: never logged
         return value
 
     @property
     def RDF_FINGERPRINTER_API_SECRET_KEY(self) -> str:
         value = os.environ.get("RDF_FINGERPRINTER_API_SECRET_KEY", "secret key api")
-        self.logger.debug(value)
+        # a secret: never logged
         return value
 
     @property
     def RDF_FINGERPRINTER_UI_SECRET_KEY(self) -> str:
         value = os.environ.get("RDF_FINGERPRINTER_UI_SECRET_KEY", "secret key ui")
-        self.logger.debug(value)
+        # a secret: never logged
         return value
 
     @property
@@ -154,7 +160,7 @@ class FingerprinterConfig:
     def INPUT_MIME_TYPES(self) -> dict:
         value = {
             "rdf": "application/rdf+xml",
-            "trix": "application/xml",
+            "trix": "application/trix+xml",
             "nq": "application/n-quads",
             "nt": "application/n-triples",
             "jsonld": "application/ld+json",

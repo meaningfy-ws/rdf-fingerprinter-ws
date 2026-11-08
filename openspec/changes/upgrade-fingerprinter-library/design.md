@@ -263,6 +263,30 @@ are shown as a flash message on the page that made the request.
 | Format with no file | `FormatNotAvailable` | `404` | info | the link is not shown |
 | Missing secret key | `Settings.from_env()` | the process does not start; the message names the variable | critical | — |
 
+### Stage-1 review (five lenses, 2026-11-08): accepted fixes
+
+Recorded before the fixes (Rule of Divergence):
+
+- **R1-1** TriX uploads: the upload now sends the raw file (Graph Store Protocol), so `Content-Type`
+  alone picks Fuseki's parser; `application/xml` is refused (400, checked against
+  `stain/jena-fuseki:4.0.0`). `config.INPUT_MIME_TYPES` maps `trix` to `application/trix+xml`; it is
+  the one table, read by the one lookup (`adapters.helpers.get_file_format`). Any 2xx answer to an
+  upload is a success.
+- **R1-2** Secrets: `config.py` no longer logs the Fuseki password or the secret keys;
+  `.dockerignore` keeps `.env` files, `db/`, `reports/`, `logs/` and local tooling out of the images.
+- **R1-3** The library's `ProfileRun.failures` are logged as a warning until stage 3 records them in
+  the job (DEC-11); the profile file is the named constant `LIBRARY_PROFILE_FILE` (D-15).
+- **R1-4** `strtobool` raises on an unknown value, as `distutils` did.
+- **R1-5** Logging: the API and UI configure the `fingerprinter` logger from
+  `RDF_FINGERPRINTER_LOG_LEVEL` (`fingerprinter/logging_setup.py`); services log through module
+  loggers. Stage 2 moves the call into `bootstrap`.
+- **R1-6** `bash/` and its Makefile targets go now (DEC-14, from stage 4): the scripts could not run
+  on Connexion 3 and pointed at the removed `requirements/`.
+- **R1-7** Tests write only to their own temporary folders (an autouse fixture), never to the
+  repository's `db/` and `reports/`.
+
+Deferred: action pins by SHA and the deprecated `uvicorn.workers` module (stage 4 images).
+
 ## Risks / Trade-offs
 
 - [Connexion 3 is a large migration (ASGI, new test client)] → stage 1 migrates against the old

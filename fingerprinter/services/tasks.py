@@ -1,10 +1,12 @@
-import logging as logger
+import logging
 from typing import Any
 
 from celery.result import AsyncResult
 
 from fingerprinter.adapters.celery import celery_worker
 from fingerprinter.services.report_handling import delete_report
+
+logger = logging.getLogger(__name__)
 
 
 def flatten_active_tasks(tasks: dict) -> Any:

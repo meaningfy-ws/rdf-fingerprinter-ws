@@ -9,10 +9,12 @@
 Service layer of the fingerprinter web services.
 """
 
-import logging as logger
+import logging
 from contextlib import contextmanager
 
 from fingerprinter.adapters.sparql_adapter import AbstractSPARQLAdapter
+
+logger = logging.getLogger(__name__)
 
 
 @contextmanager

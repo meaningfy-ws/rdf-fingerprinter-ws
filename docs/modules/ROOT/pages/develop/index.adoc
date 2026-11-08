@@ -49,7 +49,7 @@ work, commits and keeps the spine. In practice:
 |`fingerprinter/` |The service package: `entrypoints/api/` (Flask and Connexion, the OpenAPI contract in `openapi/`), `entrypoints/ui/` (Flask and Jinja), `services/`, `adapters/` (Fuseki, Celery), `config.py`
 |`tests/` |The tests (today `unit/`; the tier folders come with the library-upgrade EPIC)
 |`resources/templates/` |Report templates passed to the library
-|`docker/` |The images and the compose file; `bash/` holds the scripts for running without Docker
+|`docker/` |The images and the compose file (until stage 4 of the library-upgrade EPIC moves them to `infra/`)
 |`docs/` |This Antora component
 |`openspec/` |The spine: changes and living specs
 |===

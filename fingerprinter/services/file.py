@@ -1,4 +1,4 @@
-import logging as logger
+import logging
 import os
 import shutil
 from pathlib import Path
@@ -6,6 +6,8 @@ from uuid import uuid4
 
 from werkzeug.datastructures import FileStorage
 from werkzeug.utils import secure_filename
+
+logger = logging.getLogger(__name__)
 
 
 def build_secure_filename(location: str, filename: str) -> str:

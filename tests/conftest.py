@@ -30,6 +30,8 @@ class FakeRequests:
 
     def post(self, url, data=None, json=None, **kwargs):
         self.url = url
+        self.sent_body = data.read() if hasattr(data, "read") else data
+        self.sent_headers = kwargs.get("headers", {})
         return self
 
     def json(self):
@@ -54,6 +56,17 @@ class FakeSPARQLAdapter(AbstractSPARQLAdapter):
 
     def upload_file(self, dataset_name: str, file_path: str):
         self.actions.append(("UPLOAD", (dataset_name, file_path)))
+
+
+@pytest.fixture(autouse=True)
+def isolated_folders(tmp_path, monkeypatch):
+    """Uploads and reports go to the test's own folders, never to the repository's db/ and reports/."""
+    for variable, folder in (
+        ("RDF_FINGERPRINTER_FILE_DB", "service-db"),
+        ("RDF_FINGERPRINTER_REPORTS_DB", "service-reports"),
+    ):
+        (tmp_path / folder).mkdir()
+        monkeypatch.setenv(variable, str(tmp_path / folder))
 
 
 @pytest.fixture(scope="function")

@@ -9,7 +9,7 @@
 Service layer for report generation.
 """
 
-import logging as logger
+import logging
 import shutil
 from collections.abc import Callable
 from json import dumps, loads
@@ -32,6 +32,13 @@ from fingerprinter.services.file import (
 )
 from fingerprinter.services.handlers import upload_file_to_dataset
 from fingerprinter.services.time import get_timestamp
+
+logger = logging.getLogger(__name__)
+
+
+# The library's default profile name: the service sets none of the library's own RDF_FINGERPRINTER_*
+# variables (D-15), so RDF_FINGERPRINTER_PROFILE_FILE keeps its default.
+LIBRARY_PROFILE_FILE = "profile.json"
 
 
 def zip_report_files(
@@ -169,12 +176,15 @@ def fingerprint_sparql_endpoint(
     :return: the html report, json report and zip locations
     """
     logger.debug("generating fingerprinting reports")
-    # env={}: the library's operational settings never come from this service's environment (D-15)
+    # env={}: collection settings never come from this service's environment (D-15)
     settings = resolve_settings(env={}, selected_graphs=graphs or None)
-    html_report, _ = fingerprint_report(
+    html_report, run = fingerprint_report(
         sparql_endpoint, output_location, settings, formats=(), prefix_list=None
     )
-    json_report = Path(html_report).parent / "profile.json"
+    if run.failures:
+        # stage 3 records them in the job (DEC-11); until then they are at least visible in the log
+        logger.warning(f"{len(run.failures)} failed measurements for {sparql_endpoint}")
+    json_report = Path(output_location) / LIBRARY_PROFILE_FILE
 
     zip_report = zip_report_files(
         output_location=output_location, html_report=str(html_report), json_report=str(json_report)

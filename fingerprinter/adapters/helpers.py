@@ -6,15 +6,7 @@
 # Email: coslet.mihai@gmail.com
 from pathlib import PurePath
 
-INPUT_MIME_TYPES = {
-    "rdf": "application/rdf+xml",
-    "trix": "application/xml",
-    "nq": "application/n-quads",
-    "nt": "application/n-triples",
-    "jsonld": "application/ld+json",
-    "n3": "text/n3",
-    "ttl": "text/turtle",
-}
+from fingerprinter.config import config
 
 
 def get_file_format(file: str, types: dict[str, str] | None = None) -> str:
@@ -25,7 +17,9 @@ def get_file_format(file: str, types: dict[str, str] | None = None) -> str:
     :param types: a dictionary of expected fle types for the file to be checked on
     :return: format of the file
     """
-    file_format = (types or INPUT_MIME_TYPES).get(PurePath(str(file)).suffix.lstrip(".").lower())
+    file_format = (config.INPUT_MIME_TYPES if types is None else types).get(
+        PurePath(str(file)).suffix.lstrip(".").lower()
+    )
     if file_format is None:
         raise ValueError(f'Format of "{file}" is not supported.')
 

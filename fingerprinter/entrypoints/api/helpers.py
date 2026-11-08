@@ -10,20 +10,21 @@ API helper methods or constants
 """
 
 import logging
-from pathlib import PurePath
 from urllib.parse import urlparse
 
 from werkzeug.exceptions import BadRequest, UnprocessableEntity
 
+from fingerprinter.adapters.helpers import get_file_format
 from fingerprinter.config import config
 
 logger = logging.getLogger(__name__)
 
 
-def _guess_file_type(file: str | None, accepted_types: dict[str, str] | None = None) -> str | None:
-    return (accepted_types or config.INPUT_MIME_TYPES).get(
-        PurePath(file or "").suffix.lstrip(".").lower()
-    )
+def _guess_file_type(file: str | None) -> str | None:
+    try:
+        return get_file_format(file or "")
+    except ValueError:
+        return None
 
 
 def is_url(url: str) -> bool:

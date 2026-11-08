@@ -21,7 +21,7 @@ COV_FLAGS = --cov=$(PACKAGE_NAME) \
 # The unit lane never collects the container tests.
 UNIT_LANE = --ignore=$(TEST_PATH)/integration --ignore=$(TEST_PATH)/e2e
 
-# The legacy docker/ and bash/ targets read their settings from docker/.env (stage 4 replaces both).
+# The legacy docker/ targets read their settings from docker/.env (stage 4 replaces it with infra/).
 -include docker/.env
 
 .DEFAULT_GOAL := help
@@ -38,7 +38,7 @@ help: ## Display available targets
 		| awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-22s\033[0m %s\n", $$1, $$2}'
 
 install-uv: ## Install uv if not present
-	@ command -v uv >/dev/null || curl -LsSf https://astral.sh/uv/install.sh | sh
+	@ command -v uv >/dev/null || curl -LsSf https://astral.sh/uv/0.13.5/install.sh | sh
 
 install: install-uv ## Install the project dependencies (all groups; does NOT lock)
 	@ echo -e "$(BUILD_PRINT)$(ICON_PROGRESS) Installing dependencies$(END_BUILD_PRINT)"
@@ -98,34 +98,6 @@ test-unit: ## Run unit tests only
 
 test-feature: ## Run BDD feature tests only
 	@ uv run pytest $(TEST_PATH) $(UNIT_LANE) -m "feature"
-
-#-----------------------------------------------------------------------------
-# Legacy local-run targets (removed in stage 4, DEC-14)
-#-----------------------------------------------------------------------------
-install-os-dependencies-redhat:
-	@ ./bash/install_os_dependencies.sh
-
-run-local-api:
-	@ ./bash/run_api.sh
-
-run-local-ui:
-	@ ./bash/run_ui.sh
-
-run-local-redis-redhat:
-	@ sudo systemctl enable redis --now
-
-stop-local-gunicorn:
-	@ ./bash/stop_gunicorn.sh
-#------------------------------------------------------------------------------
-# Ubuntu related commands
-#------------------------------------------------------------------------------
-
-install-os-dependencies-ubuntu:
-	@ sudo apt install git python3-pip redis-server curl
-
-run-local-redis-ubuntu:
-	@ sudo cp docker/redis.conf /etc/redis/redis.conf
-	@ sudo systemctl restart redis.service
 
 #-----------------------------------------------------------------------------
 # Service commands
