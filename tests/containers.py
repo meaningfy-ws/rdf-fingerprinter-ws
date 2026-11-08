@@ -1,4 +1,4 @@
-"""Session-scoped containers for the integration tests (design D-11, D-13); started once per run."""
+"""Session-scoped Fuseki and Redis containers for the integration and e2e tests (design D-11, D-13); started once per run."""
 
 from collections.abc import Iterator
 from dataclasses import dataclass
@@ -17,9 +17,24 @@ REDIS_PORT = 6379
 
 @dataclass(frozen=True)
 class FusekiServer:
-    url: str
+    host: str
+    port: int
     user: str
     password: str
+
+    @property
+    def url(self) -> str:
+        return f"http://{self.host}:{self.port}"
+
+
+@dataclass(frozen=True)
+class RedisServer:
+    host: str
+    port: int
+
+    @property
+    def url(self) -> str:
+        return f"redis://{self.host}:{self.port}/0"
 
 
 @pytest.fixture(scope="session")
@@ -33,11 +48,11 @@ def fuseki() -> Iterator[FusekiServer]:
     with container:
         host = container.get_container_host_ip()
         port = container.get_exposed_port(FUSEKI_PORT)
-        yield FusekiServer(f"http://{host}:{port}", FUSEKI_ADMIN_USER, FUSEKI_ADMIN_PASSWORD)
+        yield FusekiServer(host, int(port), FUSEKI_ADMIN_USER, FUSEKI_ADMIN_PASSWORD)
 
 
 @pytest.fixture(scope="session")
-def redis_url() -> Iterator[str]:
+def redis_server() -> Iterator[RedisServer]:
     container = (
         DockerContainer(REDIS_IMAGE)
         .with_exposed_ports(REDIS_PORT)
@@ -45,4 +60,4 @@ def redis_url() -> Iterator[str]:
     )
     with container:
         host = container.get_container_host_ip()
-        yield f"redis://{host}:{container.get_exposed_port(REDIS_PORT)}/0"
+        yield RedisServer(host, int(container.get_exposed_port(REDIS_PORT)))

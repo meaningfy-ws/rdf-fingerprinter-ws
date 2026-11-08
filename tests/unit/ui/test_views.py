@@ -73,6 +73,9 @@ def page(response) -> BeautifulSoup:
     return BeautifulSoup(response.data, "html.parser")
 
 
+FORMATS = ["html", "json", "shacl", "puml", "pattern", "shex", "pitfalls"]
+
+
 def record(job_id="job-1", state="completed", **fields):
     return {
         "id": job_id,
@@ -81,7 +84,7 @@ def record(job_id="job-1", state="completed", **fields):
         "state": state,
         "reason": None,
         "failures": [],
-        "formats": ["html", "json"],
+        "formats": FORMATS,
         **fields,
     }
 
@@ -118,15 +121,20 @@ def test_failures_are_shown(client, api):
 
 def test_the_report_page_lists_the_downloads(client, api):
     api.answers["get_reports"] = FakeResponse(
-        200, [record("ok"), record("bad", "failed", reason="x", formats=[])]
+        200,
+        [
+            record("ok"),
+            record("part", formats=["html"]),
+            record("bad", "failed", reason="x", formats=[]),
+        ],
     )
 
     soup = page(client.get("/"))
 
-    assert soup.find("a", id="get-html-ok")["href"] == "/reports/ok/html"
-    assert soup.find("a", id="get-json-ok")["href"] == "/reports/ok/json"
-    assert soup.find("a", id="get-zip-ok")["href"] == "/reports/ok/zip"
-    assert soup.find("a", id="get-pitfalls-ok") is None
+    for report_format in [*FORMATS, "zip"]:
+        link = soup.find("a", id=f"get-{report_format}-ok")
+        assert link["href"] == f"/reports/ok/{report_format}"
+    assert soup.find("a", id="get-shacl-part") is None
     assert soup.find("a", id="get-html-bad") is None
     assert soup.find("a", id="get-zip-bad") is None
     assert soup.find("a", id="remove-bad")["href"] == "/reports/bad"
@@ -185,16 +193,30 @@ def test_an_unsupported_file_flashes_the_accepted_types(client, api):
     )
 
 
-def test_a_download_proxies_the_api_file(client, api):
+@pytest.mark.parametrize(
+    ("report_format", "name", "content_type"),
+    [
+        ("html", "main.html", "text/html"),
+        ("shacl", "shapes-x.ttl", "text/turtle"),
+        ("puml", "uid-1-puml.zip", "application/zip"),
+        ("zip", "report.zip", "application/zip"),
+    ],
+)
+def test_a_download_proxies_the_api_file_with_its_name_and_type(
+    client, api, report_format, name, content_type
+):
     api.answers["get_report"] = FakeResponse(
-        200, content=b"<html/>", headers={"Content-Disposition": "inline; filename=main.html"}
+        200,
+        content=b"content",
+        headers={"Content-Disposition": f"inline; filename={name}", "Content-Type": content_type},
     )
 
-    response = client.get("/reports/uid-1/html")
+    response = client.get(f"/reports/uid-1/{report_format}")
 
-    assert ("get_report", "uid-1", "html") in api.calls
-    assert response.data == b"<html/>"
-    assert response.headers["Content-Disposition"] == "attachment; filename=uid-1-main.html"
+    assert ("get_report", "uid-1", report_format) in api.calls
+    assert response.data == b"content"
+    assert response.headers["Content-Disposition"] == f"attachment; filename={name}"
+    assert response.headers["Content-Type"].startswith(content_type)
 
 
 def test_a_failed_download_returns_to_the_list_with_the_message(client, api):

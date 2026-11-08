@@ -50,6 +50,7 @@ def build_services() -> Services:
         ),
         fingerprinter=LibraryFingerprinter(),
         supported_extensions=frozenset(settings.input_mime_types),
+        output_mime_types=settings.output_mime_types,
     )
 
 

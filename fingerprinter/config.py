@@ -18,6 +18,20 @@ INPUT_MIME_TYPES: Mapping[str, str] = {
     "ttl": "text/turtle",
 }
 
+# The media type of each file extension the downloads carry: the library's outputs, so that the type
+# does not depend on the Python version's own table.
+OUTPUT_MIME_TYPES: Mapping[str, str] = {
+    "html": "text/html",
+    "json": "application/json",
+    "ttl": "text/turtle",
+    "shex": "text/shex",
+    "tsv": "text/tab-separated-values",
+    "md": "text/markdown",
+    "csv": "text/csv",
+    "puml": "text/plain",
+    "zip": "application/zip",
+}
+
 BYTES_PER_MB = 1024 * 1024
 
 
@@ -58,6 +72,7 @@ class Settings:
     show_swagger_ui: bool
     log_level: str
     input_mime_types: Mapping[str, str] = field(default_factory=lambda: INPUT_MIME_TYPES)
+    output_mime_types: Mapping[str, str] = field(default_factory=lambda: OUTPUT_MIME_TYPES)
 
     @classmethod
     def from_env(cls) -> "Settings":

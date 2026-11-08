@@ -10,6 +10,8 @@ from pathlib import Path
 
 import pytest
 
+pytest_plugins = ["tests.containers"]  # Fuseki and Redis containers, shared by two tiers
+
 
 @pytest.fixture(autouse=True)
 def isolated_folders(tmp_path, monkeypatch):

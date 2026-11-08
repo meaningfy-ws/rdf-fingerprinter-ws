@@ -181,7 +181,10 @@ Library 3.5.0 facts this plan relies on (checked in `/home/lps/work/repos/rdf-fi
   only `shacl` and `puml` under `formats`, although all six generators are registered. Task 3.1
   confirms `pattern`, `shex` and `pitfalls` render through `generate_representations` and files a
   `documentation` issue in `meaningfy-ws/rdf-fingerprinter`; if one does not render, the task stops
-  and files a `bug` issue instead (the strict rule).
+  and files a `bug` issue instead (the strict rule). *Settled (2026-11-08, 3.6.0):* all five render
+  (`shacl` one file, `puml` one diagram plus one per module, `pattern` five files, `shex` one,
+  `pitfalls` one TSV); the documentation gap is `meaningfy-ws/rdf-fingerprinter#69`. The repository
+  has no `documentation` label, so the issue is unlabelled.
 - **L-2** The wheel ships no `py.typed` marker, so mypy treats `fingerprint` as untyped
   (`meaningfy-ws/rdf-fingerprinter#64`, filed in task 1.6). `mypy.ini` holds a section
   `[mypy-fingerprint.*] ignore_missing_imports = True`, named and scoped to that package; it changes
@@ -286,6 +289,30 @@ Recorded before the fixes (Rule of Divergence):
 - **R1-7** Tests write only to their own temporary folders (an autouse fixture), never to the
   repository's `db/` and `reports/`.
 
+### Stage-3 review (five lenses, 2026-11-08): accepted fixes
+
+Recorded before the fixes (Rule of Divergence).
+
+- **R3-1** A file job deletes its dataset and discards its upload *before* its final state is
+  recorded, so no client sees a finished job whose dataset still exists (spec "The dataset is
+  removed after success/failure"); a feature check proves the order, and the e2e success test also
+  checks the upload folder.
+- **R3-2** `FileJobStore.save_outputs` builds the per-format zips of multi-file formats beside
+  `report.zip`, each through a temporary file and `os.replace`; `file_for` only reads them.
+- **R3-3** `LibraryFingerprinter` maps `ReportFormat` to the library's generator ids explicitly
+  (`GENERATOR_IDS`); the pitfall-scan setting is a named constant; the generation loop is its own
+  function.
+- **R3-4** Downloads take their media type from one table of the library's output types (in
+  `config.py`, beside `INPUT_MIME_TYPES`), passed to `send_file(..., mimetype=...)`, and carry
+  `X-Content-Type-Options: nosniff`; the import-time `mimetypes` registration goes.
+- **R3-5** The pitfall integration test asserts the finding itself in the report page (the subject
+  `http://example.org/Person` in the Pitfalls section), not only the check id, which 3.6.0 also lists
+  among clean checks.
+- **R3-6** Tests: final states from `JobState`; the dataset name from one service function
+  (`dataset_name(job_id)`); one fake library outcome in `tests/fakes.py`; the format list derived
+  from `ReportFormat`; `pytest_plugins` for the shared container fixtures; container host/port
+  exposed instead of parsed; the API zip test uses the fake store.
+
 ### Stage-2 review (five lenses, 2026-11-08): accepted fixes
 
 Recorded before the fixes (Rule of Divergence). *Leader's choices* are marked.
@@ -356,8 +383,9 @@ Deferred, with their home:
 - **D-7** *Leader's choice:* `RDF_FINGERPRINTER_TIMEZONE` and `TIME_FORMAT` are dropped: job times
   are UTC ISO strings and nothing read them. `RDF_FINGERPRINTER_DEBUG` and the Flask config classes
   went with the `run.py` modules.
-- **D-6** No `task_revoked` handler yet: *Risks* makes it conditional on the stage-3 e2e
-  cancellation test.
+- **D-6** No `task_revoked` handler: *Risks* made it conditional on the stage-3 e2e cancellation
+  test, which passes without it (5 of 5 runs, prefork worker): the task's `finally` removes the
+  dataset despite `revoke(terminate=True)`. Closed as not needed.
 
 Deferred: action pins by SHA and the deprecated `uvicorn.workers` module (stage 4 images).
 

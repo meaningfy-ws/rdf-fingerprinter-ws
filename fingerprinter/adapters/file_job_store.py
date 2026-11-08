@@ -16,11 +16,19 @@ REPORT_ZIP = "report.zip"
 
 def _zip(root: Path, target: Path, folder_names: list[str]) -> None:
     """Zip the given folders of ``root``, each file under its path relative to ``root``."""
-    with zipfile.ZipFile(target, "w", zipfile.ZIP_DEFLATED) as archive:
+    # replace, not write: a download never finds a half-written zip
+    temporary = target.with_suffix(".tmp")
+    with zipfile.ZipFile(temporary, "w", zipfile.ZIP_DEFLATED) as archive:
         for name in folder_names:
             for path in sorted((root / name).rglob("*")):
                 if path.is_file():
                     archive.write(path, arcname=path.relative_to(root).as_posix())
+    os.replace(temporary, target)
+
+
+def _format_zip(job_folder: Path, report_format: ReportFormat) -> Path:
+    """The download of a format that has several files: one zip beside ``report.zip``."""
+    return job_folder / f"{job_folder.name}-{report_format.value}.zip"
 
 
 class FileJobStore:
@@ -80,6 +88,9 @@ class FileJobStore:
             for path in paths:
                 (folder / report_format.value).mkdir(exist_ok=True)
                 shutil.move(path, folder / report_format.value / path.name)
+        for report_format, paths in outcome.files.items():
+            if len(paths) > 1:
+                _zip(folder / report_format.value, _format_zip(folder, report_format), ["."])
         _zip(folder, folder / REPORT_ZIP, folder_names=[f.value for f in outcome.formats])
         self._write(dataclasses.replace(record, formats=outcome.formats))
 
@@ -102,10 +113,7 @@ class FileJobStore:
             raise FormatNotAvailable(job_id, report_format)
         if len(files) == 1:
             return files[0]
-        download = folder / f"{job_id}-{report_format.value}.zip"
-        if not download.exists():
-            _zip(folder / report_format.value, download, folder_names=["."])
-        return download
+        return _format_zip(folder, report_format)
 
     def delete(self, job_id: str) -> None:
         self.get(job_id)

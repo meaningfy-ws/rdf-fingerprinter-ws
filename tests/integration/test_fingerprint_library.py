@@ -3,12 +3,16 @@ from pathlib import Path
 
 import pytest
 import requests
+from bs4 import BeautifulSoup
 from fingerprint.adapters.exceptions import EndpointUnreachable
+from fingerprint.service_layer.handlers import fingerprint_report
+from fingerprint.service_layer.representations import generate_representations
+from fingerprint.service_layer.settings import resolve_settings
 
 from fingerprinter.adapters.fingerprint_library import LibraryFingerprinter
 from fingerprinter.adapters.fuseki import FusekiDatasetStore
 from fingerprinter.domain.model import ReportFormat
-from tests.integration.conftest import FusekiServer
+from tests.containers import FusekiServer
 
 RESOURCES = Path(__file__).parent.parent / "resources"
 NAMED_GRAPH = "http://example.org/g1"
@@ -23,6 +27,23 @@ def continents_endpoint(fuseki: FusekiServer) -> str:
     datasets.create("lib-continents")
     datasets.load_file("lib-continents", RESOURCES / "continents-source-ap.rdf")
     return datasets.sparql_url("lib-continents")
+
+
+@pytest.fixture(scope="module")
+def pitfall_endpoint(fuseki: FusekiServer) -> str:
+    """A dataset whose default graph uses a class it never declares (check p34_untyped_class)."""
+    datasets = FusekiDatasetStore(fuseki.url, fuseki.user, fuseki.password, {"ttl": "text/turtle"})
+    datasets.create("lib-pitfall")
+    datasets.load_file("lib-pitfall", RESOURCES / "pitfall-untyped-class.ttl")
+    return datasets.sparql_url("lib-pitfall")
+
+
+@pytest.fixture(scope="module")
+def continents_outcome(continents_endpoint: str, tmp_path_factory):
+    """One run on the continents with every format, shared by the tests that read it."""
+    return LibraryFingerprinter().fingerprint(
+        continents_endpoint, (), tmp_path_factory.mktemp("run")
+    )
 
 
 @pytest.fixture(scope="module")
@@ -49,21 +70,45 @@ def profiled_graphs(outcome) -> list[str | None]:
     return [graph.get("graph") for graph in profile["graphs"]]
 
 
-def test_an_endpoint_job_writes_the_report_page_and_the_profile(continents_endpoint, tmp_path):
-    outcome = LibraryFingerprinter().fingerprint(continents_endpoint, (), tmp_path)
-
-    assert outcome.formats == (ReportFormat.HTML, ReportFormat.JSON)
-    assert outcome.files[ReportFormat.HTML] == (tmp_path / "html" / "main.html",)
-    assert outcome.files[ReportFormat.JSON] == (tmp_path / "json" / "profile.json",)
-    assert "<html" in outcome.files[ReportFormat.HTML][0].read_text().lower()
-    assert (
-        json.loads(outcome.files[ReportFormat.JSON][0].read_text())["endpoint"]
-        == continents_endpoint
+def test_pattern_shex_and_pitfalls_render_through_generate_representations(
+    continents_endpoint, tmp_path
+):
+    """Settles L-1: the library's docs list only shacl and puml, but all render."""
+    settings = resolve_settings(env={}, config={"pitfall_scan": True})
+    _, run = fingerprint_report(
+        continents_endpoint, tmp_path, settings, formats=(), prefix_list=None
     )
-    assert outcome.failures == ()
+
+    for name in ("pattern", "shex", "pitfalls"):
+        files = generate_representations(run, tmp_path / name, [name])
+        assert files, name
+        assert all(path.stat().st_size > 0 for path in files), name
 
 
-def test_no_selected_graph_profiles_every_graph(two_graphs_endpoint, tmp_path):
+def test_an_endpoint_job_writes_all_formats(continents_outcome):
+    assert set(continents_outcome.formats) == set(ReportFormat) - {ReportFormat.ZIP}
+    for report_format, paths in continents_outcome.files.items():
+        assert all(p.parent.name == report_format.value and p.stat().st_size for p in paths)
+    assert continents_outcome.files[ReportFormat.HTML][0].name == "main.html"
+    assert continents_outcome.files[ReportFormat.JSON][0].name == "profile.json"
+    assert "<html" in continents_outcome.files[ReportFormat.HTML][0].read_text().lower()
+    assert continents_outcome.failures == ()
+
+
+def test_the_pitfall_findings_reach_the_report_page(pitfall_endpoint, tmp_path):
+    outcome = LibraryFingerprinter().fingerprint(pitfall_endpoint, (), tmp_path)
+
+    tsv = outcome.files[ReportFormat.PITFALLS][0].read_text()
+    assert "p34_untyped_class" in tsv
+    # the check id also appears among the clean checks of 3.6.0: assert the finding itself
+    page = BeautifulSoup(outcome.files[ReportFormat.HTML][0].read_text(), "html.parser")
+    finding = page.select_one(
+        '#pitfalls details#pitfall-default-p34_untyped_class a[href="http://example.org/Person"]'
+    )
+    assert finding is not None
+
+
+def test_named_graphs_are_profiled_when_none_is_selected(two_graphs_endpoint, tmp_path):
     outcome = LibraryFingerprinter().fingerprint(two_graphs_endpoint, (), tmp_path)
 
     assert sorted(profiled_graphs(outcome), key=str) == [None, NAMED_GRAPH]

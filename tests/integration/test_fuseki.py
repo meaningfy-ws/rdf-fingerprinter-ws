@@ -4,7 +4,7 @@ import pytest
 import requests
 
 from fingerprinter.adapters.fuseki import FusekiDatasetStore
-from tests.integration.conftest import FusekiServer
+from tests.containers import FusekiServer
 
 RESOURCES = Path(__file__).parent.parent / "resources"
 MIME_TYPES = {"rdf": "application/rdf+xml", "ttl": "text/turtle", "trix": "application/trix+xml"}

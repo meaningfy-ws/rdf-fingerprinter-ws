@@ -85,7 +85,7 @@ Feature: Fingerprinting jobs
       Given an endpoint on which two measurements fail but the report is written
       When the job ends
       Then its state is "completed_with_failures"
-      And both failures are listed in the job state
+      And both failures are listed in the job state and the report's metadata
 
     Scenario: A running job can be cancelled
       Given a file job that is queued

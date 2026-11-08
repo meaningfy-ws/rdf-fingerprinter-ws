@@ -6,7 +6,7 @@ from typing import Any
 from flask import Response, current_app, send_file
 from werkzeug.datastructures import FileStorage
 
-from fingerprinter.domain.model import ReportFormat
+from fingerprinter.domain.model import ReportFormat, file_extension
 from fingerprinter.services import jobs, reports
 from fingerprinter.services.ports import Services
 
@@ -50,8 +50,13 @@ def get_fingerprinting(uid: str) -> tuple[dict[str, Any], HTTPStatus]:
 
 
 def get_report_file(uid: str, format: str) -> Response:
-    path = reports.report_download(uid, ReportFormat(format), job_store=_services().job_store)
-    return send_file(path)
+    services = _services()
+    path = reports.report_download(uid, ReportFormat(format), job_store=services.job_store)
+    # an extension outside the table gets the type send_file guesses from the name
+    mimetype = services.output_mime_types.get(file_extension(path.name))
+    response = send_file(path, mimetype=mimetype)
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    return response
 
 
 def delete_fingerprinting(uid: str) -> tuple[dict[str, str], HTTPStatus]:

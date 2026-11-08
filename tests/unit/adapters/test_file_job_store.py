@@ -91,6 +91,16 @@ def test_set_state_keeps_the_rest_of_the_record(store):
     assert stored.source == record().source
 
 
+def test_set_state_writes_the_failures_to_meta_json(store, tmp_path):
+    store.create(record())
+
+    store.set_state("job-1", JobState.COMPLETED_WITH_FAILURES, failures=("m1 failed", "m2 failed"))
+
+    meta = json.loads((tmp_path / "reports" / "job-1" / "meta.json").read_text())
+    assert meta["state"] == "completed_with_failures"
+    assert meta["failures"] == ["m1 failed", "m2 failed"]
+
+
 def test_set_state_of_an_unknown_id_raises_job_not_found(store):
     with pytest.raises(JobNotFound):
         store.set_state("unknown", JobState.RUNNING)
@@ -149,6 +159,46 @@ def test_everything_is_zipped(store, tmp_path):
         assert sorted(archive.namelist()) == ["html/main.html", "json/profile.json"]
 
 
+def test_everything_is_zipped_with_all_seven_formats(store, tmp_path):
+    store.create(record())
+    store.save_outputs(
+        "job-1",
+        outcome(
+            tmp_path,
+            html=("main.html",),
+            json=("profile.json",),
+            shacl=("shapes.ttl",),
+            puml=("a.puml", "b.puml"),
+            pattern=("p1.md", "p2.csv"),
+            shex=("shapes.shex",),
+            pitfalls=("pitfalls.tsv",),
+        ),
+    )
+
+    assert len(store.get("job-1").formats) == 7
+    with zipfile.ZipFile(store.file_for("job-1", ReportFormat.ZIP)) as archive:
+        assert sorted(archive.namelist()) == [
+            "html/main.html",
+            "json/profile.json",
+            "pattern/p1.md",
+            "pattern/p2.csv",
+            "pitfalls/pitfalls.tsv",
+            "puml/a.puml",
+            "puml/b.puml",
+            "shacl/shapes.ttl",
+            "shex/shapes.shex",
+        ]
+
+
+def test_a_format_without_files_is_not_listed_in_the_record_or_the_zip(store, tmp_path):
+    store.create(record())
+    store.save_outputs("job-1", outcome(tmp_path, html=("main.html",), shacl=()))
+
+    assert store.get("job-1").formats == (ReportFormat.HTML,)
+    with zipfile.ZipFile(store.file_for("job-1", ReportFormat.ZIP)) as archive:
+        assert archive.namelist() == ["html/main.html"]
+
+
 def test_save_outputs_refuses_a_job_that_already_has_outputs(store, tmp_path):
     store.create(record())
     store.save_outputs("job-1", outcome(tmp_path, html=("main.html",)))
@@ -178,6 +228,18 @@ def test_a_multi_file_format_is_zipped_on_download(store, tmp_path):
     assert download.name == "job-1-puml.zip"
     with zipfile.ZipFile(download) as archive:
         assert sorted(archive.namelist()) == ["a.puml", "b.puml"]
+
+
+def test_the_zip_of_a_multi_file_format_is_built_when_the_outputs_are_saved(store, tmp_path):
+    store.create(record())
+
+    store.save_outputs("job-1", outcome(tmp_path, puml=("a.puml", "b.puml"), html=("main.html",)))
+
+    assert sorted(p.name for p in (tmp_path / "reports" / "job-1").iterdir()) == [
+        "html", "job-1-puml.zip", "meta.json", "puml", "report.zip",
+    ]  # fmt: skip
+    with zipfile.ZipFile(tmp_path / "reports" / "job-1" / "report.zip") as archive:
+        assert sorted(archive.namelist()) == ["html/main.html", "puml/a.puml", "puml/b.puml"]
 
 
 def test_a_format_with_no_file_is_not_available(store, tmp_path):

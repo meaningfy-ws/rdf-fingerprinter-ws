@@ -1,13 +1,20 @@
 """The API's contract: routes, status codes and problem responses, with the fakes behind it."""
 
+import dataclasses
 import io
 from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
 
+from fingerprinter.config import OUTPUT_MIME_TYPES
 from fingerprinter.domain.exceptions import QueueUnavailable, UploadTooLarge
-from fingerprinter.domain.model import JobRecord, JobState, ReportFormat, Source
+from fingerprinter.domain.model import (
+    JobRecord,
+    JobState,
+    ReportFormat,
+    Source,
+)
 from fingerprinter.entrypoints.api import create_app
 from fingerprinter.services.ports import Services
 from tests.fakes import (
@@ -33,6 +40,7 @@ def services() -> Services:
         dataset_store=FakeDatasetStore(),
         fingerprinter=FakeFingerprinter(),
         supported_extensions=frozenset({"ttl", "rdf"}),
+        output_mime_types=OUTPUT_MIME_TYPES,
     )
 
 
@@ -188,6 +196,11 @@ def test_an_unknown_report_is_a_404_problem(client):
     [
         (ReportFormat.HTML, "main.html", "text/html"),
         (ReportFormat.JSON, "profile.json", "application/json"),
+        (ReportFormat.SHACL, "shapes-x.ttl", "text/turtle"),
+        (ReportFormat.PUML, f"{J1}-puml.zip", "application/zip"),
+        (ReportFormat.PATTERN, f"{J1}-pattern.zip", "application/zip"),
+        (ReportFormat.SHEX, "shex-x.shex", "text/shex"),
+        (ReportFormat.PITFALLS, "pitfalls-x.tsv", "text/tab-separated-values"),
         (ReportFormat.ZIP, "report.zip", "application/zip"),
     ],
 )
@@ -202,7 +215,36 @@ def test_a_format_is_served_as_a_file(
 
     assert response.status_code == 200
     assert response.headers["content-type"].startswith(content_type)
+    assert f"filename={name}" in response.headers["content-disposition"]
     assert response.text == "content"
+
+
+def test_a_download_is_not_sniffed_into_another_type(client, services, tmp_path):
+    seed(services, J1)
+    (tmp_path / "main.html").write_text("content")
+    seed_output(services, J1, ReportFormat.HTML, tmp_path / "main.html")
+
+    response = client.get(f"/reports/{J1}/html")
+
+    assert response.headers["x-content-type-options"] == "nosniff"
+
+
+def test_the_media_type_of_a_download_comes_from_the_table_then_from_the_extension(
+    services, tmp_path
+):
+    services = dataclasses.replace(services, output_mime_types={"html": "text/x-from-the-table"})
+    seed(services, J1)
+    for report_format, name in ((ReportFormat.HTML, "main.html"), (ReportFormat.JSON, "p.json")):
+        (tmp_path / name).write_text("content")
+        seed_output(services, J1, report_format, tmp_path / name)
+    client = create_app(services).test_client()
+
+    assert (
+        client.get(f"/reports/{J1}/html")
+        .headers["content-type"]
+        .startswith("text/x-from-the-table")
+    )
+    assert client.get(f"/reports/{J1}/json").headers["content-type"].startswith("application/json")
 
 
 def test_a_format_with_no_file_is_a_404(client, services):

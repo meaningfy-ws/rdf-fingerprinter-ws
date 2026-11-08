@@ -159,7 +159,7 @@ def test_a_run_without_failures_completes_with_the_saved_formats(store, queue, l
     run_endpoint(store, library, job_id)
     record = store.get(job_id)
     assert record.state is JobState.COMPLETED
-    assert record.formats == (ReportFormat.HTML, ReportFormat.JSON)
+    assert record.formats == library.outcome.formats
     assert library.calls == [(URL, ())]
 
 
@@ -266,9 +266,9 @@ def test_a_duplicate_delivery_of_a_running_file_job_leaves_its_dataset_and_uploa
 ):
     job_id = submit_file(store, uploads, queue)
     store.set_state(job_id, JobState.RUNNING)
-    datasets.datasets[f"fp-{job_id}"] = None
+    datasets.datasets[jobs.dataset_name(job_id)] = None
     run_file(store, datasets, uploads, library, job_id)
-    assert f"fp-{job_id}" in datasets.datasets
+    assert jobs.dataset_name(job_id) in datasets.datasets
     assert job_id in uploads.saved
 
 
@@ -280,7 +280,7 @@ def test_a_file_job_fingerprints_its_temporary_dataset_then_removes_it_and_the_u
 ):
     job_id = submit_file(store, uploads, queue)
     run_file(store, datasets, uploads, library, job_id)
-    name = f"fp-{job_id}"
+    name = jobs.dataset_name(job_id)
     assert store.get(job_id).state is JobState.COMPLETED
     assert [a for a in datasets.actions if a[1] == name] == [
         ("create", name), ("load_file", name), ("delete", name),
@@ -296,7 +296,23 @@ def test_a_failing_file_job_still_removes_the_dataset_and_the_upload(
     job_id = submit_file(store, uploads, queue)
     run_file(store, datasets, uploads, library, job_id)
     assert store.get(job_id).state is JobState.FAILED
-    assert ("delete", f"fp-{job_id}") in datasets.actions
+    assert ("delete", jobs.dataset_name(job_id)) in datasets.actions
+    assert uploads.saved == {}
+
+
+@pytest.mark.parametrize(
+    ("error", "final_state"),
+    [(None, JobState.COMPLETED), (RuntimeError("boom"), JobState.FAILED)],
+)
+def test_a_file_job_removes_its_dataset_and_upload_before_its_final_state_is_recorded(
+    error, final_state, store, queue, uploads, library
+):
+    datasets = FakeDatasetStore(store)
+    library.error = error
+    job_id = submit_file(store, uploads, queue)
+    run_file(store, datasets, uploads, library, job_id)
+    assert datasets.state_at_delete == {jobs.dataset_name(job_id): JobState.RUNNING}
+    assert store.get(job_id).state is final_state
     assert uploads.saved == {}
 
 

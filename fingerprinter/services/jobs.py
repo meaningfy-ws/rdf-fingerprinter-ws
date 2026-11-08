@@ -35,6 +35,11 @@ logger = logging.getLogger(__name__)
 QUEUE_UNAVAILABLE = "queue unavailable"
 
 
+def dataset_name(job_id: str) -> str:
+    """The name of the temporary dataset a file job loads its upload into."""
+    return f"fp-{job_id}"
+
+
 def _new_record(job_id: str, source: Source) -> JobRecord:
     return JobRecord(id=job_id, source=source, created_at=datetime.now(UTC), state=JobState.QUEUED)
 
@@ -111,19 +116,27 @@ def _start(job_id: str, job_store: JobStore) -> bool:
 
 
 def _run(
-    job_id: str, job_store: JobStore, fingerprint: Callable[[Path], FingerprintOutcome]
+    job_id: str,
+    job_store: JobStore,
+    fingerprint: Callable[[Path], FingerprintOutcome],
+    clean_up: Callable[[], None] = lambda: None,
 ) -> None:
+    """Run the job, clean up, and only then record how it ended (clients poll that state)."""
+    state, reason = JobState.FAILED, None
+    failures: tuple[str, ...] = ()
     try:
         with tempfile.TemporaryDirectory() as work_folder:
             outcome = fingerprint(Path(work_folder))
             job_store.save_outputs(job_id, outcome)
+        failures = outcome.failures
+        state = JobState.COMPLETED_WITH_FAILURES if failures else JobState.COMPLETED
     except Exception as error:
         logger.error("Job %s failed: %s", job_id, error)
         job_store.discard_outputs(job_id)
-        _finish(job_store, job_id, JobState.FAILED, reason=str(error))
-        return
-    state = JobState.COMPLETED_WITH_FAILURES if outcome.failures else JobState.COMPLETED
-    _finish(job_store, job_id, state, failures=outcome.failures)
+        reason = str(error)
+    finally:
+        clean_up()
+    _finish(job_store, job_id, state, reason, failures)
 
 
 def run_endpoint_job(
@@ -149,21 +162,21 @@ def run_file_job(
 ) -> None:
     if not _start(job_id, job_store):
         return
-    name = f"fp-{job_id}"
+    name = dataset_name(job_id)
 
     def fingerprint(folder: Path) -> FingerprintOutcome:
         dataset_store.create(name)
         dataset_store.load_file(name, path)
         return fingerprinter.fingerprint(dataset_store.sparql_url(name), (), folder)
 
-    try:
-        _run(job_id, job_store, fingerprint)
-    finally:
+    def clean_up() -> None:
         try:
             dataset_store.delete(name)
         except Exception as error:
             logger.warning("Dataset %s could not be deleted: %s", name, error)
         upload_store.discard(job_id)
+
+    _run(job_id, job_store, fingerprint, clean_up)
 
 
 def job_status(job_id: str, *, job_store: JobStore) -> JobRecord:
