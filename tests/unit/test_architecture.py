@@ -36,8 +36,10 @@ def package_copy(tmp_path: Path) -> Path:
 
 
 def add_import(package_root: Path, module: str, statement: str) -> None:
+    """Prepend the import to the module, creating the module when the package lacks it."""
     path = package_root / Path(*module.split(".")).with_suffix(".py")
-    path.write_text(f"{statement}  # noqa\n" + path.read_text())
+    existing = path.read_text() if path.exists() else ""
+    path.write_text(f"{statement}  # noqa\n" + existing)
 
 
 def test_the_delivered_code_passes(package_copy: Path) -> None:
@@ -71,6 +73,12 @@ def test_the_delivered_code_passes(package_copy: Path) -> None:
             "fingerprinter.adapters.fuseki",
             "import fingerprint",
             "fingerprinter.adapters.fuseki -> fingerprint",
+        ),
+        (
+            "A new module importing the library fails the check",
+            "fingerprinter.adapters.extra",
+            "import fingerprint",
+            "fingerprinter.adapters.extra -> fingerprint",
         ),
     ],
 )

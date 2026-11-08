@@ -94,7 +94,7 @@ def test_the_app_needs_the_secret_key_it_is_given():
     assert create_app("http://api.test", "ui-secret").config["SECRET_KEY"] == "ui-secret"
 
 
-def test_the_reports_page_shows_each_jobs_state_reason_and_failures(client, api):
+def test_failures_are_shown(client, api):
     api.answers["get_reports"] = FakeResponse(
         200,
         [
@@ -116,7 +116,7 @@ def test_the_reports_page_shows_each_jobs_state_reason_and_failures(client, api)
     assert "endpoint unreachable" in soup.find(id="reason-bad").get_text()
 
 
-def test_the_reports_page_links_one_download_per_available_format(client, api):
+def test_the_report_page_lists_the_downloads(client, api):
     api.answers["get_reports"] = FakeResponse(
         200, [record("ok"), record("bad", "failed", reason="x", formats=[])]
     )
@@ -148,6 +148,7 @@ def test_an_endpoint_job_is_started_and_the_active_tasks_shown(client, api):
     ("answer", "message"),
     [
         (problem(400), "Enter an http or https SPARQL endpoint URL."),
+        (problem(413), "The file is too large."),
         (problem(503), "The job queue is unavailable. Try again later."),
         (problem(500), "The request failed (status 500)."),
     ],

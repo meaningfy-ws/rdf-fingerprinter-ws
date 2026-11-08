@@ -10,6 +10,7 @@ from fingerprinter.domain.model import (
     JobState,
     ReportFormat,
     Source,
+    file_extension,
 )
 
 
@@ -116,3 +117,29 @@ def test_a_file_source_serialises_under_the_file_key():
 
     assert record.to_dict()["source"] == {"file": "data.ttl", "graphs": []}
     assert JobRecord.from_dict(record.to_dict()) == record
+
+
+@pytest.mark.parametrize(
+    ("name", "extension"),
+    [("data.ttl", "ttl"), ("DATA.TTL", "ttl"), ("a.b.rdf", "rdf"), ("noextension", ""), ("x/y.nt", "nt")],
+)  # fmt: skip
+def test_the_file_extension_is_lower_case_without_the_dot(name, extension):
+    assert file_extension(name) == extension
+
+
+def test_the_status_of_a_job_is_its_id_state_reason_and_failures():
+    record = JobRecord(
+        id="j1",
+        source=Source(file="d.ttl"),
+        created_at=datetime(2026, 11, 8, tzinfo=UTC),
+        state=JobState.COMPLETED_WITH_FAILURES,
+        failures=("m failed",),
+        formats=(ReportFormat.HTML,),
+    )
+
+    assert record.to_status_dict() == {
+        "task_id": "j1",
+        "state": "completed_with_failures",
+        "reason": None,
+        "failures": ["m failed"],
+    }

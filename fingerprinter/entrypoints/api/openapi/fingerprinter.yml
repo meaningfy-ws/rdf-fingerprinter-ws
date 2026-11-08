@@ -147,6 +147,8 @@ components:
       description: The job id.
       schema:
         type: string
+        # Connexion 3 does not check format: uuid on path values, so a pattern states it
+        pattern: '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
     taskId:
       name: task_id
       in: path
@@ -154,6 +156,8 @@ components:
       description: The job id.
       schema:
         type: string
+        # Connexion 3 does not check format: uuid on path values, so a pattern states it
+        pattern: '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
 
   # Error responses are problem+json (RFC 9457) with the shape of the Problem schema; they declare no
   # content here, since Connexion cannot pick one content type for an operation that lists several.
@@ -166,6 +170,8 @@ components:
       description: The job is not queued or running.
     UnsupportedMediaType:
       description: The file type is not supported; the problem lists the accepted types.
+    PayloadTooLarge:
+      description: The file is larger than the upload limit.
     Unavailable:
       description: The job queue is unavailable.
 
@@ -208,6 +214,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/JobCreated'
+        413:
+          $ref: '#/components/responses/PayloadTooLarge'
         415:
           $ref: '#/components/responses/UnsupportedMediaType'
         503:
@@ -239,6 +247,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/JobRecord'
+        400:
+          $ref: '#/components/responses/BadRequest'
         404:
           $ref: '#/components/responses/NotFound'
     delete:
@@ -251,6 +261,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Message'
+        400:
+          $ref: '#/components/responses/BadRequest'
         404:
           $ref: '#/components/responses/NotFound'
   /reports/{uid}/{format}:
@@ -314,6 +326,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/TaskStatus'
+        400:
+          $ref: '#/components/responses/BadRequest'
         404:
           $ref: '#/components/responses/NotFound'
     delete:
@@ -326,6 +340,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Message'
+        400:
+          $ref: '#/components/responses/BadRequest'
         404:
           $ref: '#/components/responses/NotFound'
         409:

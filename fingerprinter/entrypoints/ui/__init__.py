@@ -4,11 +4,13 @@ from flask import Flask
 
 from fingerprinter.entrypoints.ui import views
 from fingerprinter.entrypoints.ui.api_wrapper import ApiClient
+from fingerprinter.entrypoints.ui.helpers import FLASH_ERROR, FLASH_SUCCESS
 
 
 def create_app(api_base_url: str, secret_key: str) -> Flask:
     app = Flask(__name__)
     app.config["SECRET_KEY"] = secret_key
+    app.jinja_env.globals.update(FLASH_ERROR=FLASH_ERROR, FLASH_SUCCESS=FLASH_SUCCESS)
     app.extensions["api"] = ApiClient(api_base_url)
     views.register(app)
     return app

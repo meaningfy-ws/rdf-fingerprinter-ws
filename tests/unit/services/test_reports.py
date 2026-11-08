@@ -19,35 +19,35 @@ def store():
 
 
 def test_list_reports_returns_every_job(store):
-    assert {r.id for r in reports.list_reports(jobs=store)} == {"a", "b"}
+    assert {r.id for r in reports.list_reports(job_store=store)} == {"a", "b"}
 
 
 def test_report_download_returns_the_file_of_the_format(store):
-    assert reports.report_download("a", ReportFormat.HTML, jobs=store) == Path("main.html")
+    assert reports.report_download("a", ReportFormat.HTML, job_store=store) == Path("main.html")
 
 
 def test_report_download_of_a_format_with_no_file_is_not_available(store):
     with pytest.raises(FormatNotAvailable):
-        reports.report_download("a", ReportFormat.SHACL, jobs=store)
+        reports.report_download("a", ReportFormat.SHACL, job_store=store)
 
 
 def test_report_download_of_an_unknown_report_is_not_found(store):
     with pytest.raises(JobNotFound):
-        reports.report_download("nope", ReportFormat.HTML, jobs=store)
+        reports.report_download("nope", ReportFormat.HTML, job_store=store)
 
 
 def test_delete_report_removes_the_record_and_its_files(store):
-    reports.delete_report("a", jobs=store)
+    reports.delete_report("a", job_store=store)
     assert [r.id for r in store.list()] == ["b"]
     assert "a" not in store.outputs
 
 
 def test_delete_report_of_an_unknown_report_is_not_found(store):
     with pytest.raises(JobNotFound):
-        reports.delete_report("nope", jobs=store)
+        reports.delete_report("nope", job_store=store)
 
 
 def test_delete_all_reports_empties_the_store_and_is_fine_when_already_empty(store):
-    reports.delete_all_reports(jobs=store)
-    reports.delete_all_reports(jobs=store)
+    reports.delete_all_reports(job_store=store)
+    reports.delete_all_reports(job_store=store)
     assert store.list() == []

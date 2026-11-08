@@ -69,6 +69,20 @@ def test_a_file_job_posts_the_file_as_multipart(client, requests_double):
 
 
 @pytest.mark.parametrize(
+    ("call", "path"),
+    [
+        (lambda c: c.get_report("../x?y#z", "h/tml"), "/reports/..%2Fx%3Fy%23z/h%2Ftml"),
+        (lambda c: c.delete_report("a/b"), "/reports/a%2Fb"),
+        (lambda c: c.cancel_task("a b"), "/tasks/a%20b"),
+    ],
+)
+def test_path_values_are_quoted_so_they_stay_one_segment(client, requests_double, call, path):
+    call(client)
+
+    assert requests_double.calls[0][1] == f"{API}{path}"
+
+
+@pytest.mark.parametrize(
     ("call", "method", "path"),
     [
         (lambda c: c.get_reports(), "get", "/reports"),

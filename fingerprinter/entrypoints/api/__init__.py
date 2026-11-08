@@ -1,6 +1,7 @@
 """The API: a Connexion 3 app over the OpenAPI contract, calling the services (design D-4, D-8)."""
 
 from collections.abc import Callable
+from http import HTTPStatus
 
 from connexion import FlaskApp
 from connexion.lifecycle import ConnexionRequest, ConnexionResponse
@@ -14,22 +15,24 @@ from fingerprinter.domain.exceptions import (
     JobNotFound,
     QueueUnavailable,
     UnsupportedFileType,
+    UploadTooLarge,
 )
 from fingerprinter.services.ports import Services
 
 # Each domain exception and the status its problem response carries (design D-4, Error matrix).
-PROBLEM_STATUS: dict[type[Exception], int] = {
-    InvalidSource: 400,
-    UnsupportedFileType: 415,
-    JobNotFound: 404,
-    FormatNotAvailable: 404,
-    JobNotCancellable: 409,
-    QueueUnavailable: 503,
+PROBLEM_STATUS: dict[type[Exception], HTTPStatus] = {
+    InvalidSource: HTTPStatus.BAD_REQUEST,
+    UnsupportedFileType: HTTPStatus.UNSUPPORTED_MEDIA_TYPE,
+    UploadTooLarge: HTTPStatus.REQUEST_ENTITY_TOO_LARGE,
+    JobNotFound: HTTPStatus.NOT_FOUND,
+    FormatNotAvailable: HTTPStatus.NOT_FOUND,
+    JobNotCancellable: HTTPStatus.CONFLICT,
+    QueueUnavailable: HTTPStatus.SERVICE_UNAVAILABLE,
 }
 
 
 def _problem_handler(
-    exception: type[Exception], status: int
+    exception: type[Exception], status: HTTPStatus
 ) -> Callable[[ConnexionRequest, Exception], ConnexionResponse]:
     def handle(_request: ConnexionRequest, error: Exception) -> ConnexionResponse:
         accepted = error.accepted if isinstance(error, UnsupportedFileType) else None

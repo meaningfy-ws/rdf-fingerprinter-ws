@@ -6,8 +6,8 @@ from pathlib import Path
 
 from pytest_bdd import given, parsers, scenario, then, when
 
+from fingerprinter.config import INPUT_MIME_TYPES
 from fingerprinter.domain.model import FingerprintOutcome, JobRecord, JobState, ReportFormat, Source
-from tests.feature.world import SUPPORTED_EXTENSIONS
 
 FEATURE = "fingerprinting_jobs.feature"
 ENDPOINT = "http://example.org/sparql"
@@ -83,7 +83,6 @@ def upload_file(world, filename):
 
 @then("the service answers 202 with a job id")
 def answers_202(world):
-    """The API answers 202 {task_id} when the service returns a job id (D-4)."""
     assert world.status == 202
     assert world.job_id
 
@@ -101,9 +100,8 @@ def no_job_is_queued(world):
 
 @then("the service answers 415 with a problem response listing the accepted types")
 def answers_415_with_types(world):
-    """The API answers 415 when the service raises UnsupportedFileType (D-4, Error matrix)."""
     assert world.status == 415
-    assert set(world.problem.accepted) == SUPPORTED_EXTENSIONS
+    assert set(world.problem["accepted"]) == set(INPUT_MIME_TYPES)
 
 
 # --- file jobs ---------------------------------------------------------------------------------
@@ -159,7 +157,7 @@ def ask_state(world):
 @then(parsers.parse('the service answers 200 with state "{state}"'))
 def answers_200_with_state(world, state):
     assert world.status == 200
-    assert world.result.state == state
+    assert world.result["state"] == state
 
 
 @when(parsers.parse('a client asks for the state of job "{job_id}"'))
@@ -230,7 +228,6 @@ def upload_discarded_no_outputs(world):
 
 @then("the service answers 409")
 def answers_409(world):
-    """The API answers 409 when the service raises JobNotCancellable (D-4)."""
     assert world.status == 409
 
 

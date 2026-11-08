@@ -314,6 +314,10 @@ Recorded before the fixes (Rule of Divergence). *Leader's choices* are marked.
   helper; the UI quotes path values sent to the API; `uid`/`task_id` are `format: uuid` in the
   contract; `redis_url` is hidden from `repr`; Fuseki errors carry a plain message.
 
+As built: Connexion 3.3 does not validate `format: uuid` on path values, so `uid` and `task_id`
+carry a uuid `pattern` (400 on a bad id); a duplicate delivery of a running file job leaves that
+job's dataset and upload alone; the UI flashes "The file is too large." on 413.
+
 Deferred, with their home:
 - Delete and cancel as `POST` with confirmation: the UI EPIC (`modernise-user-interface` DEC-8).
 - Restricting the worker's outgoing traffic (SSRF): stage 4 `infra/` and `SECURITY.md`.

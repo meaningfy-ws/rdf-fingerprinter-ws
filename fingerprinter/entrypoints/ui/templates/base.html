@@ -37,7 +37,7 @@
 <main>
 {% block content %}
     <div class="container">
-            {% with errors = get_flashed_messages(category_filter=["error"]) %}
+            {% with errors = get_flashed_messages(category_filter=[FLASH_ERROR]) %}
                 {% if errors %}
                     {% for message in errors %}
                         <div class="row">
@@ -57,7 +57,7 @@
                     {% endfor %}
                 {% endif %}
             {% endwith %}
-            {% with messages = get_flashed_messages(category_filter=["success"]) %}
+            {% with messages = get_flashed_messages(category_filter=[FLASH_SUCCESS]) %}
                 {% if messages %}
                     {% for message in messages %}
                         <div class="row">

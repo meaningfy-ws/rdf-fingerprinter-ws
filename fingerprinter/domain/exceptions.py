@@ -6,7 +6,7 @@ from fingerprinter.domain.model import JobState, ReportFormat
 
 
 class InvalidSource(Exception):
-    """The endpoint URL is not an http or https URL (400)."""
+    """The endpoint URL is not an http or https URL, or carries user info (400)."""
 
 
 class UnsupportedFileType(Exception):
@@ -15,6 +15,13 @@ class UnsupportedFileType(Exception):
     def __init__(self, filename: str, accepted: Iterable[str]):
         self.accepted = tuple(sorted(accepted))
         super().__init__(f'"{filename}" is not supported. Accepted: {", ".join(self.accepted)}.')
+
+
+class UploadTooLarge(Exception):
+    """The uploaded file is larger than the service accepts (413)."""
+
+    def __init__(self, filename: str, max_bytes: int):
+        super().__init__(f'"{filename}" is larger than the {max_bytes}-byte upload limit.')
 
 
 class JobNotFound(Exception):

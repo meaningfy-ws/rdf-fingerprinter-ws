@@ -5,6 +5,7 @@
 * worker: ``celery -A fingerprinter.bootstrap:celery_app worker``
 """
 
+import functools
 import logging
 
 from celery import Celery
@@ -33,20 +34,26 @@ celery_app.conf.update(
     broker_connection_retry_on_startup=True,
 )
 
-services = Services(
-    jobs=FileJobStore(settings.reports_db),
-    uploads=FileUploadStore(settings.file_db),
-    queue=CeleryJobQueue(celery_app),
-    datasets=FusekiDatasetStore(
-        settings.fuseki_url,
-        settings.fuseki_user,
-        settings.fuseki_password,
-        settings.input_mime_types,
-    ),
-    fingerprinter=LibraryFingerprinter(),
-    supported_extensions=frozenset(settings.input_mime_types),
-)
-register_tasks(celery_app, services)
+
+@functools.cache
+def build_services() -> Services:
+    """The adapters and services, built on first use: the UI process never asks for them."""
+    return Services(
+        job_store=FileJobStore(settings.reports_db),
+        upload_store=FileUploadStore(settings.file_db, settings.max_upload_bytes),
+        queue=CeleryJobQueue(celery_app),
+        dataset_store=FusekiDatasetStore(
+            settings.fuseki_url,
+            settings.fuseki_user,
+            settings.fuseki_password,
+            settings.input_mime_types,
+        ),
+        fingerprinter=LibraryFingerprinter(),
+        supported_extensions=frozenset(settings.input_mime_types),
+    )
+
+
+register_tasks(celery_app, build_services)
 
 
 def _configure_logging() -> None:
@@ -61,7 +68,7 @@ def _configure_logging() -> None:
 
 def api_app() -> FlaskApp:
     _configure_logging()
-    app = create_api_app(services, swagger_ui=settings.show_swagger_ui)
+    app = create_api_app(build_services(), swagger_ui=settings.show_swagger_ui)
     app.app.config["SECRET_KEY"] = settings.api_secret_key
     return app
 

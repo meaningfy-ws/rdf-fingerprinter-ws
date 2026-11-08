@@ -62,14 +62,8 @@ name = only adapters.fingerprint_library imports the fingerprint library
 allow_indirect_imports = True
 type = forbidden
 source_modules =
-    fingerprinter.domain
-    fingerprinter.services
-    fingerprinter.entrypoints
-    fingerprinter.bootstrap
-    fingerprinter.config
-    fingerprinter.adapters.fuseki
-    fingerprinter.adapters.file_job_store
-    fingerprinter.adapters.file_upload_store
-    fingerprinter.adapters.celery_queue
+    fingerprinter
 forbidden_modules =
     fingerprint
+ignore_imports =
+    fingerprinter.adapters.fingerprint_library -> fingerprint

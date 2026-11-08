@@ -3,6 +3,7 @@
 import io
 import logging
 from collections.abc import Callable
+from http import HTTPStatus
 from typing import Any
 
 from flask import Flask, current_app, flash, redirect, render_template, send_file, url_for
@@ -11,12 +12,9 @@ from werkzeug.wrappers import Response
 
 from fingerprinter.entrypoints.ui.api_wrapper import ApiClient
 from fingerprinter.entrypoints.ui.forms import FingerprintFileForm, FingerprintSPARQLEndpointForm
-from fingerprinter.entrypoints.ui.helpers import error_message
+from fingerprinter.entrypoints.ui.helpers import FLASH_ERROR, FLASH_SUCCESS, error_message
 
 logger = logging.getLogger(__name__)
-
-ACCEPTED = 202
-OK = 200
 
 
 def _api() -> ApiClient:
@@ -30,10 +28,10 @@ def index() -> str:
 
 def _started_or_flash(response: Any) -> Response | None:
     """Redirect to the active tasks when the API accepted the job, else flash why it did not."""
-    if response.status_code != ACCEPTED:
-        flash(error_message(response), "error")
+    if response.status_code != HTTPStatus.ACCEPTED:
+        flash(error_message(response), FLASH_ERROR)
         return None
-    flash("fingerprinting successfully started", "success")
+    flash("fingerprinting successfully started", FLASH_SUCCESS)
     return redirect(url_for("get_active_tasks"))
 
 
@@ -62,8 +60,8 @@ def fingerprint_file() -> str | Response:
 
 def download_report(job_id: str, report_format: str) -> Response:
     response = _api().get_report(job_id, report_format)
-    if response.status_code != OK:
-        flash(error_message(response), "error")
+    if response.status_code != HTTPStatus.OK:
+        flash(error_message(response), FLASH_ERROR)
         return redirect(url_for("index"))
     _, disposition = parse_options_header(response.headers.get("Content-Disposition", ""))
     name = disposition.get("filename") or report_format
@@ -74,10 +72,10 @@ def download_report(job_id: str, report_format: str) -> Response:
 
 def delete_fingerprinting(job_id: str) -> Response:
     response = _api().delete_report(job_id)
-    if response.status_code == OK:
-        flash("fingerprinting successfully deleted", "success")
+    if response.status_code == HTTPStatus.OK:
+        flash("fingerprinting successfully deleted", FLASH_SUCCESS)
     else:
-        flash(error_message(response), "error")
+        flash(error_message(response), FLASH_ERROR)
     return redirect(url_for("index"))
 
 
@@ -87,10 +85,10 @@ def get_active_tasks() -> str:
 
 def revoke_task(task_id: str) -> Response:
     response = _api().cancel_task(task_id)
-    if response.status_code == OK:
-        flash("Job cancelled.", "success")
+    if response.status_code == HTTPStatus.OK:
+        flash("Job cancelled.", FLASH_SUCCESS)
     else:
-        flash(error_message(response), "error")
+        flash(error_message(response), FLASH_ERROR)
     return redirect(url_for("get_active_tasks"))
 
 

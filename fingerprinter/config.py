@@ -18,6 +18,8 @@ INPUT_MIME_TYPES: Mapping[str, str] = {
     "ttl": "text/turtle",
 }
 
+BYTES_PER_MB = 1024 * 1024
+
 
 def strtobool(value: str) -> bool:
     """The truth value of a setting, as distutils.util.strtobool (removed in Python 3.12) gave it."""
@@ -45,13 +47,14 @@ def _required(name: str) -> str:
 class Settings:
     api_url: str
     fuseki_url: str
-    redis_url: str
+    redis_url: str = field(repr=False)
     api_secret_key: str = field(repr=False)
     ui_secret_key: str = field(repr=False)
     fuseki_user: str
     fuseki_password: str = field(repr=False)
     file_db: Path
     reports_db: Path
+    max_upload_bytes: int
     show_swagger_ui: bool
     log_level: str
     input_mime_types: Mapping[str, str] = field(default_factory=lambda: INPUT_MIME_TYPES)
@@ -70,6 +73,7 @@ class Settings:
             fuseki_password=env.get("RDF_FINGERPRINTER_FUSEKI_PASSWORD", ""),
             file_db=Path(env.get("RDF_FINGERPRINTER_FILE_DB", root / "db")),
             reports_db=Path(env.get("RDF_FINGERPRINTER_REPORTS_DB", root / "reports")),
+            max_upload_bytes=int(env.get("RDF_FINGERPRINTER_MAX_UPLOAD_MB", 512)) * BYTES_PER_MB,
             show_swagger_ui=strtobool(env.get("SHOW_SWAGGER_UI", "true")),
             log_level=env.get("RDF_FINGERPRINTER_LOG_LEVEL", "info"),
         )

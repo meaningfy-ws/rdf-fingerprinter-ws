@@ -81,9 +81,9 @@ FILE_TASK = "fingerprint_file"
 class Services:
     """What the entrypoints call the use cases with: the ports, built once by ``bootstrap``."""
 
-    jobs: JobStore
-    uploads: UploadStore
+    job_store: JobStore
+    upload_store: UploadStore
     queue: JobQueue
-    datasets: DatasetStore
+    dataset_store: DatasetStore
     fingerprinter: Fingerprinter
     supported_extensions: Collection[str]

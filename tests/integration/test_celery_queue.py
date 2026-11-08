@@ -10,6 +10,7 @@ from celery import Celery
 from celery.contrib.testing.worker import start_worker
 
 from fingerprinter.adapters.celery_queue import CeleryJobQueue
+from fingerprinter.domain.exceptions import QueueUnavailable
 
 WAIT_SECONDS = 30
 DEFAULT_QUEUE = "celery"
@@ -63,10 +64,10 @@ def test_cancel_revokes_the_task(redis_url, broker):
     pytest.fail("the worker never saw job-c revoked")
 
 
-def test_submit_with_the_broker_down_raises():
+def test_submit_with_the_broker_down_is_queue_unavailable():
     app = Celery(broker="redis://localhost:1/0")
     app.conf.task_publish_retry_policy = {"max_retries": 1, "interval_start": 0}
     app.conf.broker_connection_timeout = 1
 
-    with pytest.raises(Exception, match="Connection refused|connect"):
+    with pytest.raises(QueueUnavailable):
         CeleryJobQueue(app).submit_endpoint("job-x", "http://example.org/sparql", ())

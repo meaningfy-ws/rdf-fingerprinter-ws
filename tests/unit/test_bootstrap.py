@@ -35,8 +35,9 @@ def test_the_celery_app_has_the_redis_broker_and_no_result_backend(bootstrap):
     assert isinstance(app.backend, DisabledBackend)
 
 
-def test_the_worker_tasks_are_registered(bootstrap):
+def test_the_worker_tasks_are_registered_without_building_the_adapters(bootstrap):
     assert {"fingerprint_endpoint", "fingerprint_file"} <= set(bootstrap.celery_app.tasks)
+    assert bootstrap.build_services.cache_info().currsize == 0
 
 
 def test_a_submission_fails_fast_when_the_broker_is_down(bootstrap):
@@ -55,9 +56,10 @@ def test_the_api_app_serves_the_services_built_from_the_settings(bootstrap):
     assert app.app.config["SECRET_KEY"] == "api-secret"
     services = app.app.extensions["fingerprinter"]
     assert isinstance(services, Services)
-    assert isinstance(services.jobs, FileJobStore)
+    assert isinstance(services.job_store, FileJobStore)
     assert isinstance(services.queue, CeleryJobQueue)
-    assert isinstance(services.datasets, FusekiDatasetStore)
+    assert services.upload_store.max_bytes == 512 * 1024 * 1024
+    assert isinstance(services.dataset_store, FusekiDatasetStore)
     assert isinstance(services.fingerprinter, LibraryFingerprinter)
     assert services.supported_extensions == {"rdf", "trix", "nq", "nt", "jsonld", "n3", "ttl"}
 
@@ -76,6 +78,20 @@ def test_the_ui_app_is_a_client_of_the_api_with_its_own_secret_key(bootstrap):
     assert isinstance(app, Flask)
     assert app.config["SECRET_KEY"] == "ui-secret"
     assert app.extensions["api"].base_url == "http://fingerprinter-api:4020"
+
+
+def test_the_ui_process_builds_no_adapters(bootstrap):
+    bootstrap.ui_app()
+
+    assert bootstrap.build_services.cache_info().currsize == 0
+
+
+def test_the_adapters_are_built_once_for_the_api(bootstrap):
+    first = bootstrap.api_app().app.extensions["fingerprinter"]
+    second = bootstrap.api_app().app.extensions["fingerprinter"]
+
+    assert first is second
+    assert bootstrap.build_services.cache_info().currsize == 1
 
 
 def test_the_service_logs_at_the_configured_level(bootstrap, monkeypatch):

@@ -4,8 +4,13 @@ from collections.abc import Mapping
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import StrEnum
-from pathlib import Path
+from pathlib import Path, PurePath
 from typing import Any
+
+
+def file_extension(name: str) -> str:
+    """The lower-case extension of a file name, without the dot."""
+    return PurePath(name).suffix.lstrip(".").lower()
 
 
 class ReportFormat(StrEnum):
@@ -68,6 +73,15 @@ class JobRecord:
             "reason": self.reason,
             "failures": list(self.failures),
             "formats": [report_format.value for report_format in self.formats],
+        }
+
+    def to_status_dict(self) -> dict[str, Any]:
+        """The state of the job, as ``GET /tasks/{task_id}`` answers it."""
+        return {
+            "task_id": self.id,
+            "state": self.state.value,
+            "reason": self.reason,
+            "failures": list(self.failures),
         }
 
     @classmethod

@@ -48,6 +48,7 @@ def test_the_defaults_are_todays(env):
     assert settings.reports_db.name == "reports"
     assert settings.api_secret_key == "api-secret"
     assert settings.ui_secret_key == "ui-secret"
+    assert settings.max_upload_bytes == 512 * 1024 * 1024
 
 
 def test_the_environment_overrides_the_defaults(env):
@@ -63,6 +64,7 @@ def test_the_environment_overrides_the_defaults(env):
     env.setenv("RDF_FINGERPRINTER_REPORTS_DB", "/data/reports")
     env.setenv("RDF_FINGERPRINTER_LOG_LEVEL", "debug")
     env.setenv("SHOW_SWAGGER_UI", "false")
+    env.setenv("RDF_FINGERPRINTER_MAX_UPLOAD_MB", "5")
 
     settings = Settings.from_env()
 
@@ -73,6 +75,7 @@ def test_the_environment_overrides_the_defaults(env):
     assert (settings.file_db, settings.reports_db) == (Path("/data/db"), Path("/data/reports"))
     assert settings.log_level == "debug"
     assert settings.show_swagger_ui is False
+    assert settings.max_upload_bytes == 5 * 1024 * 1024
 
 
 def test_trix_uploads_are_sent_as_application_trix_xml(env):
@@ -92,8 +95,9 @@ def test_a_missing_secret_key_stops_the_start_and_names_the_variable(env, variab
 
 def test_secrets_are_not_shown_in_the_repr(env):
     env.setenv("RDF_FINGERPRINTER_FUSEKI_PASSWORD", "fuseki-pw")
+    env.setenv("RDF_FINGERPRINTER_REDIS_LOCATION", "redis://:redis-pw@cache")
 
     shown = repr(Settings.from_env())
 
-    for secret in ("api-secret", "ui-secret", "fuseki-pw"):
+    for secret in ("api-secret", "ui-secret", "fuseki-pw", "redis-pw"):
         assert secret not in shown

@@ -95,6 +95,8 @@ class InMemoryJobStore:
 
     def save_outputs(self, job_id: str, outcome: FingerprintOutcome) -> None:
         record = self.get(job_id)
+        if job_id in self.outputs:
+            raise FileExistsError(f'Job "{job_id}" already has outputs.')
         self.outputs[job_id] = dict(outcome.files)
         self.records[job_id] = dataclasses.replace(record, formats=outcome.formats)
 
@@ -123,8 +125,11 @@ class InMemoryJobStore:
 class FakeUploadStore:
     def __init__(self) -> None:
         self.saved: dict[str, Path] = {}
+        self.error: Exception | None = None
 
     def save(self, job_id: str, stream: IO[bytes], filename: str) -> Path:
+        if self.error:
+            raise self.error
         stream.read()
         self.saved[job_id] = Path("db") / job_id / filename
         return self.saved[job_id]

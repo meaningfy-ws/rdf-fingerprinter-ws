@@ -53,11 +53,12 @@ class FileJobStore:
     def list(self) -> list[JobRecord]:
         if not self.reports_folder.is_dir():
             return []
-        records = [
-            self.get(folder.name)
-            for folder in self.reports_folder.iterdir()
-            if (folder / META_FILE).is_file()
-        ]
+        records = []
+        for folder in self.reports_folder.iterdir():
+            try:
+                records.append(self.get(folder.name))
+            except (JobNotFound, NotADirectoryError):  # deleted meanwhile, or not a job folder
+                continue
         return sorted(records, key=lambda record: record.created_at)
 
     def set_state(

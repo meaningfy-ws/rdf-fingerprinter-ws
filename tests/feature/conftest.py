@@ -5,8 +5,8 @@ from tests.feature.world import World
 
 
 @pytest.fixture
-def world() -> World:
-    return World()
+def world(tmp_path) -> World:
+    return World(tmp_path)
 
 
 @then(parsers.parse("the service answers {status:d} with a problem response"))

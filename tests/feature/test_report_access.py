@@ -1,8 +1,6 @@
 """Binds the untagged scenarios of report_access.feature (the @unit ones are proven elsewhere)."""
 
-import mimetypes
 import uuid
-from pathlib import Path
 
 from pytest_bdd import given, parsers, scenario, then, when
 
@@ -93,7 +91,7 @@ def two_completed_reports(world):
 def a_report_with_an_empty_output(world, format_name):
     world.library.outcome = FingerprintOutcome(
         files={
-            ReportFormat.HTML: (Path("main.html"),),
+            ReportFormat.HTML: world.library.outcome.files[ReportFormat.HTML],
             ReportFormat(format_name): (),
         }
     )
@@ -145,25 +143,24 @@ def client_deletes_unknown(world):
 )
 def list_holds_completed(world):
     (record,) = world.result
-    assert record.source.endpoint == ENDPOINT
-    assert record.state is JobState.COMPLETED
-    assert record.formats == (ReportFormat.HTML, ReportFormat.JSON)
+    assert record["source"]["endpoint"] == ENDPOINT
+    assert record["state"] == JobState.COMPLETED
+    assert record["formats"] == [ReportFormat.HTML, ReportFormat.JSON]
 
 
 @then(parsers.parse('the list holds that job with state "failed", its reason, and no formats'))
 def list_holds_failed(world):
     (record,) = world.result
-    assert record.state is JobState.FAILED
-    assert record.reason == "endpoint unreachable: http://unreachable.invalid/sparql"
-    assert record.formats == ()
+    assert record["state"] == JobState.FAILED
+    assert record["reason"] == "endpoint unreachable: http://unreachable.invalid/sparql"
+    assert record["formats"] == []
 
 
 @then(parsers.parse('it receives "{name}" as "{mime_type}"'))
 def receives_file(world, name, mime_type):
-    """The service returns the file; the API serves it with the type its extension implies."""
     assert world.status == 200
-    assert world.result.name == name
-    assert mimetypes.guess_type(world.result.name)[0] == mime_type
+    assert world.response.headers["content-type"].startswith(mime_type)
+    assert f"filename={name}" in world.response.headers["content-disposition"]
 
 
 @then("it is no longer listed and its files are gone")

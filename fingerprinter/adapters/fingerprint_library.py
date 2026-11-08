@@ -8,14 +8,11 @@ import shutil
 from pathlib import Path
 from typing import Any
 
+from fingerprint import config as library_config
 from fingerprint.service_layer.handlers import fingerprint_report
 from fingerprint.service_layer.settings import resolve_settings
 
 from fingerprinter.domain.model import FingerprintOutcome, ReportFormat
-
-# The library's default profile name: the service sets none of the library's own
-# RDF_FINGERPRINTER_* variables (D-15), so RDF_FINGERPRINTER_PROFILE_FILE keeps its default.
-PROFILE_FILE = "profile.json"
 
 
 def describe_failure(failure: Any) -> str:
@@ -48,7 +45,9 @@ class LibraryFingerprinter:
             files={
                 ReportFormat.HTML: (_move_into(ReportFormat.HTML, report, work_folder),),
                 ReportFormat.JSON: (
-                    _move_into(ReportFormat.JSON, work_folder / PROFILE_FILE, work_folder),
+                    _move_into(
+                        ReportFormat.JSON, work_folder / library_config.profile_file, work_folder
+                    ),
                 ),
             },
             failures=tuple(describe_failure(failure) for failure in run.failures or ()),

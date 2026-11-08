@@ -110,6 +110,21 @@ def test_list_ignores_folders_without_a_record(store, tmp_path):
     assert [r.id for r in store.list()] == ["job-1"]
 
 
+def test_list_skips_a_record_deleted_while_listing(store, monkeypatch):
+    store.create(record("job-1"))
+    store.create(record("job-2"))
+    get = store.get
+
+    def deleted_meanwhile(job_id):
+        if job_id == "job-1":
+            raise JobNotFound(job_id)
+        return get(job_id)
+
+    monkeypatch.setattr(store, "get", deleted_meanwhile)
+
+    assert [r.id for r in store.list()] == ["job-2"]
+
+
 def test_list_of_a_missing_reports_folder_is_empty(tmp_path):
     assert FileJobStore(tmp_path / "nowhere").list() == []
 
@@ -126,7 +141,7 @@ def test_save_outputs_moves_files_into_format_folders_and_records_the_formats(st
     assert store.get("job-1").formats == (ReportFormat.HTML, ReportFormat.JSON)
 
 
-def test_save_outputs_writes_a_zip_of_every_format_folder(store, tmp_path):
+def test_everything_is_zipped(store, tmp_path):
     store.create(record())
     store.save_outputs("job-1", outcome(tmp_path, html=("main.html",), json=("profile.json",)))
 
@@ -147,7 +162,7 @@ def test_save_outputs_of_an_unknown_job_raises_job_not_found(store, tmp_path):
         store.save_outputs("unknown", outcome(tmp_path, html=("main.html",)))
 
 
-def test_the_report_page_is_the_file_itself(store, tmp_path):
+def test_the_report_page_is_downloaded(store, tmp_path):
     store.create(record())
     store.save_outputs("job-1", outcome(tmp_path, html=("main.html",)))
 

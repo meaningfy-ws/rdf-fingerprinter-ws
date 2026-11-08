@@ -1,9 +1,16 @@
 """The UI's HTTP client of the fingerprinter API; each call answers the API's response."""
 
+from urllib.parse import quote
+
 import requests
 from werkzeug.datastructures import FileStorage
 
 REQUEST_TIMEOUT_SECONDS = 60
+
+
+def _segment(value: str) -> str:
+    """A value as one URL path segment: no slash, query or fragment can escape it."""
+    return quote(value, safe="")
 
 
 class ApiClient:
@@ -31,14 +38,19 @@ class ApiClient:
 
     def get_report(self, job_id: str, report_format: str):
         return requests.get(
-            f"{self.base_url}/reports/{job_id}/{report_format}", timeout=REQUEST_TIMEOUT_SECONDS
+            f"{self.base_url}/reports/{_segment(job_id)}/{_segment(report_format)}",
+            timeout=REQUEST_TIMEOUT_SECONDS,
         )
 
     def delete_report(self, job_id: str):
-        return requests.delete(f"{self.base_url}/reports/{job_id}", timeout=REQUEST_TIMEOUT_SECONDS)
+        return requests.delete(
+            f"{self.base_url}/reports/{_segment(job_id)}", timeout=REQUEST_TIMEOUT_SECONDS
+        )
 
     def get_active_tasks(self):
         return requests.get(f"{self.base_url}/tasks/active", timeout=REQUEST_TIMEOUT_SECONDS)
 
     def cancel_task(self, task_id: str):
-        return requests.delete(f"{self.base_url}/tasks/{task_id}", timeout=REQUEST_TIMEOUT_SECONDS)
+        return requests.delete(
+            f"{self.base_url}/tasks/{_segment(task_id)}", timeout=REQUEST_TIMEOUT_SECONDS
+        )
