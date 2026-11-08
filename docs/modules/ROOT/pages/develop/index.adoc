@@ -7,7 +7,8 @@ repository root is the short form that agents load. It has four pages:
 * this one: the method, the structure, the tools and the conventions;
 * xref:develop/rdf-fingerprinter.adoc[Building on rdf-fingerprinter]: what the library does for the
   service, and what to do when it falls short;
-* xref:develop/agents.adoc[Working with agents]: sessions, roles, the loop of a stage, authority;
+* xref:develop/agents.adoc[Working with agents]: what is specific here when agents deliver the
+  work (the method itself is skillery's `epic-delivery` skill);
 * xref:develop/testing.adoc[Testing checklist]: the rules every test follows.
 
 == Common questions
@@ -29,7 +30,7 @@ The developer, at fixed points of the lifecycle. Agents verify; people validate.
 == Who does the work
 
 One developer leads a team of AI agents. The developer sets direction, answers questions and
-decides; a *leader* agent runs each session, briefs *member* agents for bounded tasks, checks their
+decides; a *lead* agent runs each session, briefs *member* agents for bounded tasks, checks their
 work, commits and keeps the spine. In practice:
 
 * *A session replaces the sprint.* A shaping session produces EPICs; an epic session delivers one,
@@ -38,7 +39,7 @@ work, commits and keeps the spine. In practice:
   checkbox in `tasks.md` is the ticket; the commit that closes it cites it.
 * *Questions replace meetings.* An agent that needs a decision asks the developer, with options and
   a recommendation; the answer is recorded in the change.
-* *Reports are claims.* Nothing an agent reports counts until the leader has re-run the checks and
+* *Reports are claims.* Nothing an agent reports counts until the lead has re-run the checks and
   read the diff.
 
 == Where the code goes

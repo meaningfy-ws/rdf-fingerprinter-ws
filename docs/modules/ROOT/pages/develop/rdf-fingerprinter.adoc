@@ -59,7 +59,7 @@ Instead:
 . *Tell the developer*: the link, what is blocked, what goes on. The developer schedules the fix.
 . *Resume* once the fix is released to PyPI, raising the pin in this repository's PR.
 
-The leader files library issues without asking first; members report them under *Library findings*
+The lead files library issues without asking first; members report them under *Library findings*
 and never file.
 
 [#issue]

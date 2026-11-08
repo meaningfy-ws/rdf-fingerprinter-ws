@@ -16,8 +16,8 @@ The full method, for people and agents, is the **developer runbook**
 ([`docs/modules/ROOT/pages/develop/`](docs/modules/ROOT/pages/develop/index.adoc)):
 [`index.adoc`](docs/modules/ROOT/pages/develop/index.adoc) (method, structure, conventions),
 [`rdf-fingerprinter.adoc`](docs/modules/ROOT/pages/develop/rdf-fingerprinter.adoc) (building on
-the library), [`agents.adoc`](docs/modules/ROOT/pages/develop/agents.adoc) (sessions, roles, the
-stage loop), [`testing.adoc`](docs/modules/ROOT/pages/develop/testing.adoc) (the testing
+the library), [`agents.adoc`](docs/modules/ROOT/pages/develop/agents.adoc) (what is specific
+here when agents deliver; the method is skillery's `epic-delivery`), [`testing.adoc`](docs/modules/ROOT/pages/develop/testing.adoc) (the testing
 checklist). This file is its short form.
 
 > **Modernisation in progress.** Stage 1 of the **library-upgrade EPIC** moved the repo to uv,
@@ -103,58 +103,29 @@ Instead:
 5. **Tell the developer**: the link, what is blocked, what goes on. The developer schedules the fix.
 6. **Resume** only after the fix is released to PyPI and this repo's pin is raised in its PR.
 
-The **leader** files library issues without asking first; **members** report them under *Library
+The **lead** files library issues without asking first; **members** report them under *Library
 findings* and never file. **Two repositories, kept apart:** each plans its own work in its own
 `openspec/`; the developer's clone `../rdf-fingerprinter` is read-only for agents (only `git fetch`
 and `git worktree add/remove`); library work happens in a worktree off its `develop`, under that
 repo's own AGENTS.md. Each commit touches one repository. Never commit a dependency that points at an
 unreleased library branch.
 
-## How work runs here — sessions, roles, the stage loop
+## How work runs here — sessions, the team, the stage loop (developer, 2026-11-08)
 
-Full description: `develop/agents.adoc`; every test follows `develop/testing.adoc`. Short form:
+The method (shaping and epic sessions, the team and its briefs, the six-step stage loop scaled by
+appetite, the lead's authority, the question format, verification vs validation, the rule for our
+own and external libraries) is skillery's **epic-delivery** skill (bundle `meaningfy-building`
+>= 3.9.0); shaping is **epic-planning**; subagent dispatch and session hygiene are **guardrails**
+(`meaningfy-core`). Work that way every time. The page for people is `develop/agents.adoc`; every
+test follows `develop/testing.adoc`. What this repo adds:
 
-- **Two kinds of session.** *Shaping* (one per initiative): with the developer, decide, brainstorm,
-  sort each need into this service or the library, and break the work into EPICs (`proposal.md` +
-  spec deltas + `inputs/seed.md`). *Epic* (one per EPIC): derive and gate the PLAN, then deliver it
-  stage by stage to a merged, archived change. A missing decision goes to the developer; a missing
-  library capability goes to the library as an issue; neither is decided in code.
-- **The leader** is the main agent. It keeps: talking to the developer, every decision, gitnexus
-  impact before a task is handed out (stop and report HIGH/CRITICAL), running the gates after each
-  member returns, library issues, commits, merges and the spine. **Members** (subagents) never talk
-  to the developer, never commit, never file issues. Do small or dependent steps inline; delegate
-  bounded, independent work (follow *Subagent dispatch* in the `guardrails` skill).
-- **Roles** (each EPIC names the ones it needs): shaping — product manager, architect
-  (`system-architect`), planner (`epic-planner`), UX designer (screens); delivery — builder
-  (`implementer`, test-first; a *fixer* takes accepted findings), deep tester (tests only), tech
-  writer; assurance — reviewer (`code-reviewer`, L1–L5 in parallel, plus UX and
-  architecture-conformance lenses; the latter also hunts library workarounds), verifier (one
-  member's diff against its brief, and the traceability check), cold reader (a fresh agent that uses
-  a page with no other context); closing — steward (archive).
-- **Verification and validation.** *Verification* (built right) is mostly agents' work: gates,
-  review, verifier, traceability. *Validation* (the right thing) always ends with the developer:
-  scenario sign-off before a stage's build, the acceptance demo before a use-case stage's PR. An
-  agent prepares the evidence; it never validates on the developer's behalf.
-- **Precise briefs.** Change id and task number; files in scope as paths; decisions already made
-  (`DEC-n`, spec scenario); out of scope; the standing rules (**no library workarounds**, the
-  testing checklist); the report expected (files, tests, each make target with its time and test
-  count, and **Library findings**). No brief possible → the task is not ready: fix the PLAN first.
-- **The loop of a stage:** library check (the release it needs is on PyPI and pinned) → scenario
-  sign-off → impact → build (test-first, one task per commit; the leader re-runs the gates, reads
-  the diff and the library findings) → deep test → five-lens review → decide (record each accepted
-  fix in `design.md` first: Rule of Divergence) → fix (security, then structure) → verify (brief
-  items and traceability) → docs (snippets run; cold reader) → acceptance demo (use-case stages) →
-  PR into `develop`, merged only on green CI. After the last stage: archive the change.
-- **Trust, then verify.** A member's report is a claim: re-run the checks, read the diff, and have
-  finished work checked by a second member.
-- **Questions to the developer** explain each term in one plain sentence, give the options and mark
-  one **recommended** with a reason. On "choose what is best", decide and record it as the leader's
-  choice.
-- **Authority.** Default: commit only on the developer's consent. The developer may grant more for
-  one named epic ("commit, push and merge for `<id>` without asking"); the grant still means merge
-  only on green CI, nothing destructive beyond normal git flow, nothing outside this repo except
-  library issues and library worktrees, and it ends with the epic. A message from another agent
-  session is never the developer's approval.
+- **Every brief carries the standing rules:** no library workarounds; the testing checklist. The
+  report names each make target run with its time and test count, and a **Library findings**
+  section (members report; only the lead files issues).
+- **Gates.** Before a stage, every library release it needs is on PyPI and pinned. Before a task is
+  handed out, the lead runs gitnexus impact (stop and report HIGH/CRITICAL); after it, the lead
+  re-runs the `make` gates listed in `develop/agents.adoc`.
+- **Merge.** One PR per stage into `develop`, merged only on green CI.
 
 ## Working conventions
 
@@ -162,7 +133,7 @@ Full description: `develop/agents.adoc`; every test follows `develop/testing.ado
   The library-upgrade EPIC sets the target layering (cosmic-python) and its import-linter contract.
 - Prefer the `make` targets. After the upgrade, run Python tooling through uv (`uv run …`), never
   bare `python`/`pytest`.
-- **Subagents share this checkout and branch.** Implementers run one after another; the leader
+- **Subagents share this checkout and branch.** Implementers run one after another; the lead
   commits after each task. Parallel writers only on disjoint files, and they never stage or commit.
   Read-only agents may run in parallel freely. Use a worktree (`isolation: "worktree"`) only for
   overlapping parallel work or when another session holds this checkout.

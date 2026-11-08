@@ -1,7 +1,7 @@
 > Derives from: EPIC `upgrade-fingerprinter-library` (`proposal.md`); design `design.md` (D-1 to D-17, L-1).
 
-Each stage ends in one PR into `develop`, run through the stage loop of
-`docs/modules/ROOT/pages/develop/agents.adoc#stage-loop`. Tasks 1.1 to 1.4 land as **one commit**
+Each stage ends in one PR into `develop`, run through the stage loop of skillery's
+`epic-delivery` skill (repo specifics: `docs/modules/ROOT/pages/develop/agents.adoc`). Tasks 1.1 to 1.4 land as **one commit**
 (the dependency swap cannot be green halfway) and end with `uv run pytest` green; every task from
 1.5 on leaves `uv run pytest` green, and from 1.6 on `make check-all` green. Evidence goes in
 `openspec/changes/upgrade-fingerprinter-library/evidence/`; durations go in the table at
