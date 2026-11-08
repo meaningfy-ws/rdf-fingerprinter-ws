@@ -20,10 +20,10 @@ make check-all    # lint, type check, architecture, spec, docs and the tests
 ## Run the stack
 
 ```bash
-cp infra/.env.example infra/.env     # then replace every "change-me" (letters and digits only)
+make init-env                        # write infra/.env with random secrets (refuses to overwrite one)
 make up                              # start the stack (builds the images the first time)
 make logs                            # follow the logs
-make down                            # stop it (the data volumes stay)
+make down                            # stop it (the data volumes stay; needs no infra/.env)
 make rebuild                         # after pulling new code: rebuild the images and start
 ```
 
@@ -33,18 +33,30 @@ make rebuild                         # after pulling new code: rebuild the image
 | `fingerprinter-api` | <http://localhost:4020> | the REST API (localhost only); Swagger UI at <http://localhost:4020/ui> |
 | `fingerprinter-flower` | <http://localhost:5557> | Flower, a view of the Celery jobs (localhost only) |
 | `fingerprinter-worker` | – | runs the fingerprinting jobs |
-| `fuseki`, `redis`, `plantuml` | localhost only | temporary datasets of uploaded files, the Celery broker, the class diagrams |
+| `edge` (nginx), `egress` (Squid) | – | publish the UI and API on `127.0.0.1`; the only way out for the API and the worker |
+| `fuseki`, `redis`, `plantuml` | internal network only | temporary datasets of uploaded files, the Celery broker, the class diagrams |
 
 `infra/.env` (git-ignored) holds the settings and the secrets; `infra/.env.example` lists every one.
+Each container gets only the variables it uses (the worker holds no Flask key, the UI no Fuseki password).
+An existing `fuseki` volume keeps the admin password it was created with: after `make init-env` on an
+older install, keep the old password in `infra/.env` or remove the volume.
 The images are built from the targets `api`, `ui` and `worker` of `infra/docker/Dockerfile` and published to
 `ghcr.io/meaningfy-ws/rdf-fingerprinter-ws-{api,ui,worker}` on each release.
+
+The stack's networks are internal except one: the API and the worker reach a user-given URL only
+through the egress proxy, which refuses loopback, private, link-local and shared addresses
+(`infra/proxy/squid.conf`). Redis, Fuseki and PlantUML are therefore not published on the host by
+`make up`; `make up-dev` (the stack) and `make up-deps` (only Redis, Fuseki and PlantUML) add the
+development override `infra/compose.dev.yaml`, which publishes them on `127.0.0.1`, for loading demo
+data and for the `run-*` targets.
 
 To work on one service on the host, run `make up-deps` (only Redis, Fuseki and PlantUML), then
 `make run-api`, `make run-ui` and `make run-worker`. Do not run them next to the full stack: both would
 take jobs from the same queue.
 
 **Security.** The API and UI are published on `127.0.0.1` only and have no login; the worker and the
-API fetch the endpoint URLs clients submit. See [SECURITY.md](SECURITY.md) before exposing the stack.
+API fetch the endpoint URLs clients submit, through the egress proxy. See [SECURITY.md](SECURITY.md)
+before exposing the stack.
 
 ## The API
 
@@ -101,4 +113,4 @@ developer runbook. See [CHANGELOG.md](CHANGELOG.md) for what changed.
 
 ## Licence
 
-GNU GPLv3 (see [LICENSE](LICENSE)). Powered by [Meaningfy](https://github.com/meaningfy-ws).
+Apache License 2.0 (see [LICENSE](LICENSE)). Powered by [Meaningfy](https://github.com/meaningfy-ws).

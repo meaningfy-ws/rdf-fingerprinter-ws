@@ -1,0 +1,45 @@
+# The edge proxy: publishes the UI and the API (design H-3). The nginx image renders this template
+# (envsubst on the container's environment) into /etc/nginx/conf.d/default.conf.
+# Upstreams are resolved per request, so a restarted UI or API is found again.
+
+resolver 127.0.0.11 valid=10s;
+
+server {
+    listen ${RDF_FINGERPRINTER_UI_PORT};
+    client_max_body_size ${RDF_FINGERPRINTER_MAX_UPLOAD_MB}m;
+
+    location / {
+        set $ui fingerprinter-ui:${RDF_FINGERPRINTER_UI_PORT};
+        proxy_pass http://$ui;
+        proxy_http_version 1.1;
+        proxy_set_header Host $http_host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        # Stream uploads and downloads: nothing is spooled to the proxy's disk.
+        proxy_request_buffering off;
+        proxy_buffering off;
+        # Above the UI's 75 s wait for an endpoint's graphs.
+        proxy_read_timeout 120s;
+    }
+}
+
+server {
+    listen ${RDF_FINGERPRINTER_API_PORT};
+    client_max_body_size ${RDF_FINGERPRINTER_MAX_UPLOAD_MB}m;
+
+    location / {
+        set $api fingerprinter-api:${RDF_FINGERPRINTER_API_PORT};
+        proxy_pass http://$api;
+        proxy_http_version 1.1;
+        proxy_set_header Host $http_host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        # Stream uploads and downloads: nothing is spooled to the proxy's disk.
+        proxy_request_buffering off;
+        proxy_buffering off;
+        # Above the UI's 75 s wait for an endpoint's graphs.
+        proxy_read_timeout 120s;
+    }
+}

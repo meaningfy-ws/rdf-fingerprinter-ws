@@ -18,7 +18,7 @@ from fingerprinter.adapters.file_upload_store import FileUploadStore
 from fingerprinter.adapters.fingerprint_library import LibraryFingerprinter
 from fingerprinter.adapters.fuseki import FusekiDatasetStore
 from fingerprinter.adapters.plantuml import PlantUmlRenderer
-from fingerprinter.config import Settings
+from fingerprinter.config import Settings, require_secret
 from fingerprinter.entrypoints.api import create_app as create_api_app
 from fingerprinter.entrypoints.ui import create_app as create_ui_app
 from fingerprinter.entrypoints.worker.tasks import register_tasks
@@ -72,7 +72,9 @@ def _configure_logging() -> None:
 def api_app() -> FlaskApp:
     _configure_logging()
     app = create_api_app(build_services(), swagger_ui=settings.show_swagger_ui)
-    app.app.config["SECRET_KEY"] = settings.api_secret_key
+    app.app.config["SECRET_KEY"] = require_secret(
+        "RDF_FINGERPRINTER_API_SECRET_KEY", settings.api_secret_key
+    )
     return app
 
 
@@ -80,7 +82,7 @@ def ui_app() -> Flask:
     _configure_logging()
     return create_ui_app(
         settings.api_url,
-        settings.ui_secret_key,
+        require_secret("RDF_FINGERPRINTER_UI_SECRET_KEY", settings.ui_secret_key),
         accepted_extensions=tuple(sorted(settings.input_mime_types)),
         max_upload_bytes=settings.max_upload_bytes,
         secure_cookies=settings.ui_secure_cookies,
