@@ -10,7 +10,7 @@ Feature: Report access
     Scenario: A completed job appears in the list
       Given a job that completed for "http://example.org/sparql"
       When a client lists the reports
-      Then the list holds that report with its source, state "completed" and its formats
+      Then the list holds that report with its source, state "completed" and its seven formats
 
     Scenario: A failed job appears without formats
       Given a job that failed because "http://unreachable.invalid/sparql" was unreachable

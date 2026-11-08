@@ -24,6 +24,16 @@ from tests.fakes import (
 )
 
 RESOURCES = Path(__file__).parent.parent / "resources"
+# the file each format gets from the library (the file store adds the zip format itself)
+LIBRARY_FILE_NAMES = {
+    ReportFormat.HTML: "main.html",
+    ReportFormat.JSON: "profile.json",
+    ReportFormat.SHACL: "shapes-x.ttl",
+    ReportFormat.PUML: "diagram-x.puml",
+    ReportFormat.PATTERN: "patterns-x.md",
+    ReportFormat.SHEX: "shex-x.shex",
+    ReportFormat.PITFALLS: "pitfalls-x.tsv",
+}
 FILE_CONTENT = {"notes.txt": b"just some notes"}
 
 
@@ -52,11 +62,13 @@ class World:
 
     @staticmethod
     def _outcome(folder: Path) -> FingerprintOutcome:
-        """The files a run writes, which exist so that a download can serve them."""
-        html, profile = folder / "main.html", folder / "profile.json"
-        html.write_text("<html/>")
-        profile.write_text("{}")
-        return FingerprintOutcome(files={ReportFormat.HTML: (html,), ReportFormat.JSON: (profile,)})
+        """The files a run writes (one per format), which exist so that a download can serve them."""
+        files = {}
+        for report_format, name in LIBRARY_FILE_NAMES.items():
+            path = folder / name
+            path.write_text("content")
+            files[report_format] = (path,)
+        return FingerprintOutcome(files=files)
 
     def respond(self, response: Any) -> Any:
         """Record the API's answer: its status, its problem if any, else its JSON body."""

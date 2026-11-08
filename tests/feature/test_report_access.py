@@ -90,10 +90,7 @@ def two_completed_reports(world):
 @given(parsers.parse('a completed report whose "{format_name}" output holds no file'))
 def a_report_with_an_empty_output(world, format_name):
     world.library.outcome = FingerprintOutcome(
-        files={
-            ReportFormat.HTML: world.library.outcome.files[ReportFormat.HTML],
-            ReportFormat(format_name): (),
-        }
+        files={**world.library.outcome.files, ReportFormat(format_name): ()}
     )
     world.job_id = complete_a_job(world)
 
@@ -139,13 +136,23 @@ def client_deletes_unknown(world):
 
 
 @then(
-    parsers.parse('the list holds that report with its source, state "completed" and its formats')
+    parsers.parse(
+        'the list holds that report with its source, state "completed" and its seven formats'
+    )
 )
 def list_holds_completed(world):
     (record,) = world.result
     assert record["source"]["endpoint"] == ENDPOINT
     assert record["state"] == JobState.COMPLETED
-    assert record["formats"] == [ReportFormat.HTML, ReportFormat.JSON]
+    assert record["formats"] == [
+        "html",
+        "json",
+        "shacl",
+        "puml",
+        "pattern",
+        "shex",
+        "pitfalls",
+    ]
 
 
 @then(parsers.parse('the list holds that job with state "failed", its reason, and no formats'))

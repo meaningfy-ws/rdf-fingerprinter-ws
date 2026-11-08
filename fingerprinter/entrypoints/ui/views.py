@@ -64,9 +64,11 @@ def download_report(job_id: str, report_format: str) -> Response:
         flash(error_message(response), FLASH_ERROR)
         return redirect(url_for("index"))
     _, disposition = parse_options_header(response.headers.get("Content-Disposition", ""))
-    name = disposition.get("filename") or report_format
     return send_file(
-        io.BytesIO(response.content), download_name=f"{job_id}-{name}", as_attachment=True
+        io.BytesIO(response.content),
+        mimetype=response.headers.get("Content-Type"),
+        download_name=disposition.get("filename") or report_format,
+        as_attachment=True,
     )
 
 

@@ -35,8 +35,8 @@ Each stage ends in one PR into `develop`, run through the stage loop of
 - [x] 3.1 Settle L-1: in `tests/integration/test_fingerprint_library.py`, render `pattern`, `shex` and `pitfalls` with `generate_representations` from a profile of `tests/resources/continents-source-ap.rdf`. If all render, the leader files the `documentation` issue; if one fails, stop and file a `bug` issue (strict rule).
 - [x] 3.2 Add `tests/resources/pitfall-untyped-class.ttl`, a small graph that makes the packaged check `p34_untyped_class` report at least one finding when scanned as the default graph (if `p34` does not run on a default graph without schema graphs, choose another packaged check that does, and name it in the commit). `LibraryFingerprinter`: pitfall scan on, the seven formats in their folders (D-3), failures as strings; integration tests per the test map.
 - [x] 3.3 `FileJobStore`: per-format files, multi-file formats zipped on download, `report.zip`, the job record; unit tests per the test map.
-- [ ] 3.4 The OpenAPI contract and handlers of D-4 (routes, `202`, the job record, problem responses per the error matrix); feature tests per the test map, with the fake `Fingerprinter` returning failures for "Failed measurements are listed". Restore in the Gherkin what stage 2 relaxed: "its seven formats" (A completed job appears in the list) and the failures "in the report's metadata" (Failed measurements are listed), with a `FileJobStore` test that `set_state(..., failures=...)` writes them to `meta.json`.
-- [ ] 3.5 UI: the report and job pages show the state, reason and failures and one link per available format; the download route proxies `GET /reports/{uid}/{format}`; flash messages per the error matrix's UI column; unit tests with BeautifulSoup per the test map.
+- [x] 3.4 The OpenAPI contract and handlers of D-4 (routes, `202`, the job record, problem responses per the error matrix); feature tests per the test map, with the fake `Fingerprinter` returning failures for "Failed measurements are listed". Restore in the Gherkin what stage 2 relaxed: "its seven formats" (A completed job appears in the list) and the failures "in the report's metadata" (Failed measurements are listed), with a `FileJobStore` test that `set_state(..., failures=...)` writes them to `meta.json`.
+- [x] 3.5 UI: the report and job pages show the state, reason and failures and one link per available format; the download route proxies `GET /reports/{uid}/{format}`; flash messages per the error matrix's UI column; unit tests with BeautifulSoup per the test map.
 - [ ] 3.6 E2E tests in `tests/e2e/` (the API app, a real worker, Fuseki, Redis) per the test map; record each job's duration in the durations table.
 - [ ] 3.7 Stage 3 PR into `develop`, with the acceptance demo of an endpoint job and a file job, from the API and the UI, recorded in `evidence/acceptance-stage-3.md`.
 
@@ -92,7 +92,7 @@ live in `tests/resources/`.
 
 - [x] 1.1 · [x] 1.2 · [x] 1.3 · [x] 1.4 · [x] 1.5 · [x] 1.6 · [x] 1.7 · [x] 1.8 · [x] 1.9
 - [x] 2.1 · [x] 2.2 · [x] 2.3 · [x] 2.4 · [x] 2.5 · [x] 2.6 · [x] 2.7
-- [x] 3.1 · [x] 3.2 · [x] 3.3 · [ ] 3.4 · [ ] 3.5 · [ ] 3.6 · [ ] 3.7
+- [x] 3.1 · [x] 3.2 · [x] 3.3 · [x] 3.4 · [x] 3.5 · [ ] 3.6 · [ ] 3.7
 - [ ] 4.1 · [ ] 4.2 · [ ] 4.3 · [ ] 4.4 · [ ] 4.5 · [ ] 4.6 · [ ] 4.7
 
 ## Verification

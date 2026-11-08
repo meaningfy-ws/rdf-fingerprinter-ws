@@ -91,6 +91,16 @@ def test_set_state_keeps_the_rest_of_the_record(store):
     assert stored.source == record().source
 
 
+def test_set_state_writes_the_failures_to_meta_json(store, tmp_path):
+    store.create(record())
+
+    store.set_state("job-1", JobState.COMPLETED_WITH_FAILURES, failures=("m1 failed", "m2 failed"))
+
+    meta = json.loads((tmp_path / "reports" / "job-1" / "meta.json").read_text())
+    assert meta["state"] == "completed_with_failures"
+    assert meta["failures"] == ["m1 failed", "m2 failed"]
+
+
 def test_set_state_of_an_unknown_id_raises_job_not_found(store):
     with pytest.raises(JobNotFound):
         store.set_state("unknown", JobState.RUNNING)

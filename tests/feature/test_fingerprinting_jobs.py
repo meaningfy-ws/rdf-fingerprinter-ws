@@ -1,13 +1,13 @@
 """Binds the untagged scenarios of fingerprinting_jobs.feature (the others run in containers)."""
 
+import dataclasses
 import uuid
 from datetime import UTC, datetime
-from pathlib import Path
 
 from pytest_bdd import given, parsers, scenario, then, when
 
 from fingerprinter.config import INPUT_MIME_TYPES
-from fingerprinter.domain.model import FingerprintOutcome, JobRecord, JobState, ReportFormat, Source
+from fingerprinter.domain.model import JobRecord, JobState, Source
 
 FEATURE = "fingerprinting_jobs.feature"
 ENDPOINT = "http://example.org/sparql"
@@ -167,9 +167,8 @@ def ask_state_of(world, job_id):
 
 @given("an endpoint on which two measurements fail but the report is written")
 def two_measurements_fail(world):
-    world.library.outcome = FingerprintOutcome(
-        files={ReportFormat.HTML: (Path("main.html"),)},
-        failures=("measurement one failed", "measurement two failed"),
+    world.library.outcome = dataclasses.replace(
+        world.library.outcome, failures=("measurement one failed", "measurement two failed")
     )
     world.submit_endpoint(ENDPOINT)
 
@@ -184,12 +183,11 @@ def its_state_is(world, state):
     assert world.store.get(world.job_id).state == state
 
 
-@then("both failures are listed in the job state")
+@then("both failures are listed in the job state and the report's metadata")
 def failures_listed(world):
-    assert world.store.get(world.job_id).failures == (
-        "measurement one failed",
-        "measurement two failed",
-    )
+    failures = ["measurement one failed", "measurement two failed"]
+    assert world.status_of(world.job_id)["failures"] == failures
+    assert world.respond(world.client.get(f"/reports/{world.job_id}"))["failures"] == failures
 
 
 # --- cancelling --------------------------------------------------------------------------------

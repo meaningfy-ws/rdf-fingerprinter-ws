@@ -1,13 +1,22 @@
 """The API's contract: routes, status codes and problem responses, with the fakes behind it."""
 
+import dataclasses
 import io
+import zipfile
 from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
 
+from fingerprinter.adapters.file_job_store import FileJobStore
 from fingerprinter.domain.exceptions import QueueUnavailable, UploadTooLarge
-from fingerprinter.domain.model import JobRecord, JobState, ReportFormat, Source
+from fingerprinter.domain.model import (
+    FingerprintOutcome,
+    JobRecord,
+    JobState,
+    ReportFormat,
+    Source,
+)
 from fingerprinter.entrypoints.api import create_app
 from fingerprinter.services.ports import Services
 from tests.fakes import (
@@ -188,6 +197,11 @@ def test_an_unknown_report_is_a_404_problem(client):
     [
         (ReportFormat.HTML, "main.html", "text/html"),
         (ReportFormat.JSON, "profile.json", "application/json"),
+        (ReportFormat.SHACL, "shapes-x.ttl", "text/turtle"),
+        (ReportFormat.PUML, f"{J1}-puml.zip", "application/zip"),
+        (ReportFormat.PATTERN, f"{J1}-pattern.zip", "application/zip"),
+        (ReportFormat.SHEX, "shex-x.shex", "text/shex"),
+        (ReportFormat.PITFALLS, "pitfalls-x.tsv", "text/tab-separated-values"),
         (ReportFormat.ZIP, "report.zip", "application/zip"),
     ],
 )
@@ -202,7 +216,30 @@ def test_a_format_is_served_as_a_file(
 
     assert response.status_code == 200
     assert response.headers["content-type"].startswith(content_type)
+    assert f"filename={name}" in response.headers["content-disposition"]
     assert response.text == "content"
+
+
+def test_a_multi_file_format_is_served_as_a_zip_named_after_the_job(services, tmp_path):
+    services = dataclasses.replace(services, job_store=FileJobStore(tmp_path / "reports"))
+    seed(services, J1)
+    work = tmp_path / "work"
+    work.mkdir()
+    for name in ("diagram-x.puml", "diagram-x--m.puml"):
+        (work / name).write_text(name)
+    services.job_store.save_outputs(
+        J1,
+        FingerprintOutcome(
+            files={ReportFormat.PUML: (work / "diagram-x.puml", work / "diagram-x--m.puml")}
+        ),
+    )
+
+    response = create_app(services).test_client().get(f"/reports/{J1}/puml")
+
+    assert response.headers["content-type"].startswith("application/zip")
+    assert f"filename={J1}-puml.zip" in response.headers["content-disposition"]
+    with zipfile.ZipFile(io.BytesIO(response.content)) as archive:
+        assert sorted(archive.namelist()) == ["diagram-x--m.puml", "diagram-x.puml"]
 
 
 def test_a_format_with_no_file_is_a_404(client, services):
