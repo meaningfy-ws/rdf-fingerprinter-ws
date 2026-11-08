@@ -15,7 +15,7 @@ def test_async_fingerprint_file(mock_build_report_from_file, api_client, tmpdir,
 
     return_value = async_fingerprint_file(file_path=str(data_file), db_cleanup_location=location)
 
-    mock_build_report_from_file.called_once()
+    mock_build_report_from_file.assert_called_once()
     assert not dir_exists(location)
     assert return_value
 
@@ -29,6 +29,6 @@ def test_async_fingerprint_sparql_endpoint(mock_build_report_from_sparql_endpoin
     return_value = async_fingerprint_sparql_endpoint(sparql_endpoint_url=sparql_endpoint, db_cleanup_location=location,
                                                      graphs=graphs)
 
-    mock_build_report_from_sparql_endpoint.called_once()
+    mock_build_report_from_sparql_endpoint.assert_called_once()
     assert not dir_exists(location)
     assert return_value

@@ -11,7 +11,7 @@ API server through connexion definitions.
 import logging
 
 from fingerprinter.config import config, ProductionConfig, DevelopmentConfig
-from fingerprinter.entrypoints.api import app
+from fingerprinter.entrypoints.api import app, connexion_app
 
 if config.RDF_FINGERPRINTER_DEBUG:
     app.config.from_object(DevelopmentConfig())
@@ -19,7 +19,7 @@ else:
     app.config.from_object(ProductionConfig())
 
 if __name__ == '__main__':
-    app.run()
+    connexion_app.run()
 
 if __name__ != '__main__':
     gunicorn_logger = logging.getLogger('gunicorn.error')

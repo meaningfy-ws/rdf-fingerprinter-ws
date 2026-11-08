@@ -13,7 +13,6 @@ from json import loads, dumps
 from unittest.mock import patch, MagicMock
 
 import pytest
-from werkzeug.datastructures import FileStorage
 
 
 @patch('fingerprinter.entrypoints.api.handlers.async_fingerprint_sparql_endpoint.delay')
@@ -26,10 +25,10 @@ def test_fingerprint_sparql_endpoint_success(mock_async_fingerprint_sparql_endpo
         'sparql_endpoint_url': 'http://localhost:3030/dataset/query'
     }
 
-    response = api_client.post('/fingerprint-sparql-endpoint', json=data, content_type='application/json')
+    response = api_client.post('/fingerprint-sparql-endpoint', json=data)
 
     assert response.status_code == 200
-    assert task_id in loads(response.data.decode()).get('task_id')
+    assert task_id in loads(response.text).get('task_id')
 
 
 @pytest.mark.parametrize('filename',
@@ -40,27 +39,23 @@ def test_fingerprint_file_success(mock_async_fingerprint_file, filename, api_cli
 
     mock_async_fingerprint_file.return_value = MagicMock(id=task_id)
 
-    data = {
-        'data_file': FileStorage(BytesIO(b'data file content'), filename)
-    }
+    files = {'data_file': (filename, BytesIO(b'data file content'))}
 
-    response = api_client.post('/fingerprint-file', data=data, content_type='multipart/form-data')
+    response = api_client.post('/fingerprint-file', files=files)
 
     assert response.status_code == 200
-    assert task_id in loads(response.data.decode()).get('task_id')
+    assert task_id in loads(response.text).get('task_id')
 
 
 def test_fingerprint_file_file_type_exception(api_client):
     unacceptable_filename = 'data.pdf'
 
-    data = {
-        'data_file': FileStorage(BytesIO(b'pdf file content'), unacceptable_filename),
-    }
+    files = {'data_file': (unacceptable_filename, BytesIO(b'pdf file content'))}
 
-    response = api_client.post('/fingerprint-file', data=data, content_type='multipart/form-data')
+    response = api_client.post('/fingerprint-file', files=files)
 
     assert response.status_code == 415
-    assert unacceptable_filename in response.json.get('detail')
+    assert unacceptable_filename in response.json().get('detail')
 
 
 @pytest.mark.parametrize("report_type, content_type",
@@ -79,8 +74,8 @@ def test_get_fingerprinting_report(mock_get_report, report_type, content_type, a
     response = api_client.get(api_endpoint)
 
     assert response.status_code == 200
-    assert content_type in response.content_type
-    assert report_type in response.data.decode()
+    assert content_type in response.headers['content-type']
+    assert report_type in response.text
 
 
 @patch('fingerprinter.entrypoints.api.handlers.get_report')
@@ -92,7 +87,7 @@ def test_get_fingerprinting_report_failure(mock_get_report, api_client, tmpdir):
     response = api_client.get(api_endpoint)
 
     assert response.status_code == 404
-    assert 'Fingerprinting doesn\'t exist.' in response.data.decode()
+    assert 'Fingerprinting doesn\'t exist.' in response.text
 
 
 @patch('fingerprinter.entrypoints.api.handlers.get_available_fingerprintings')
@@ -101,9 +96,9 @@ def test_get_fingerprintings(mock_get_available_fingerprintings, api_client, tmp
     response = api_client.get('/reports')
 
     assert response.status_code == 200
-    assert 'validation1' in response.data.decode()
-    assert 'validation2' in response.data.decode()
-    assert len(loads(response.data.decode())) == 2
+    assert 'validation1' in response.text
+    assert 'validation2' in response.text
+    assert len(loads(response.text)) == 2
 
 
 @patch('fingerprinter.entrypoints.api.handlers.delete_report')
@@ -162,9 +157,9 @@ def test_get_active_tasks(mock_retrieve_active_tasks, mock_flatten_active_tasks,
     response = api_client.get(api_endpoint)
 
     assert response.status_code == 200
-    assert '1' in response.data.decode()
-    assert '2' in response.data.decode()
-    assert '3' in response.data.decode()
+    assert '1' in response.text
+    assert '2' in response.text
+    assert '3' in response.text
 
 
 @patch('fingerprinter.entrypoints.api.handlers.retrieve_task')
@@ -177,8 +172,8 @@ def test_get_task_status(mock_retrieve_task, api_client):
     response = api_client.get(api_endpoint)
 
     assert response.status_code == 200
-    assert 'success' in response.data.decode()
-    assert 'result' in response.data.decode()
+    assert 'success' in response.text
+    assert 'result' in response.text
 
 
 @patch('fingerprinter.entrypoints.api.handlers.retrieve_task')
@@ -211,7 +206,7 @@ def test_stop_running_task(mock_kill_task, mock_retrieve_active_tasks, mock_flat
 @patch('fingerprinter.entrypoints.api.handlers.flatten_active_tasks')
 @patch('fingerprinter.entrypoints.api.handlers.retrieve_active_tasks')
 @patch('fingerprinter.entrypoints.api.handlers.kill_task')
-def test_stop_running_task(mock_kill_task, mock_retrieve_active_tasks, mock_flatten_active_tasks, api_client):
+def test_stop_running_task_not_found(mock_kill_task, mock_retrieve_active_tasks, mock_flatten_active_tasks, api_client):
     task_id = 'task-id'
     api_endpoint = f'/tasks/{task_id}'
 

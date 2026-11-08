@@ -6,12 +6,10 @@
 # Email: coslet.mihai@gmail.com
 import pytest
 import requests
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.chrome.webdriver import WebDriver
 
 from fingerprinter.adapters.sparql_adapter import FusekiSPARQLAdapter, AbstractSPARQLAdapter
 from fingerprinter.config import TestingConfig
-from fingerprinter.entrypoints.api import app as api_app
+from fingerprinter.entrypoints.api import app as api_app, connexion_app
 from fingerprinter.entrypoints.ui import app as ui_app
 
 
@@ -74,7 +72,7 @@ def fake_sparql_adapter():
 @pytest.fixture
 def api_client():
     api_app.config.from_object(TestingConfig())
-    return api_app.test_client()
+    return connexion_app.test_client()
 
 
 @pytest.fixture
@@ -86,17 +84,3 @@ def ui_client():
 @pytest.fixture(scope="session")
 def scenario_context():
     return {}
-
-
-@pytest.fixture(scope="session")
-def browser():
-    chrome_options = Options()
-    chrome_options.add_argument("--headless")
-    chrome_options.add_argument("--no-sandbox")
-    chrome_driver_args = ["--whitelisted-ips=", "--log-path=chromedriver.log"]
-    _browser = WebDriver(chrome_options=chrome_options,
-                         service_args=chrome_driver_args)
-    _browser.maximize_window()
-    yield _browser
-    _browser.close()
-    _browser.quit()

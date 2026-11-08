@@ -10,10 +10,10 @@ Each stage ends in one PR into `develop`, run through the stage loop of
 
 ## 1. Stage 1 — Foundation (DEC-6, DEC-7, DEC-9, D-10, D-14)
 
-- [ ] 1.1 Add `pyproject.toml` (uv build backend with `module-root = ""`, `requires-python >=3.12,<3.15`, groups `test`/`lint`/`dev`, exact pins per D-10), `.python-version` (`3.13`) and `uv.lock`; remove `requirements/`, `requirements.txt` and `setup.cfg`. Check: `uv sync` succeeds on 3.13.
-- [ ] 1.2 Remove the imports of dropped packages (D-10): `selenium` in `tests/conftest.py`, and any `SPARQLWrapper`, `eds4jinja2`, `rdflib`, `requests_toolbelt`, `shortuuid`, `click` import left unused. Check: `grep -rn` finds none, and `uv sync` still succeeds.
-- [ ] 1.3 Replace both `generate_endpoint_fingerprint_report` calls in `fingerprinter/services/report_handling.py` with one `fingerprint_report(..., formats=(), prefix_list=None)` built with `resolve_settings(env={}, selected_graphs=graphs)` (D-14, D-15); serve `main.html` as `html`, `profile.json` as `json`, their zip as `zip`. Remove `resources/templates/`, the template settings in `fingerprinter/config.py`, `logging.conf` when nothing reads it, and `make set-report-template`. Unit tests updated first.
-- [ ] 1.4 Migrate the API to Connexion 3 (`FlaskApp`, uvicorn worker, D-8) and the UI to Flask 3, keeping today's routes and contract; adapt the test clients. Check: every existing test passes with `uv run pytest`. Commit 1.1–1.4 together.
+- [x] 1.1 Add `pyproject.toml` (uv build backend with `module-root = ""`, `requires-python >=3.12,<3.15`, groups `test`/`lint`/`dev`, exact pins per D-10), `.python-version` (`3.13`) and `uv.lock`; remove `requirements/`, `requirements.txt` and `setup.cfg`. Check: `uv sync` succeeds on 3.13.
+- [x] 1.2 Remove the imports of dropped packages (D-10): `selenium` in `tests/conftest.py`, and any `SPARQLWrapper`, `eds4jinja2`, `rdflib`, `requests_toolbelt`, `shortuuid`, `click` import left unused. Check: `grep -rn` finds none, and `uv sync` still succeeds.
+- [x] 1.3 Replace both `generate_endpoint_fingerprint_report` calls in `fingerprinter/services/report_handling.py` with one `fingerprint_report(..., formats=(), prefix_list=None)` built with `resolve_settings(env={}, selected_graphs=graphs)` (D-14, D-15); serve `main.html` as `html`, `profile.json` as `json`, their zip as `zip`. Remove `resources/templates/`, the template settings in `fingerprinter/config.py`, `logging.conf` when nothing reads it, and `make set-report-template`. Unit tests updated first.
+- [x] 1.4 Migrate the API to Connexion 3 (`FlaskApp`, uvicorn worker, D-8) and the UI to Flask 3, keeping today's routes and contract; adapt the test clients. Check: every existing test passes with `uv run pytest`. Commit 1.1–1.4 together.
 - [ ] 1.5 Move the tests into `tests/unit/` and `tests/feature/` and add the marker hook of `/home/lps/work/repos/rdf-persistence/tests/conftest.py` to `tests/conftest.py` (D-11); add `pytest.ini` from `/home/lps/work/repos/rdf-persistence/pytest.ini` (no coverage flags).
 - [ ] 1.6 Add `ruff.toml`, `mypy.ini`, `.coveragerc` (D-12), `.pre-commit-config.yaml` from the reference repository's files, and `.importlinter` with one stage-1 contract (`fingerprinter.services` and `fingerprinter.adapters` do not import `fingerprinter.entrypoints`, which today's code meets). Add the Makefile targets of `/home/lps/work/repos/rdf-persistence/Makefile`: `install`, `lock`, `format`, `lint`, `lint-fix`, `typecheck`, `check-architecture`, `check-spec`, `test`, `test-unit`, `test-feature`, `check-quality` (= `lint typecheck check-architecture check-spec check-docs`; the reference's generation and freshness targets do not apply), `check-all`; remove the pip targets. Fix the Ruff and mypy findings in their own commits.
 - [ ] 1.7 Raise the unit and feature lane to ≥ 80 % coverage, test-first on the code stage 2 keeps (the API handlers and helpers, the UI views and forms). Check: `make check-all` green.
@@ -90,7 +90,7 @@ live in `tests/resources/`.
 
 ## Roadmap
 
-- [ ] 1.1 · [ ] 1.2 · [ ] 1.3 · [ ] 1.4 · [ ] 1.5 · [ ] 1.6 · [ ] 1.7 · [ ] 1.8 · [ ] 1.9
+- [x] 1.1 · [ ] 1.2 · [ ] 1.3 · [ ] 1.4 · [ ] 1.5 · [ ] 1.6 · [ ] 1.7 · [ ] 1.8 · [ ] 1.9
 - [ ] 2.1 · [ ] 2.2 · [ ] 2.3 · [ ] 2.4 · [ ] 2.5 · [ ] 2.6 · [ ] 2.7
 - [ ] 3.1 · [ ] 3.2 · [ ] 3.3 · [ ] 3.4 · [ ] 3.5 · [ ] 3.6 · [ ] 3.7
 - [ ] 4.1 · [ ] 4.2 · [ ] 4.3 · [ ] 4.4 · [ ] 4.5 · [ ] 4.6 · [ ] 4.7

@@ -221,28 +221,30 @@ def test_remove_report_failure(tmpdir):
     assert not is_success
 
 
-@patch('fingerprinter.services.report_handling.generate_endpoint_fingerprint_report')
-@patch('fingerprinter.services.report_handling.zip_report_files')
-def test_fingerprint_sparql_endpoint(mock_zip_report_files, mock_generate_endpoint_fingerprint_report, tmpdir):
-    location = tmpdir.mkdir('reports')
+@patch('fingerprinter.services.report_handling.fingerprint_report')
+def test_fingerprint_sparql_endpoint(mock_fingerprint_report, tmpdir):
+    location = Path(str(tmpdir.mkdir('reports')))
     sparql_endpoint = "http://example.com/sparql"
-    html_report = tmpdir.join('report.html')
-    html_report.write('html')
-    json_report = tmpdir.join('report.json')
-    json_report.write('json')
-    zip_report = tmpdir.join('report.zip')
-    zip_report.write('zip')
 
-    mock_generate_endpoint_fingerprint_report.side_effect = [html_report, json_report]
+    def write_report(url, folder, settings, **kwargs):
+        (Path(folder) / 'main.html').write_text('html')
+        (Path(folder) / 'profile.json').write_text('json')
+        return Path(folder) / 'main.html', None
 
-    mock_zip_report_files.return_value = zip_report
+    mock_fingerprint_report.side_effect = write_report
 
     result_html, result_json, result_zip = fingerprint_sparql_endpoint(sparql_endpoint=sparql_endpoint,
-                                                                       output_location=location)
+                                                                       output_location=str(location),
+                                                                       graphs=['http://example.org/g1'])
 
+    url, folder, settings = mock_fingerprint_report.call_args.args
+    assert url == sparql_endpoint
+    assert settings.selected_graphs == ['http://example.org/g1']
+    assert mock_fingerprint_report.call_args.kwargs == {'formats': (), 'prefix_list': None}
     assert Path(result_html).read_text() == 'html'
     assert Path(result_json).read_text() == 'json'
-    assert Path(result_zip).read_text() == 'zip'
+    with ZipFile(result_zip) as zip_file:
+        assert sorted(zip_file.namelist()) == ['report.html', 'report.json']
 
 
 @patch('fingerprinter.services.report_handling.fingerprint_sparql_endpoint')

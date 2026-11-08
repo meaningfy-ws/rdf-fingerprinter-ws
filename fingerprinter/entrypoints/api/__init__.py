@@ -10,11 +10,12 @@ Module for configuring and exposing the connexion api server using the Flask fra
 """
 
 import connexion
+from connexion.options import SwaggerUIOptions
 
 from fingerprinter.config import config
 
 connexion_app = connexion.FlaskApp(__name__, specification_dir='openapi',
-                                   options={"swagger_ui": config.SHOW_SWAGGER_UI})
+                                   swagger_ui_options=SwaggerUIOptions(swagger_ui=config.SHOW_SWAGGER_UI))
 
 connexion_app.add_api('fingerprinter.yml')
 

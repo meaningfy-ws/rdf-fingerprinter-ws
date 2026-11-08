@@ -11,7 +11,10 @@ Project wide configuration file.
 
 import logging
 import os
-from distutils.util import strtobool
+
+
+def strtobool(value: str) -> bool:
+    return value.strip().lower() in ('1', 'true', 'yes', 'on', 'y', 't')
 from pathlib import Path
 
 
@@ -31,20 +34,6 @@ class FingerprinterConfig:
     @property
     def RDF_FINGERPRINTER_DEBUG(self) -> bool:
         value = strtobool(os.environ.get('RDF_FINGERPRINTER_DEBUG', 'true'))
-        self.logger.debug(value)
-        return value
-
-    @property
-    def RDF_FINGERPRINTER_HTML_TEMPLATE_LOCATION(self) -> str:
-        value = os.environ.get('RDF_FINGERPRINTER_HTML_TEMPLATE_LOCATION',
-                               Path(__file__).parents[1] / 'resources/templates/html')
-        self.logger.debug(value)
-        return value
-
-    @property
-    def RDF_FINGERPRINTER_JSON_TEMPLATE_LOCATION(self) -> str:
-        value = os.environ.get('RDF_FINGERPRINTER_JSON_TEMPLATE_LOCATION',
-                               Path(__file__).parents[1] / 'resources/templates/json')
         self.logger.debug(value)
         return value
 
@@ -149,12 +138,6 @@ class FingerprinterConfig:
     @property
     def RDF_FINGERPRINTER_REPORTS_DB(self) -> str:
         value = os.environ.get('RDF_FINGERPRINTER_REPORTS_DB', str(Path(__file__).parents[1] / 'reports'))
-        self.logger.debug(value)
-        return value
-
-    @property
-    def RDF_FINGERPRINTER_REPORT_TITLE(self) -> str:
-        value = os.environ.get('RDF_FINGERPRINTER_REPORT_TITLE', 'RDF Fingerprinting Report')
         self.logger.debug(value)
         return value
 

@@ -17,7 +17,8 @@ from uuid import uuid4
 from zipfile import ZipFile
 
 import requests
-from fingerprint.service_layer.handlers import generate_endpoint_fingerprint_report
+from fingerprint.service_layer.handlers import fingerprint_report
+from fingerprint.service_layer.settings import resolve_settings
 from werkzeug.utils import secure_filename
 
 from fingerprinter.adapters.sparql_adapter import AbstractSPARQLAdapter, FusekiSPARQLAdapter
@@ -131,35 +132,25 @@ def read_meta_file(report_base_location: str, meta_file_name: str = '') -> dict:
     return loads((Path(report_base_location) / meta_file_name).read_text())
 
 
-def fingerprint_sparql_endpoint(sparql_endpoint: str, output_location: str, graphs: List = None,
-                                additional_config: dict = None) -> tuple:
+def fingerprint_sparql_endpoint(sparql_endpoint: str, output_location: str, graphs: List = None) -> tuple:
     """
-        Fingerprint a SPARQL endpoint using the fingerprinter
-        available at https://github.com/meaningfy-ws/rdf-fingerprinter.
+        Fingerprint a SPARQL endpoint with the rdf-fingerprinter library: its report page and its profile.
     :param sparql_endpoint: SPARQL endpoint for querying the triplestore service
     :param output_location: location for the report to be built in
-    :param graphs: (optional) restrict the fingerprinting calculation to this graph
-    :param additional_config: (optional) configuration values to be sent to the template
-    :return: the report location
+    :param graphs: (optional) the graphs to profile; none means every graph (the library default)
+    :return: the html report, json report and zip locations
     """
     logger.debug('generating fingerprinting reports')
+    # env={}: the library's operational settings never come from this service's environment (D-15)
+    settings = resolve_settings(env={}, selected_graphs=graphs or None)
+    html_report, _ = fingerprint_report(sparql_endpoint, output_location, settings, formats=(), prefix_list=None)
+    json_report = Path(html_report).parent / 'profile.json'
 
-    html_report = str(generate_endpoint_fingerprint_report(
-        sparql_endpoint_url=sparql_endpoint, output_location=output_location, selected_graphs=graphs,
-        external_template_location=config.RDF_FINGERPRINTER_HTML_TEMPLATE_LOCATION,
-        additional_config=additional_config
-    ))
-
-    json_report = str(generate_endpoint_fingerprint_report(
-        sparql_endpoint_url=sparql_endpoint, output_location=output_location, selected_graphs=graphs,
-        external_template_location=config.RDF_FINGERPRINTER_JSON_TEMPLATE_LOCATION,
-        additional_config=additional_config
-    ))
-
-    zip_report = zip_report_files(output_location=output_location, html_report=html_report, json_report=json_report)
+    zip_report = zip_report_files(output_location=output_location, html_report=str(html_report),
+                                  json_report=str(json_report))
 
     logger.debug('finish generating fingerprinting reports')
-    return html_report, json_report, zip_report
+    return str(html_report), str(json_report), zip_report
 
 
 def build_report_from_sparql_endpoint(location: str, sparql_endpoint: str, graphs: List = None, uid: str = '') -> str:
@@ -176,15 +167,9 @@ def build_report_from_sparql_endpoint(location: str, sparql_endpoint: str, graph
     uid = uid or str(uuid4())
     timestamp = get_timestamp()
 
-    additional_config = {
-        "timestamp": timestamp,
-        "dataset_name": sparql_endpoint,
-        "title": config.RDF_FINGERPRINTER_REPORT_TITLE
-    }
 
     html_report, json_report, zip_report = fingerprint_sparql_endpoint(sparql_endpoint=sparql_endpoint,
-                                                                       output_location=location, graphs=graphs,
-                                                                       additional_config=additional_config)
+                                                                       output_location=location, graphs=graphs)
 
     reports_location = copy_report_files(uid=uid, html_report=html_report, json_report=json_report,
                                          zip_report=zip_report)
@@ -216,11 +201,6 @@ def build_report_from_file(location: str, file: str, uid: str = '',
     fingerprinting_uid = uid or str(uuid4())
     timestamp = get_timestamp()
 
-    additional_config = {
-        "timestamp": timestamp,
-        "dataset_name": file,
-        "title": config.RDF_FINGERPRINTER_REPORT_TITLE
-    }
 
     dataset_uid = str(uuid4())
     sparql_adapter = fuseki_sparql_adapter(fuseki_service_location, requests)
@@ -228,8 +208,7 @@ def build_report_from_file(location: str, file: str, uid: str = '',
     with upload_file_to_dataset(dataset=dataset_uid, file_path=file, sparql_adapter=sparql_adapter):
         sparql_endpoint = f'{fuseki_service_location}/{dataset_uid}/sparql'
         html_report, json_report, zip_report = fingerprint_sparql_endpoint(sparql_endpoint=sparql_endpoint,
-                                                                           output_location=location, graphs=[],
-                                                                           additional_config=additional_config)
+                                                                           output_location=location, graphs=[])
 
     reports_location = copy_report_files(uid=fingerprinting_uid, html_report=html_report, json_report=json_report,
                                          zip_report=zip_report)

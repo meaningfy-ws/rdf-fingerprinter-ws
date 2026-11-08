@@ -130,6 +130,11 @@ Library 3.5.0 facts this plan relies on (checked in `/home/lps/work/repos/rdf-fi
   `rdflib`, `selenium`, `requests-toolbelt`, and `shortuuid`/`click` unless an import remains.
   Groups: `test` (pytest, pytest-bdd, pytest-cov, testcontainers, beautifulsoup4), `lint` (ruff,
   mypy, import-linter, types-requests), `dev` (pre-commit).
+  *As built (task 1.1, 2026-11-08):* Celery resolved to 5.7.0 and Connexion to 3.3.0 (the current
+  releases; DEC-6's "5.5" named the then-current minor). `pytz` is replaced by the standard
+  `zoneinfo`; the Fuseki upload streams the file as the request body (Graph Store Protocol), so
+  `requests-toolbelt` goes; the extension lookup that used `rdflib.util.guess_format` is a dict
+  lookup, so `rdflib` goes too. The API's test client is Connexion 3's (Starlette, `httpx` style).
 - **D-11 Tests.** Tier folders `tests/unit/`, `tests/feature/`, `tests/integration/`,
   `tests/e2e/`, markers set by path in `tests/conftest.py` with the `pytest_collection_modifyitems`
   hook of `/home/lps/work/repos/rdf-persistence/tests/conftest.py`. Unit and feature tests use the

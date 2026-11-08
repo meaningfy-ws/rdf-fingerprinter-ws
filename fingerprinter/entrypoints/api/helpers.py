@@ -9,9 +9,9 @@
 API helper methods or constants
 """
 import logging
+from pathlib import PurePath
 from urllib.parse import urlparse
 
-from rdflib.util import guess_format
 from werkzeug.exceptions import BadRequest, UnprocessableEntity
 
 from fingerprinter.config import config
@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 def _guess_file_type(file: str, accepted_types: dict = None):
     if accepted_types is None:
         accepted_types = config.INPUT_MIME_TYPES
-    return guess_format(str(file), accepted_types)
+    return accepted_types.get(PurePath(str(file)).suffix.lstrip('.').lower())
 
 
 def is_url(url: str) -> bool:

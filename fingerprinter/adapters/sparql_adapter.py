@@ -13,7 +13,6 @@ from json import JSONDecodeError
 from urllib.parse import urljoin
 
 from requests.auth import HTTPBasicAuth
-from requests_toolbelt import MultipartEncoder
 
 from fingerprinter.config import config
 from fingerprinter.adapters.helpers import get_file_format
@@ -134,19 +133,13 @@ class FusekiSPARQLAdapter(AbstractSPARQLAdapter):
           "quadCount": 0
         }
         """
-        # as mentioned in the official requests documentation
-        # https://requests.readthedocs.io/en/master/user/quickstart/#post-a-multipart-encoded-file
-        # for larger requests, it has to be streamed, which requests doesn't support by default.
-        # requests_toolbelt solution - https://toolbelt.readthedocs.io/en/latest/uploading-data.html
-        multipart_encoder = MultipartEncoder(
-            fields={'file': (file_path, open(file_path, 'rb'), get_file_format(file_path))}
-        )
-
-        response = self.http_client.post(urljoin(self.triplestore_service_url, f"/{dataset_name}/data"),
-                                         data=multipart_encoder,
-                                         auth=HTTPBasicAuth(config.RDF_FINGERPRINTER_FUSEKI_USERNAME,
-                                                            config.RDF_FINGERPRINTER_FUSEKI_PASSWORD),
-                                         headers={'Content-Type': multipart_encoder.content_type})
+        # the file object is streamed as the request body (Graph Store Protocol), so large files are not loaded in memory
+        with open(file_path, 'rb') as data:
+            response = self.http_client.post(urljoin(self.triplestore_service_url, f"/{dataset_name}/data"),
+                                             data=data,
+                                             auth=HTTPBasicAuth(config.RDF_FINGERPRINTER_FUSEKI_USERNAME,
+                                                                config.RDF_FINGERPRINTER_FUSEKI_PASSWORD),
+                                             headers={'Content-Type': get_file_format(file_path)})
 
         if response.status_code != 200:
             raise FusekiException(f'Error connecting to fuseki: {response.text}')

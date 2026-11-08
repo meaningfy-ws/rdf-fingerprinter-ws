@@ -4,7 +4,7 @@
 # Date:  18/10/2020
 # Author: Mihai Coșleț
 # Email: coslet.mihai@gmail.com
-from rdflib.util import guess_format
+from pathlib import PurePath
 
 INPUT_MIME_TYPES = {
     'rdf': 'application/rdf+xml',
@@ -28,7 +28,7 @@ def get_file_format(file: str, types: dict = None) -> str:
     if types is None:
         types = INPUT_MIME_TYPES
 
-    file_format = guess_format(str(file), types)
+    file_format = types.get(PurePath(str(file)).suffix.lstrip('.').lower())
     if file_format is None:
         raise ValueError(f'Format of "{file}" is not supported.')
 
