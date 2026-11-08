@@ -144,7 +144,8 @@ def list_holds_completed(world):
     (record,) = world.result
     assert record["source"]["endpoint"] == ENDPOINT
     assert record["state"] == JobState.COMPLETED
-    assert record["formats"] == [
+    # the seven the library writes; the worker adds the class diagrams it drew (svg)
+    assert [name for name in record["formats"] if name != "svg"] == [
         "html",
         "json",
         "shacl",

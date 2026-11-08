@@ -10,6 +10,7 @@ from typing import IO
 from urllib.parse import urlparse
 
 from fingerprinter.domain.exceptions import (
+    DiagramRenderFailed,
     InvalidSource,
     JobNotCancellable,
     QueueUnavailable,
@@ -19,11 +20,13 @@ from fingerprinter.domain.model import (
     FingerprintOutcome,
     JobRecord,
     JobState,
+    ReportFormat,
     Source,
     file_extension,
 )
 from fingerprinter.services.ports import (
     DatasetStore,
+    DiagramRenderer,
     Fingerprinter,
     JobQueue,
     JobStore,
@@ -115,10 +118,32 @@ def _start(job_id: str, job_store: JobStore) -> bool:
     return True
 
 
+def _with_diagrams(
+    outcome: FingerprintOutcome, renderer: DiagramRenderer, work_folder: Path
+) -> FingerprintOutcome:
+    """The outcome plus an SVG for every PlantUML file; one that cannot be drawn is a failure."""
+    folder = work_folder / ReportFormat.SVG.value
+    drawn: list[Path] = []
+    failures = list(outcome.failures)
+    for source in outcome.files.get(ReportFormat.PUML, ()):
+        try:
+            svg = renderer.render(source.read_bytes().decode())
+        except DiagramRenderFailed as error:
+            logger.warning("Class diagram %s could not be drawn: %s", source.stem, error)
+            failures.append(f"Class diagram {source.stem} could not be drawn: {error}")
+            continue
+        folder.mkdir(exist_ok=True)
+        drawn.append(folder / f"{source.stem}.svg")
+        drawn[-1].write_bytes(svg)
+    files = {**outcome.files, ReportFormat.SVG: tuple(drawn)} if drawn else outcome.files
+    return FingerprintOutcome(files=files, failures=tuple(failures))
+
+
 def _run(
     job_id: str,
     job_store: JobStore,
     fingerprint: Callable[[Path], FingerprintOutcome],
+    renderer: DiagramRenderer,
     clean_up: Callable[[], None] = lambda: None,
 ) -> None:
     """Run the job, clean up, and only then record how it ended (clients poll that state)."""
@@ -126,7 +151,7 @@ def _run(
     failures: tuple[str, ...] = ()
     try:
         with tempfile.TemporaryDirectory() as work_folder:
-            outcome = fingerprint(Path(work_folder))
+            outcome = _with_diagrams(fingerprint(Path(work_folder)), renderer, Path(work_folder))
             job_store.save_outputs(job_id, outcome)
         failures = outcome.failures
         state = JobState.COMPLETED_WITH_FAILURES if failures else JobState.COMPLETED
@@ -146,9 +171,15 @@ def run_endpoint_job(
     *,
     job_store: JobStore,
     fingerprinter: Fingerprinter,
+    diagram_renderer: DiagramRenderer,
 ) -> None:
     if _start(job_id, job_store):
-        _run(job_id, job_store, lambda folder: fingerprinter.fingerprint(url, graphs, folder))
+        _run(
+            job_id,
+            job_store,
+            lambda folder: fingerprinter.fingerprint(url, graphs, folder),
+            diagram_renderer,
+        )
 
 
 def run_file_job(
@@ -159,6 +190,7 @@ def run_file_job(
     dataset_store: DatasetStore,
     upload_store: UploadStore,
     fingerprinter: Fingerprinter,
+    diagram_renderer: DiagramRenderer,
 ) -> None:
     if not _start(job_id, job_store):
         return
@@ -176,7 +208,7 @@ def run_file_job(
             logger.warning("Dataset %s could not be deleted: %s", name, error)
         upload_store.discard(job_id)
 
-    _run(job_id, job_store, fingerprint, clean_up)
+    _run(job_id, job_store, fingerprint, diagram_renderer, clean_up)
 
 
 def job_status(job_id: str, *, job_store: JobStore) -> JobRecord:

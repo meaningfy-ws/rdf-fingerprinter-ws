@@ -14,9 +14,9 @@ from fingerprinter.domain.model import (
 )
 
 
-def test_report_formats_are_the_seven_outputs_and_the_zip():
+def test_report_formats_are_the_outputs_the_diagrams_and_the_zip():
     assert [f.value for f in ReportFormat] == [
-        "html", "json", "shacl", "puml", "pattern", "shex", "pitfalls", "zip",
+        "html", "json", "shacl", "puml", "svg", "pattern", "shex", "pitfalls", "zip",
     ]  # fmt: skip
 
 

@@ -79,15 +79,11 @@ class FormatId(StrEnum):
     ZIP = "zip"
 
 
-CURRENT_STAGE = 1  # the stage of the EPIC this build belongs to; a format shows from its stage on
-
-
 @dataclass(frozen=True)
 class Format:
     id: FormatId
     name: str
     description: str
-    listed_from_stage: int = 1
 
 
 # In display order.
@@ -100,13 +96,12 @@ FORMATS: tuple[Format, ...] = (
         "Class diagram (PlantUML)",
         "The model, and one diagram per vocabulary, as PlantUML text.",
     ),
-    Format(FormatId.SVG, "Class diagram (SVG)", "The same diagrams as pictures.", 2),
+    Format(FormatId.SVG, "Class diagram (SVG)", "The same diagrams as pictures."),
     Format(FormatId.PATTERN, "Pattern schema", "A compact description for people and LLMs."),
     Format(FormatId.SHEX, "ShEx schema", "The structure the data has, as ShExC."),
     Format(FormatId.PITFALLS, "Pitfalls (TSV)", "Modelling problems found, one per line."),
     Format(FormatId.ZIP, "Download all (.zip)", "Everything above in one archive."),
 )
-LISTED_FORMATS = tuple(f for f in FORMATS if f.listed_from_stage <= CURRENT_STAGE)
 
 
 ACTIVE_STATES = frozenset({ApiState.QUEUED, ApiState.RUNNING})

@@ -14,6 +14,7 @@ from fingerprinter.adapters.celery_queue import CeleryJobQueue
 from fingerprinter.adapters.file_job_store import FileJobStore
 from fingerprinter.adapters.fingerprint_library import LibraryFingerprinter
 from fingerprinter.adapters.fuseki import FusekiDatasetStore
+from fingerprinter.adapters.plantuml import PlantUmlRenderer
 from fingerprinter.services.ports import Services
 
 
@@ -61,6 +62,8 @@ def test_the_api_app_serves_the_services_built_from_the_settings(bootstrap):
     assert services.upload_store.max_bytes == 512 * 1024 * 1024
     assert isinstance(services.dataset_store, FusekiDatasetStore)
     assert isinstance(services.fingerprinter, LibraryFingerprinter)
+    assert isinstance(services.diagram_renderer, PlantUmlRenderer)
+    assert services.diagram_renderer.base_url == "http://plantuml:8080"
     assert services.supported_extensions == {"rdf", "trix", "nq", "nt", "jsonld", "n3", "ttl"}
 
 

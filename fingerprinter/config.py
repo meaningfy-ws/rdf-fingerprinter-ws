@@ -29,6 +29,7 @@ OUTPUT_MIME_TYPES: Mapping[str, str] = {
     "md": "text/markdown",
     "csv": "text/csv",
     "puml": "text/plain",
+    "svg": "image/svg+xml",
     "zip": "application/zip",
 }
 
@@ -62,6 +63,7 @@ class Settings:
     api_url: str
     fuseki_url: str
     redis_url: str = field(repr=False)
+    plantuml_url: str
     api_secret_key: str = field(repr=False)
     ui_secret_key: str = field(repr=False)
     fuseki_user: str
@@ -83,6 +85,7 @@ class Settings:
             api_url=_service_url("API", "http://fingerprinter-api", 4020),
             fuseki_url=_service_url("FUSEKI", "http://fuseki", 3030),
             redis_url=_service_url("REDIS", "redis://redis", 6379),
+            plantuml_url=_service_url("PLANTUML", "http://plantuml", 8080),
             api_secret_key=_required("RDF_FINGERPRINTER_API_SECRET_KEY"),
             ui_secret_key=_required("RDF_FINGERPRINTER_UI_SECRET_KEY"),
             fuseki_user=env.get("RDF_FINGERPRINTER_FUSEKI_USERNAME", ""),

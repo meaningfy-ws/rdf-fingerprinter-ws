@@ -71,7 +71,7 @@ def test_what_you_get_explains_each_output(client, path):
     assert terms[:3] == ["Report", "Profile (JSON)", "SHACL shapes"]
     assert terms[-1] == "Download all (.zip)"
     assert "Every measurement, for tools and scripts." in panel.text
-    assert "Class diagram (SVG)" not in terms  # the pictures arrive with stage 2
+    assert "Class diagram (SVG)" in terms
 
 
 def test_the_header_new_job_button_opens_the_new_job_page(client):

@@ -18,6 +18,7 @@ class ReportFormat(StrEnum):
     JSON = "json"
     SHACL = "shacl"
     PUML = "puml"
+    SVG = "svg"
     PATTERN = "pattern"
     SHEX = "shex"
     PITFALLS = "pitfalls"

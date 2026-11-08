@@ -12,7 +12,7 @@ import requests
 from celery.contrib.testing.worker import start_worker
 
 from fingerprinter.domain.model import JobState
-from tests.containers import FusekiServer, RedisServer
+from tests.containers import FusekiServer, PlantUmlServer, RedisServer
 
 WAIT_SECONDS = 180
 FINAL_STATES = {state for state in JobState if not state.is_active}
@@ -26,7 +26,7 @@ def free_port() -> int:
 
 @pytest.fixture(scope="session")
 def stack(
-    fuseki: FusekiServer, redis_server: RedisServer, tmp_path_factory
+    fuseki: FusekiServer, redis_server: RedisServer, plantuml: PlantUmlServer, tmp_path_factory
 ) -> Iterator[ModuleType]:
     """``fingerprinter.bootstrap`` imported afresh with the environment pointing at the containers."""
     folders = tmp_path_factory.mktemp("e2e")
@@ -40,6 +40,8 @@ def stack(
         "RDF_FINGERPRINTER_API_PORT": str(free_port()),
         "RDF_FINGERPRINTER_REDIS_LOCATION": f"redis://{redis_server.host}",
         "RDF_FINGERPRINTER_REDIS_PORT": str(redis_server.port),
+        "RDF_FINGERPRINTER_PLANTUML_LOCATION": f"http://{plantuml.host}",
+        "RDF_FINGERPRINTER_PLANTUML_PORT": str(plantuml.port),
         "RDF_FINGERPRINTER_FUSEKI_LOCATION": f"http://{fuseki.host}",
         "RDF_FINGERPRINTER_FUSEKI_PORT": str(fuseki.port),
         "RDF_FINGERPRINTER_FUSEKI_USERNAME": fuseki.user,

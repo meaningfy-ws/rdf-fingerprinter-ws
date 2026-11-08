@@ -43,11 +43,20 @@ services:
       - mydefault
     depends_on:
       - redis
+      - plantuml
 
   redis:
     image: redis:6-alpine
     ports:
       - ${RDF_FINGERPRINTER_REDIS_PORT}:${RDF_FINGERPRINTER_REDIS_PORT}
+    networks:
+      - mydefault
+
+  plantuml:
+    container_name: plantuml
+    image: plantuml/plantuml-server:jetty-v1.2024.7
+    environment:
+      - PLANTUML_LIMIT_SIZE=16384
     networks:
       - mydefault
 

@@ -21,6 +21,7 @@ def register_tasks(celery_app: Celery, get_services: Callable[[], Services]) -> 
             tuple(graphs),
             job_store=services.job_store,
             fingerprinter=services.fingerprinter,
+            diagram_renderer=services.diagram_renderer,
         )
 
     @celery_app.task(name=FILE_TASK, shared=False)
@@ -33,4 +34,5 @@ def register_tasks(celery_app: Celery, get_services: Callable[[], Services]) -> 
             dataset_store=services.dataset_store,
             upload_store=services.upload_store,
             fingerprinter=services.fingerprinter,
+            diagram_renderer=services.diagram_renderer,
         )

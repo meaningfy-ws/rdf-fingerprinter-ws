@@ -6,7 +6,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import IO
 
-from fingerprinter.domain.exceptions import FormatNotAvailable, JobNotFound
+from fingerprinter.domain.exceptions import DiagramRenderFailed, FormatNotAvailable, JobNotFound
 from fingerprinter.domain.model import (
     FingerprintOutcome,
     JobRecord,
@@ -26,7 +26,8 @@ DEFAULT_OUTCOME = FingerprintOutcome(
     files={
         report_format: (Path(_FILE_NAMES.get(report_format, f"{report_format.value}.txt")),)
         for report_format in ReportFormat
-        if report_format is not ReportFormat.ZIP
+        if report_format
+        not in (ReportFormat.ZIP, ReportFormat.SVG)  # made by the store / the worker
     }
 )
 
@@ -43,7 +44,36 @@ class FakeFingerprinter:
         self.calls.append((endpoint_url, graphs))
         if self.error:
             raise self.error
-        return self.outcome
+        # a relative path stands for a file the run wrote into its work folder: make it exist
+        return FingerprintOutcome(
+            files={
+                report_format: tuple(self._written(path, work_folder) for path in paths)
+                for report_format, paths in self.outcome.files.items()
+            },
+            failures=self.outcome.failures,
+        )
+
+    @staticmethod
+    def _written(path: Path, work_folder: Path) -> Path:
+        if path.is_absolute():
+            return path
+        (work_folder / path.name).write_text("@startuml\n@enduml\n")
+        return work_folder / path.name
+
+
+class FakeDiagramRenderer:
+    """Draws every text as a one-line SVG; ``error`` makes it fail, ``fail_for`` fails some texts."""
+
+    def __init__(self) -> None:
+        self.rendered: list[str] = []
+        self.error: DiagramRenderFailed | None = None
+        self.fail_for: set[str] = set()
+
+    def render(self, puml_text: str) -> bytes:
+        self.rendered.append(puml_text)
+        if self.error or puml_text in self.fail_for:
+            raise self.error or DiagramRenderFailed("the PlantUML server refused the diagram")
+        return f"<svg>{puml_text}</svg>".encode()
 
 
 class FakeDatasetStore:

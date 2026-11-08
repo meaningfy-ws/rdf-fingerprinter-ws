@@ -156,7 +156,7 @@ def _new_job_page(tab: labels.Tab, form: Any, status: int = HTTPStatus.OK) -> tu
         form=form,
         accepted=[f".{extension}" for extension in config[CONFIG_ACCEPTED_EXTENSIONS]],
         limit_mb=_upload_limit_mb(),
-        formats=labels.LISTED_FORMATS,
+        formats=labels.FORMATS,
     )
     return page, status
 

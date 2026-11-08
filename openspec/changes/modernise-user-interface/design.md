@@ -199,6 +199,15 @@ its `files` from its format folders when `FileJobStore` reads it, so older jobs 
 the e2e journey cancels leftover active jobs first (`quiet_console`), since the job store outlives a
 test module's worker.
 
+## As built in stage 2 (tasks 2.1–2.2, 2026-11-08)
+
+- **U-9** `DiagramRenderer.render` raises `DiagramRenderFailed` (domain); its message is the cause in
+  plain words ("the PlantUML server is not reachable", "did not answer in time", "answered <status>",
+  "did not answer with an SVG") and never the server's address, since failures are shown to clients.
+- **U-8** SVGs are written to `<work folder>/svg/<stem>.svg`; the `svg` format exists only when at
+  least one diagram was drawn. The library writes seven formats; the record lists eight once the
+  worker has drawn diagrams (the report-access feature step counts the library's seven).
+
 ## Algorithm — live status
 
 The rows fragment is the same template as the page's table body (`templates/jobs/_rows.html`).

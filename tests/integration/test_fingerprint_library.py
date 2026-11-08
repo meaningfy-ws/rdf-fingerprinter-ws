@@ -86,7 +86,10 @@ def test_pattern_shex_and_pitfalls_render_through_generate_representations(
 
 
 def test_an_endpoint_job_writes_all_formats(continents_outcome):
-    assert set(continents_outcome.formats) == set(ReportFormat) - {ReportFormat.ZIP}
+    assert set(continents_outcome.formats) == set(ReportFormat) - {
+        ReportFormat.ZIP,
+        ReportFormat.SVG,
+    }  # SVG: the worker
     for report_format, paths in continents_outcome.files.items():
         assert all(p.parent.name == report_format.value and p.stat().st_size for p in paths)
     assert continents_outcome.files[ReportFormat.HTML][0].name == "main.html"

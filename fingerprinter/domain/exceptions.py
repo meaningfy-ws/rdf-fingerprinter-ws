@@ -24,6 +24,10 @@ class UploadTooLarge(Exception):
         super().__init__(f'"{filename}" is larger than the {max_bytes}-byte upload limit.')
 
 
+class DiagramRenderFailed(Exception):
+    """A class diagram could not be drawn; the message is the cause. Never an API problem."""
+
+
 class JobNotFound(Exception):
     """No job or report has this id (404)."""
 

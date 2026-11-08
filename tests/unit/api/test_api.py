@@ -19,6 +19,7 @@ from fingerprinter.entrypoints.api import create_app
 from fingerprinter.services.ports import Services
 from tests.fakes import (
     FakeDatasetStore,
+    FakeDiagramRenderer,
     FakeFingerprinter,
     FakeJobQueue,
     FakeUploadStore,
@@ -39,6 +40,7 @@ def services() -> Services:
         queue=FakeJobQueue(),
         dataset_store=FakeDatasetStore(),
         fingerprinter=FakeFingerprinter(),
+        diagram_renderer=FakeDiagramRenderer(),
         supported_extensions=frozenset({"ttl", "rdf"}),
         output_mime_types=OUTPUT_MIME_TYPES,
     )
@@ -198,6 +200,7 @@ def test_an_unknown_report_is_a_404_problem(client):
         (ReportFormat.JSON, "profile.json", "application/json"),
         (ReportFormat.SHACL, "shapes-x.ttl", "text/turtle"),
         (ReportFormat.PUML, f"{J1}-puml.zip", "application/zip"),
+        (ReportFormat.SVG, "diagram-default.svg", "image/svg+xml"),
         (ReportFormat.PATTERN, f"{J1}-pattern.zip", "application/zip"),
         (ReportFormat.SHEX, "shex-x.shex", "text/shex"),
         (ReportFormat.PITFALLS, "pitfalls-x.tsv", "text/tab-separated-values"),
@@ -295,6 +298,27 @@ def test_a_file_the_record_does_not_list_is_a_404(client, services):
     seed(services, J1, files={ReportFormat.PUML: ("a.puml",)})
 
     response = client.get(f"/reports/{J1}/puml/unknown.puml")
+
+    assert response.status_code == 404
+    assert response.json()["type"] == "urn:fingerprinter:FormatNotAvailable"
+
+
+def test_one_diagram_is_fetched(client, services, tmp_path):
+    seed(services, J1, files={ReportFormat.SVG: ("diagram-default.svg", "diagram-x.svg")})
+    (tmp_path / "diagram-default.svg").write_text("<svg>default</svg>")
+    seed_output(services, J1, ReportFormat.SVG, tmp_path / "diagram-default.svg")
+
+    response = client.get(f"/reports/{J1}/svg/diagram-default.svg")
+
+    assert response.status_code == 200
+    assert response.headers["content-type"].startswith("image/svg+xml")
+    assert response.text == "<svg>default</svg>"
+
+
+def test_an_unknown_diagram_is_not_found(client, services):
+    seed(services, J1, files={ReportFormat.SVG: ("diagram-default.svg",)})
+
+    response = client.get(f"/reports/{J1}/svg/nothing.svg")
 
     assert response.status_code == 404
     assert response.json()["type"] == "urn:fingerprinter:FormatNotAvailable"
