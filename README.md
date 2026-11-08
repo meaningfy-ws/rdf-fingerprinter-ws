@@ -101,4 +101,4 @@ developer runbook. See [CHANGELOG.md](CHANGELOG.md) for what changed.
 
 ## Licence
 
-GNU GPLv3 (see [LICENSE](LICENSE)). Powered by [Meaningfy](https://github.com/meaningfy-ws).
+Apache License 2.0 (see [LICENSE](LICENSE)). Powered by [Meaningfy](https://github.com/meaningfy-ws).
