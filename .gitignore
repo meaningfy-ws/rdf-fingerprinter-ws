@@ -141,3 +141,4 @@ dmypy.json
 /fuseki-fingerprinter-volume
 # Temporary files (agents and people)
 temp/
+test-results.xml
