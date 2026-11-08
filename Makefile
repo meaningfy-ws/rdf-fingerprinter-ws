@@ -111,7 +111,7 @@ test-feature: ## Run BDD feature tests only
 #-----------------------------------------------------------------------------
 check-env:
 	@ test -f $(ENV_FILE) || (echo -e "$(ICON_ERROR) Missing $(ENV_FILE). Run: cp infra/.env.example infra/.env" && exit 1)
-	@ ! grep -q 'change-me' $(ENV_FILE) || (echo -e "$(ICON_ERROR) $(ENV_FILE) still holds change-me: replace every one" && exit 1)
+	@ ! grep -q '^[^#]*=change-me' $(ENV_FILE) || (echo -e "$(ICON_ERROR) $(ENV_FILE) still holds change-me: replace every one" && exit 1)
 
 up: check-env ## Start the stack (docker compose up -d)
 	@ $(COMPOSE) up -d
