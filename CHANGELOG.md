@@ -27,6 +27,7 @@ revamp (`modernise-user-interface`).
 
 ### Added
 
+- API: `GET /endpoint-graphs?url=` lists an endpoint's named graphs (`502` when it cannot).
 - `rdf-fingerprinter` 3.6.0: every report format and the pitfall scan; the named graphs of an endpoint
   are profiled when none is selected.
 - Limits: an endpoint URL carrying a user name or password is refused (`400`); uploads are capped by
@@ -58,5 +59,7 @@ revamp (`modernise-user-interface`).
 ### Security
 
 - Secrets are read from the environment only and are not logged; `.env` files are git-ignored and
-  kept out of the images. Redis, Fuseki, PlantUML and Flower are published on `127.0.0.1` only.
-- The worker's egress must be restricted at the network level (SSRF), see `SECURITY.md`.
+  kept out of the images. Every service, the API and UI included, is published on `127.0.0.1` only;
+  `make check-env` refuses placeholder secrets.
+- The worker's and the API's egress must be restricted at the network level (SSRF), see `SECURITY.md`.
+- The UI's forms carry CSRF tokens; its pages refuse framing by other sites.
