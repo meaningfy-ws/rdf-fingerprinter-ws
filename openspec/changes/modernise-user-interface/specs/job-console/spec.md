@@ -51,8 +51,8 @@ form.
 - **THEN** the form is shown again with the API's message about the file type
 
 ### Requirement: Choose named graphs from the endpoint
-Once the library's public graph listing is released (`meaningfy-ws/rdf-fingerprinter#63`), the
-endpoint form SHALL offer the endpoint's named graphs, listed through the API, as choices; no
+The endpoint form SHALL offer, once the library's public graph listing is released
+(`meaningfy-ws/rdf-fingerprinter#63`), the endpoint's named graphs, listed through the API, as choices; no
 choice SHALL mean all graphs. When the listing fails the form SHALL say why and still accept a
 submission without graphs (DEC-9).
 

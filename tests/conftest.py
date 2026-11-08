@@ -1,9 +1,12 @@
-#!/usr/bin/python3
+"""Root test configuration.
 
-# conftest.py
-# Date:  14/10/2020
-# Author: Mihai Coșleț
-# Email: coslet.mihai@gmail.com
+Test-type markers (``unit``, ``feature``, ``integration``, ``e2e``) are stamped onto every collected
+test by file path in ``pytest_collection_modifyitems``, not by per-file ``pytestmark``: a
+``pytestmark`` in a ``conftest.py`` is silently ignored (a conftest is a plugin, not a test
+module). The markers are registered in ``pytest.ini``.
+"""
+from pathlib import Path
+
 import pytest
 import requests
 
@@ -84,3 +87,26 @@ def ui_client():
 @pytest.fixture(scope="session")
 def scenario_context():
     return {}
+
+
+TESTS_ROOT_DIR = Path(__file__).parent
+
+# The first directory that starts a test's path below tests/ gives its marker.
+_MARKERS_BY_DIR = (("unit/", "unit"), ("feature/", "feature"), ("integration/", "integration"), ("e2e/", "e2e"))
+
+
+def marker_for_path(path: str) -> str | None:
+    """The marker implied by the directory a test file lives in, matched below ``tests/`` only."""
+    try:
+        relative = Path(path).relative_to(TESTS_ROOT_DIR).as_posix()
+    except ValueError:
+        return None
+    return next((marker for directory, marker in _MARKERS_BY_DIR if relative.startswith(directory)), None)
+
+
+def pytest_collection_modifyitems(items: list) -> None:
+    """Stamp each collected test with the marker of its directory."""
+    for item in items:
+        marker = marker_for_path(str(item.path))
+        if marker:
+            item.add_marker(getattr(pytest.mark, marker))
