@@ -289,6 +289,30 @@ Recorded before the fixes (Rule of Divergence):
 - **R1-7** Tests write only to their own temporary folders (an autouse fixture), never to the
   repository's `db/` and `reports/`.
 
+### Stage-3 review (five lenses, 2026-11-08): accepted fixes
+
+Recorded before the fixes (Rule of Divergence).
+
+- **R3-1** A file job deletes its dataset and discards its upload *before* its final state is
+  recorded, so no client sees a finished job whose dataset still exists (spec "The dataset is
+  removed after success/failure"); a feature check proves the order, and the e2e success test also
+  checks the upload folder.
+- **R3-2** `FileJobStore.save_outputs` builds the per-format zips of multi-file formats beside
+  `report.zip`, each through a temporary file and `os.replace`; `file_for` only reads them.
+- **R3-3** `LibraryFingerprinter` maps `ReportFormat` to the library's generator ids explicitly
+  (`GENERATOR_IDS`); the pitfall-scan setting is a named constant; the generation loop is its own
+  function.
+- **R3-4** Downloads take their media type from one table of the library's output types (in
+  `config.py`, beside `INPUT_MIME_TYPES`), passed to `send_file(..., mimetype=...)`, and carry
+  `X-Content-Type-Options: nosniff`; the import-time `mimetypes` registration goes.
+- **R3-5** The pitfall integration test asserts the finding itself in the report page (the subject
+  `http://example.org/Person` in the Pitfalls section), not only the check id, which 3.6.0 also lists
+  among clean checks.
+- **R3-6** Tests: final states from `JobState`; the dataset name from one service function
+  (`dataset_name(job_id)`); one fake library outcome in `tests/fakes.py`; the format list derived
+  from `ReportFormat`; `pytest_plugins` for the shared container fixtures; container host/port
+  exposed instead of parsed; the API zip test uses the fake store.
+
 ### Stage-2 review (five lenses, 2026-11-08): accepted fixes
 
 Recorded before the fixes (Rule of Divergence). *Leader's choices* are marked.
