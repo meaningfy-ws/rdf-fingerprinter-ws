@@ -142,7 +142,17 @@ down: ## Stop and remove the stack's containers (volumes stay; needs no infra/.e
 rebuild: check-env ## Rebuild the images and start the stack (docker compose up -d --build)
 	@ $(COMPOSE) up -d --build
 
-# What CI runs: the compose file is valid and the three images build (nothing is pushed).
+# Run in the built UI image: the installed version is pyproject's and the packaged data files are there.
+define IMAGE_CHECK
+import importlib.metadata as m, importlib.resources as r, os
+v = m.version("rdf-fingerprinter-ws")
+assert v == os.environ["EXPECTED_VERSION"], (v, os.environ["EXPECTED_VERSION"])
+for package, name in (("ui", "templates/base.html"), ("ui", "static/app.css"), ("api", "openapi/fingerprinter.yml")):
+    assert r.files("fingerprinter.entrypoints." + package).joinpath(name).is_file(), name
+endef
+export IMAGE_CHECK
+
+# What CI runs: the compose file is valid, the three images build (nothing is pushed) and the UI image is complete.
 build-images: ## Check the compose file and build the api, ui and worker images
 	@ set -e; created=; \
 	if [ ! -f $(ENV_FILE) ]; then cp infra/.env.example $(ENV_FILE); created=1; fi; \
@@ -151,7 +161,9 @@ build-images: ## Check the compose file and build the api, ui and worker images
 	docker compose -f $(COMPOSE_FILE) -f $(COMPOSE_DEV_FILE) --env-file $(ENV_FILE) config -q; \
 	for target in api ui worker; do \
 		docker build --target $$target -f infra/docker/Dockerfile -t rdf-fingerprinter-ws-$$target:check .; \
-	done
+	done; \
+	expected=$$(sed -n 's/^version = "\(.*\)"/\1/p' pyproject.toml | head -n 1); \
+	docker run --rm --entrypoint python -e EXPECTED_VERSION="$$expected" rdf-fingerprinter-ws-ui:check -c "$$IMAGE_CHECK"
 
 logs: check-env ## Follow the stack's logs
 	@ $(COMPOSE) logs -f

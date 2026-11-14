@@ -13,11 +13,13 @@ RUN uv sync --frozen --no-default-groups --no-install-project
 COPY fingerprinter ./fingerprinter
 RUN uv sync --frozen --no-default-groups --no-editable
 
-# Shared by the three images. The installed code is owned by root; only db/ and reports/ are writable by `app`.
+# Shared by the three images. The data folders are set here: the code lives in site-packages, not beside /app. The installed code is owned by root; only db/ and reports/ are writable by `app`.
 FROM python:3.13-slim AS base
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    PATH=/opt/venv/bin:$PATH
+    PATH=/opt/venv/bin:$PATH \
+    RDF_FINGERPRINTER_FILE_DB=/app/db \
+    RDF_FINGERPRINTER_REPORTS_DB=/app/reports
 RUN useradd --system --uid 10001 --create-home app
 WORKDIR /app
 COPY --from=builder /opt/venv /opt/venv

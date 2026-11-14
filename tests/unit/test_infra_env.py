@@ -279,17 +279,23 @@ def dockerfile_stages() -> dict[str, str]:
 
 def test_the_builder_installs_the_project_non_editable():
     builder = dockerfile_stages()["builder"]
-    assert re.search(r"uv sync [^\n]*--no-editable", builder), "the project must be installed"
+    syncs = re.findall(r"^RUN uv sync [^\n]*$", builder, re.M)
+    assert [
+        line for line in syncs if "--no-editable" in line and "--no-install-project" not in line
+    ], "the project must be installed, not only its dependencies"
 
 
 def test_no_stage_after_the_builder_copies_the_source():
     stages = dockerfile_stages()
     later = {name: body for name, body in stages.items() if name != "builder"}
-    copying = [
-        name
-        for name, body in later.items()
-        if re.search(r"^COPY (?!--from)\S*fingerprinter", body, re.M)
-    ]
+    copy_of_source = r"^COPY (?!--from)(?:--\S+ )*(?:\S*fingerprinter\S*|\.) "
+    copying = [name for name, body in later.items() if re.search(copy_of_source, body, re.M)]
     assert copying == [], (
         f"stages copying the source instead of using the installed package: {copying}"
     )
+
+
+def test_the_image_keeps_its_data_folders_under_app_whatever_the_package_location():
+    base = dockerfile_stages()["base"]
+    assert "RDF_FINGERPRINTER_FILE_DB=/app/db" in base
+    assert "RDF_FINGERPRINTER_REPORTS_DB=/app/reports" in base

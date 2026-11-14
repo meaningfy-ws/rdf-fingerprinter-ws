@@ -372,7 +372,8 @@ def test_the_heart_pulses_in_css_and_stands_still_under_reduced_motion():
     assert re.search(r"animation:\s*pulse\b", heart)
     assert "!important" not in heart
     assert "@keyframes pulse" in CSS
-    assert re.search(r"animation:\s*none !important", reduced.group(1))
+    rule = re.search(r"([^{}]+)\{[^}]*animation:\s*none !important", reduced.group(1))
+    assert rule.group(1).strip() in {"*", ".heart"}, "the rule must reach the heart"
 
 
 def test_the_footer_needs_no_script_and_no_inline_style_and_the_logo_follows_the_theme(client):
