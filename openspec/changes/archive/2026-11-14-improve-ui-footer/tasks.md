@@ -20,7 +20,7 @@ and `make build-images` green. Scenario sign-off: `design.md`, Tests.
   scenarios); `tests/unit/ui/test_layout.py` ("The pulse stops under reduced motion"; the footer
   holds no `<script>` and no `style` attribute; the logo carries no `#212c4a`).
   Files: those named, nothing under `infra/`.
-- [ ] 1.3 The stage PR: full gates, the review pass (L2 + L3), fixes.
+- [x] 1.3 The stage PR: full gates, the review pass (L2 + L3), fixes.
 
 ## Test map
 
@@ -35,7 +35,7 @@ and `make build-images` green. Scenario sign-off: `design.md`, Tests.
 
 ## Roadmap
 
-- [x] 1.1 · [x] 1.2 · [ ] 1.3
+- [x] 1.1 · [x] 1.2 · [x] 1.3
 
 ## Verification
 
@@ -45,7 +45,7 @@ acceptance demo (the footer on both themes and at 360 px) in `evidence/acceptanc
 
 ## Docs
 
-Decided at accept (`evidence/docs-owed.md`).
+No docs owed (`evidence/docs-owed.md`).
 
 ## Close
 

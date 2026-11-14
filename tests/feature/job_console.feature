@@ -1,4 +1,4 @@
-# Spec: openspec/changes/improve-ui-footer/specs/job-console/spec.md
+# Spec: openspec/specs/job-console/spec.md (from improve-ui-footer, archived 2026-11-14)
 # One scenario per spec scenario, same name. Untagged scenarios run in the feature tier (the UI's
 # test client over a fake API); @unit scenarios are proven by unit tests (tasks.md, Test map).
 Feature: Job console footer

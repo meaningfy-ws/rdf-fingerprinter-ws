@@ -182,7 +182,8 @@ parallel epic files under `.claude/`.
   commit SHA with its tag in a comment.
 - **In-flight changes:** `data-profiling-tool` (parked; DEC-4 points 4-5 and DEC-6 resolved by the
   upgrade; points 1-3 and 6 to check against the library when it resumes). Archived:
-  `upgrade-fingerprinter-library`, `modernise-user-interface`, `harden-deployment`. Pending library
+  `upgrade-fingerprinter-library`, `modernise-user-interface`, `harden-deployment`,
+  `improve-ui-footer`. Pending library
   release: `meaningfy-ws/rdf-fingerprinter#78` (closes #69, #75, #76, #77; see
   `develop/rdf-fingerprinter.adoc#pending`).
 - **Library quirks (3.6.0):** typed (`py.typed`); `list_named_graphs` lists an endpoint's named
