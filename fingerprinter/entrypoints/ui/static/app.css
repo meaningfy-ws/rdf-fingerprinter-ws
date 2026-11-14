@@ -94,7 +94,17 @@ img, svg { max-width: 100%; }
 main { flex: 1 0 auto; width: 100%; max-width: 72rem; margin: 0 auto; padding: 1.5rem 1rem 3rem; }
 .page-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .5rem 1rem; margin-bottom: 1rem; }
 .page-head h1 { margin: 0; }
-.site-footer { padding: 1rem; text-align: center; color: var(--muted); font-size: .875rem; }
+.site-footer {
+  display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: .5rem 1.5rem;
+  width: 100%; max-width: 72rem; margin: 0 auto; padding: 1rem; color: var(--muted); font-size: .875rem;
+}
+.site-footer p { margin: 0; }
+@media (max-width: 40rem) { .site-footer { flex-direction: column; justify-content: center; text-align: center; } }
+.logo-meaningfy { height: 1.25em; width: auto; vertical-align: -.3em; }
+.logo-link { color: inherit; }
+.heart { display: inline-block; color: var(--danger); animation: pulse 1.6s ease-in-out infinite; }
+.heart .icon { vertical-align: -.2em; }
+@keyframes pulse { 50% { transform: scale(1.2); } }
 
 /* buttons */
 .btn {

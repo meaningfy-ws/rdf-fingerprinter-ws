@@ -12,6 +12,17 @@ from fingerprinter.entrypoints.ui.api_model import ApiState
 
 MAX_NOTE_LENGTH = 80
 
+# the footer (design F-3)
+MEANINGFY_URL = "https://meaningfy.lu"
+REPOSITORY_URL = "https://github.com/meaningfy-ws/rdf-fingerprinter-ws"
+LICENCE_URL = f"{REPOSITORY_URL}/blob/main/LICENSE"
+MADE_WITH = "Made with"
+LOVE = "love"
+BY = "by"
+MEANINGFY = "Meaningfy"
+GITHUB = "GitHub"
+LICENCE = "Apache-2.0"
+
 
 @dataclass(frozen=True)
 class State:

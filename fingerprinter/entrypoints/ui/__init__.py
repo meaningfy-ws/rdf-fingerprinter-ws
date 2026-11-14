@@ -1,10 +1,14 @@
 """The UI: a Flask 3 app that is a client of the API over HTTP and nothing else (design D-9)."""
 
+from importlib.metadata import version
+
 from flask import Flask
 from flask_wtf.csrf import CSRFProtect
 
 from fingerprinter.entrypoints.ui import labels, views
 from fingerprinter.entrypoints.ui.api_client import ApiClient
+
+PACKAGE = "rdf-fingerprinter-ws"
 
 
 def create_app(
@@ -25,7 +29,10 @@ def create_app(
     app.config["SESSION_COOKIE_SECURE"] = secure_cookies
     CSRFProtect(app)
     app.jinja_env.globals.update(
-        FLASH_ERROR=views.FLASH_ERROR, FLASH_SUCCESS=views.FLASH_SUCCESS, labels=labels
+        FLASH_ERROR=views.FLASH_ERROR,
+        FLASH_SUCCESS=views.FLASH_SUCCESS,
+        labels=labels,
+        version=version(PACKAGE),
     )
     app.extensions[views.API_EXTENSION] = ApiClient(api_base_url)
     views.register(app)

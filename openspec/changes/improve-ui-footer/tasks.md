@@ -13,7 +13,7 @@ and `make build-images` green. Scenario sign-off: `design.md`, Tests.
   under the installed package; the API image builds its app. Update the Dockerfile's description
   in `docs/modules/ROOT/pages/` where it says how the code gets into the image.
   Files: the Dockerfile, `tests/unit/test_infra_env.py`, docs.
-- [ ] 1.2 F-1, F-3 to F-6: the `version` global in `ui/__init__.py`; the constants in
+- [x] 1.2 F-1, F-3 to F-6: the `version` global in `ui/__init__.py`; the constants in
   `ui/labels.py`; `heart` and `meaningfy` in `templates/icons.html`; the footer in
   `templates/base.html`; the layout and the pulse in `static/app.css`. Tests first:
   `tests/feature/job_console.feature` and `tests/feature/test_job_console.py` (the first three
@@ -35,7 +35,7 @@ and `make build-images` green. Scenario sign-off: `design.md`, Tests.
 
 ## Roadmap
 
-- [x] 1.1 · [ ] 1.2 · [ ] 1.3
+- [x] 1.1 · [x] 1.2 · [ ] 1.3
 
 ## Verification
 
