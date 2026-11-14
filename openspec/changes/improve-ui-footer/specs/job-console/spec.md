@@ -1,22 +1,22 @@
 ## ADDED Requirements
 
 ### Requirement: Every page ends with the footer
-Every page of the UI SHALL end with one footer that reads "Made with love by Meaningfy", where
-"love" is shown as a red heart hidden from assistive technology and "Meaningfy" is the Meaningfy
-logo linking to `https://meaningfy.lu`; the footer SHALL link to this repository
+Every page of the UI SHALL end with one footer that shows the Meaningfy logo, linking to
+`https://meaningfy.lu`, and under it the line "Made with love in Luxembourg", where "love" is shown
+as a red heart hidden from assistive technology; the footer SHALL link to this repository
 (`https://github.com/meaningfy-ws/rdf-fingerprinter-ws`) and name the licence, Apache-2.0, linking
 to `LICENSE` on the repository's `main` branch; every link that leaves the UI SHALL carry
-`rel="noopener"` (DEC-1 to DEC-5). The footer SHALL show the version of the installed package,
-read at start-up and never written in a template (DEC-6). The heart SHALL pulse through CSS only
-and SHALL be still under `prefers-reduced-motion: reduce`; the footer SHALL need no JavaScript
-(DEC-4).
+`rel="noopener"` (DEC-2, DEC-3, DEC-5, DEC-8). The footer SHALL show the version of the installed
+package, read at start-up and never written in a template (DEC-6). The heart SHALL pulse through
+CSS only and SHALL be still under `prefers-reduced-motion: reduce`; the footer SHALL need no
+JavaScript (DEC-4).
 
 #### Scenario: Every page ends with the footer
 - **GIVEN** the API holds a completed job
 - **WHEN** a user opens the jobs list, the new-job page, the job's report viewer or the page of a
   job that does not exist
-- **THEN** the page ends with a footer that reads "Made with love by Meaningfy" and links to the
-  Meaningfy website, the repository and the licence, each with `rel="noopener"`
+- **THEN** the page ends with a footer that names Meaningfy, reads "Made with love in Luxembourg"
+  and links to the Meaningfy website, the repository and the licence, each with `rel="noopener"`
 
 #### Scenario: The footer shows the installed version
 - **WHEN** a user opens the jobs list
@@ -26,7 +26,7 @@ and SHALL be still under `prefers-reduced-motion: reduce`; the footer SHALL need
 #### Scenario: The heart is hidden from assistive technology
 - **WHEN** a user opens the jobs list
 - **THEN** the heart and the logo drawing are marked `aria-hidden`, and the footer's text still
-  reads "Made with love by Meaningfy"
+  reads "Meaningfy" and "Made with love in Luxembourg"
 
 #### Scenario: The pulse stops under reduced motion
 - **WHEN** the stylesheet is read

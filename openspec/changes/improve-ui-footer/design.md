@@ -130,7 +130,16 @@ Accepted:
 
 Corrected without a decision: the PR body's test count (S1: 651 before, 10 added). S2: CI is green.
 
-To the developer: S6, the heart's red is about 2.9:1 on the dark theme (asked together with the
-footer's layout, after the demo).
+- **R-5** (the developer, 2026-11-14, after the demo; EPIC DEC-8; also settles S6). The footer's
+  left side becomes two lines: the logo link (`icons.meaningfy()` plus the `.visually-hidden`
+  "Meaningfy"), `1.6em` high, in `var(--text)`, and under it a `<p>`: "Made with", the heart, the
+  hidden "love", "in Luxembourg". The right side is unchanged. Under `40rem` everything is
+  centred: logo, line, links. `labels.py`: `BY` goes, `IN_LUXEMBOURG = "in Luxembourg"` comes. The
+  heart's colour is a new token `--heart`: `#DC2626` on the light theme, `#F87171` on the dark
+  one (both at least 3:1 on `--ground`), not `--danger`. This supersedes F-4's credit line, F-6's
+  single row and heart colour, and the text "starts Made with love by Meaningfy": the footer's
+  text, whitespace collapsed, now starts "Meaningfy Made with love in Luxembourg". The mock the
+  developer chose: variant 3 of `temp/mock-footer.html` (not kept; the acceptance evidence shows
+  the result).
 
 Rejected: none.

@@ -59,6 +59,15 @@ test pins that the stylesheet stops the pulse under `prefers-reduced-motion`.
   repository (RISK-2); an instance run by someone else shows "by Meaningfy" (RISK-3); the logo may
   change (RISK-4).
 
+- **DEC-8 Re-shaped after the demo** (the developer, 2026-11-14). Seen in the browser, the logo
+  inside the sentence looked wrong: a bold wordmark in a line of regular text. The developer chose,
+  from four mocked variants: the logo stands on its own on the left, linking to the website, with
+  the line "Made with love in Luxembourg" (the heart for "love") under it; the links, licence and
+  version stay on the right. This replaces the single row of DEC-1 and the sentence "Made with love
+  by Meaningfy" of DEC-4. The heart takes a red of its own that reads on both themes, instead of
+  the danger colour (DEC-4), which is about 2.9:1 on the dark theme. The sketch in the solution
+  outline shows the first shape.
+
 ## Rabbit-holes
 
 - **Redrawing the logo.** Use the two paths as they are; do not simplify or re-trace them.
