@@ -269,3 +269,27 @@ def test_the_edge_listens_on_the_ui_and_api_ports_with_the_upload_limit():
         "RDF_FINGERPRINTER_UI_PORT",
         "RDF_FINGERPRINTER_MAX_UPLOAD_MB",
     }
+
+
+def dockerfile_stages() -> dict[str, str]:
+    """Stage name -> its body, split on `FROM ... AS <name>`."""
+    parts = re.split(r"^FROM .* AS (\w+)$", DOCKERFILE.read_text(), flags=re.MULTILINE)
+    return dict(zip(parts[1::2], parts[2::2], strict=True))
+
+
+def test_the_builder_installs_the_project_non_editable():
+    builder = dockerfile_stages()["builder"]
+    assert re.search(r"uv sync [^\n]*--no-editable", builder), "the project must be installed"
+
+
+def test_no_stage_after_the_builder_copies_the_source():
+    stages = dockerfile_stages()
+    later = {name: body for name, body in stages.items() if name != "builder"}
+    copying = [
+        name
+        for name, body in later.items()
+        if re.search(r"^COPY (?!--from)\S*fingerprinter", body, re.M)
+    ]
+    assert copying == [], (
+        f"stages copying the source instead of using the installed package: {copying}"
+    )

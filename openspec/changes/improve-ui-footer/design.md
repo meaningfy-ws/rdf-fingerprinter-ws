@@ -103,7 +103,7 @@ RISK-1 to RISK-4 of the EPIC stand, accepted. Added by this PLAN:
 
 - **D-1** Blast radius (2026-11-14): `create_app` keeps its signature; its callers are
   `bootstrap.ui_app` and the tests' `make_app`. The code index was 33 commits behind and answered
-  UNKNOWN; the callers were found by text search. Risk judged low.
+  UNKNOWN; refreshed, it answers LOW (3 direct callers, one process, `ui_app`).
 - **D-2** Tasks 1.1 and 1.2 touch disjoint files and run in parallel. Task 1.1's gate is narrower
   than `make check-all` (its own unit file and the image build), so that neither builder judges
   the other's half-done work; the lead runs the full gates on both together.

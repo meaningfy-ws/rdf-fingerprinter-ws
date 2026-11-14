@@ -5,7 +5,7 @@ and `make build-images` green. Scenario sign-off: `design.md`, Tests.
 
 ## 1. The footer (DEC-1 to DEC-7; F-1 to F-6)
 
-- [ ] 1.1 F-2: `infra/docker/Dockerfile` installs the project (non-editable) and the `base` stage
+- [x] 1.1 F-2: `infra/docker/Dockerfile` installs the project (non-editable) and the `base` stage
   no longer copies `fingerprinter/`. Test first in `tests/unit/test_infra_env.py`: the builder
   stage installs the project with `--no-editable`, and no later stage copies `fingerprinter`.
   Check: `make build-images`, then in the UI image `importlib.metadata.version` answers the version
@@ -35,7 +35,7 @@ and `make build-images` green. Scenario sign-off: `design.md`, Tests.
 
 ## Roadmap
 
-- [ ] 1.1 · [ ] 1.2 · [ ] 1.3
+- [x] 1.1 · [ ] 1.2 · [ ] 1.3
 
 ## Verification
 
