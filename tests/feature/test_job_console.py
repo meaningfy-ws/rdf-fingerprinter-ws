@@ -14,7 +14,6 @@ MEANINGFY = "https://meaningfy.lu"
 REPOSITORY = "https://github.com/meaningfy-ws/rdf-fingerprinter-ws"
 LICENCE = f"{REPOSITORY}/blob/main/LICENSE"
 SENTINEL_VERSION = "9.9.9-test"
-CREDIT = "Made with love by Meaningfy"
 MISSING_JOB = "/jobs/nope"
 PAGES = {
     "the jobs list": "/",
@@ -59,6 +58,10 @@ def _footer(console) -> BeautifulSoup:
     return console["page"].find("footer")
 
 
+def _text(console) -> str:
+    return re.sub(r"\s+", " ", _footer(console).get_text(" ")).strip()
+
+
 @given("the API holds a completed job")
 def api_holds_a_job(api):
     api.jobs = [record("j1", "completed")]
@@ -72,12 +75,13 @@ def user_opens(api, console, page):
     console["path"] = PAGES[page]
 
 
-@then(parsers.parse('the page ends with a footer that reads "{text}"'))
+@then(parsers.parse('the page ends with a footer that names Meaningfy and reads "{text}"'))
 def page_ends_with_footer(console, text):
     assert console["status"] == (404 if console["path"] == MISSING_JOB else 200)
     body = console["page"].find("body")
     assert [tag.name for tag in body.find_all(recursive=False)][-1] == "footer"
-    assert re.sub(r"\s+", " ", _footer(console).get_text(" ")).strip().startswith(text)
+    # the logo link comes first, then the line under it
+    assert _text(console).startswith(f"Meaningfy {text}")
 
 
 @then(
@@ -107,6 +111,6 @@ def heart_and_logo_hidden(console):
     assert logo["aria-hidden"] == "true"
 
 
-@then(parsers.parse('the footer\'s text still reads "{text}"'))
-def footer_text(console, text):
-    assert re.sub(r"\s+", " ", _footer(console).get_text(" ")).strip().startswith(text)
+@then(parsers.parse('the footer\'s text still reads "{name}" and "{line}"'))
+def footer_text(console, name, line):
+    assert _text(console).startswith(f"{name} {line}")

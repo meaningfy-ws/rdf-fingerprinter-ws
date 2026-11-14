@@ -383,3 +383,11 @@ def test_the_footer_needs_no_script_and_no_inline_style_and_the_logo_follows_the
     assert not [tag for tag in footer.find_all(True) if tag.has_attr("style")]
     assert "#212c4a" not in str(footer).lower()
     assert 'fill="currentColor"' in str(footer.find("svg", class_="logo-meaningfy"))
+
+
+def test_the_heart_has_its_own_colour_in_both_themes():
+    heart = re.search(r"\.heart\s*\{([^}]*)\}", CSS).group(1)
+
+    assert "--heart" in _tokens(LIGHT)
+    assert "--heart" in _tokens(DARK)
+    assert re.search(r"color:\s*var\(--heart\)", heart)

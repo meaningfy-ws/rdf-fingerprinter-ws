@@ -9,7 +9,7 @@ Feature: Job console footer
     Scenario Outline: Every page ends with the footer
       Given the API holds a completed job
       When a user opens <page>
-      Then the page ends with a footer that reads "Made with love by Meaningfy"
+      Then the page ends with a footer that names Meaningfy and reads "Made with love in Luxembourg"
       And the footer links to the Meaningfy website, the repository and the licence, each with rel "noopener"
 
       Examples:
@@ -28,7 +28,7 @@ Feature: Job console footer
       Given the API holds a completed job
       When a user opens the jobs list
       Then the heart and the logo drawing are marked aria-hidden
-      And the footer's text still reads "Made with love by Meaningfy"
+      And the footer's text still reads "Meaningfy" and "Made with love in Luxembourg"
 
     @unit
     Scenario: The pulse stops under reduced motion
