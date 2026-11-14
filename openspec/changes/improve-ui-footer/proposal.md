@@ -83,6 +83,7 @@ test pins that the stylesheet stops the pulse under `prefers-reduced-motion`.
 - `icons.html` gains the heart and the Meaningfy logo.
 - `app.css` gains the footer layout, the pulse and its `prefers-reduced-motion` rule.
 - The UI passes the installed package version to every template.
+- The images install the package instead of copying its folder.
 - `job-console` gains one requirement, with its feature scenarios.
 
 ## Capabilities
@@ -101,4 +102,7 @@ None.
 - Code: `fingerprinter/entrypoints/ui/` only (`templates/base.html`, `templates/icons.html`,
   `static/app.css`, the app factory). No layer boundary moves.
 - Tests: UI unit tests and a `job-console` feature.
-- No API, dependency, infrastructure or library change. `rdf-fingerprinter` is not involved.
+- Infrastructure: `infra/docker/Dockerfile` installs the package, so that the images know their
+  version (amended 2026-11-14, the developer's answer at the PLAN; `design.md` F-2). The line read
+  "no infrastructure change" when the EPIC was shaped.
+- No API, dependency or library change. `rdf-fingerprinter` is not involved.
