@@ -107,3 +107,30 @@ RISK-1 to RISK-4 of the EPIC stand, accepted. Added by this PLAN:
 - **D-2** Tasks 1.1 and 1.2 touch disjoint files and run in parallel. Task 1.1's gate is narrower
   than `make check-all` (its own unit file and the image build), so that neither builder judges
   the other's half-done work; the lead runs the full gates on both together.
+
+## Review decisions (stage 1, PR #43, one pass L2 + L3, 2026-11-14)
+
+Accepted:
+
+- **R-1** (W1) The data folders do not depend on where the code is installed. `Settings.from_env`
+  defaults `file_db` and `reports_db` beside the package, which F-2 moved into `site-packages`; an
+  image started without the two variables would write there and fail. The `base` stage sets
+  `RDF_FINGERPRINTER_FILE_DB=/app/db` and `RDF_FINGERPRINTER_REPORTS_DB=/app/reports`;
+  `tests/unit/test_infra_env.py` pins it. `config.py` is not changed.
+- **R-2** (W2) "The image knows its version" is checked by a command, not by hand:
+  `make build-images` ends by asking the built UI image for its version (equal to
+  `pyproject.toml`'s) and for `templates/base.html`, `static/app.css` and the OpenAPI file in the
+  installed package. CI's `images` job runs that target, so the Test map's row becomes true.
+- **R-3** (W3) The version test has its own oracle: with the UI's `version` function replaced by
+  one answering a sentinel, the footer shows the sentinel. A version written in a template fails.
+- **R-4** (S3, S4, S5) Tests that could pass for the wrong reason are tightened: the builder's
+  `uv sync` line with `--no-editable` must lack `--no-install-project`; a `COPY` with flags or of
+  `.` in a later stage is caught; the reduced-motion rule's selector must reach the heart; the
+  "job that does not exist" row asserts `404`.
+
+Corrected without a decision: the PR body's test count (S1: 651 before, 10 added). S2: CI is green.
+
+To the developer: S6, the heart's red is about 2.9:1 on the dark theme (asked together with the
+footer's layout, after the demo).
+
+Rejected: none.
