@@ -32,6 +32,14 @@
     </div>
     {% block app_content %}{% endblock %}
 </main>
-<footer class="site-footer">Powered by <a href="https://github.com/meaningfy-ws">Meaningfy</a></footer>
+<footer class="site-footer">
+    <div class="credit">
+        <a class="logo-link" href="{{ labels.MEANINGFY_URL }}" rel="noopener">{{ icons.meaningfy() }}<span class="visually-hidden">{{ labels.MEANINGFY }}</span></a>
+        <p>{{ labels.MADE_WITH }} <span class="heart" aria-hidden="true">{{ icons.heart() }}</span><span class="visually-hidden">{{ labels.LOVE }}</span> {{ labels.IN_LUXEMBOURG }}</p>
+    </div>
+    <p><a href="{{ labels.REPOSITORY_URL }}" rel="noopener">{{ labels.GITHUB }}</a>
+        <span aria-hidden="true">·</span> <a href="{{ labels.LICENCE_URL }}" rel="noopener">{{ labels.LICENCE }}</a>
+        <span aria-hidden="true">·</span> v{{ version }}</p>
+</footer>
 </body>
 </html>

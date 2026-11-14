@@ -360,3 +360,34 @@ def test_an_expired_post_to_a_route_without_a_form_says_the_form_expired(api):
 
     assert response.status_code == 400
     assert EXPIRED in soup(response).find("main").text
+
+
+# --- the footer (improve-ui-footer, F-4 to F-6) ----------------------------------------------------
+
+
+def test_the_heart_pulses_in_css_and_stands_still_under_reduced_motion():
+    heart = re.search(r"\.heart\s*\{([^}]*)\}", CSS).group(1)
+    reduced = re.search(r"@media \(prefers-reduced-motion: reduce\)\s*\{(.*?)\n\}", CSS, re.S)
+
+    assert re.search(r"animation:\s*pulse\b", heart)
+    assert "!important" not in heart
+    assert "@keyframes pulse" in CSS
+    rule = re.search(r"([^{}]+)\{[^}]*animation:\s*none !important", reduced.group(1))
+    assert rule.group(1).strip() in {"*", ".heart"}, "the rule must reach the heart"
+
+
+def test_the_footer_needs_no_script_and_no_inline_style_and_the_logo_follows_the_theme(client):
+    footer = soup(client.get("/")).find("footer")
+
+    assert footer.find("script") is None
+    assert not [tag for tag in footer.find_all(True) if tag.has_attr("style")]
+    assert "#212c4a" not in str(footer).lower()
+    assert 'fill="currentColor"' in str(footer.find("svg", class_="logo-meaningfy"))
+
+
+def test_the_heart_has_its_own_colour_in_both_themes():
+    heart = re.search(r"\.heart\s*\{([^}]*)\}", CSS).group(1)
+
+    assert "--heart" in _tokens(LIGHT)
+    assert "--heart" in _tokens(DARK)
+    assert re.search(r"color:\s*var\(--heart\)", heart)

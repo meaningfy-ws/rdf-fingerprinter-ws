@@ -269,3 +269,33 @@ def test_the_edge_listens_on_the_ui_and_api_ports_with_the_upload_limit():
         "RDF_FINGERPRINTER_UI_PORT",
         "RDF_FINGERPRINTER_MAX_UPLOAD_MB",
     }
+
+
+def dockerfile_stages() -> dict[str, str]:
+    """Stage name -> its body, split on `FROM ... AS <name>`."""
+    parts = re.split(r"^FROM .* AS (\w+)$", DOCKERFILE.read_text(), flags=re.MULTILINE)
+    return dict(zip(parts[1::2], parts[2::2], strict=True))
+
+
+def test_the_builder_installs_the_project_non_editable():
+    builder = dockerfile_stages()["builder"]
+    syncs = re.findall(r"^RUN uv sync [^\n]*$", builder, re.M)
+    assert [
+        line for line in syncs if "--no-editable" in line and "--no-install-project" not in line
+    ], "the project must be installed, not only its dependencies"
+
+
+def test_no_stage_after_the_builder_copies_the_source():
+    stages = dockerfile_stages()
+    later = {name: body for name, body in stages.items() if name != "builder"}
+    copy_of_source = r"^COPY (?!--from)(?:--\S+ )*(?:\S*fingerprinter\S*|\.) "
+    copying = [name for name, body in later.items() if re.search(copy_of_source, body, re.M)]
+    assert copying == [], (
+        f"stages copying the source instead of using the installed package: {copying}"
+    )
+
+
+def test_the_image_keeps_its_data_folders_under_app_whatever_the_package_location():
+    base = dockerfile_stages()["base"]
+    assert "RDF_FINGERPRINTER_FILE_DB=/app/db" in base
+    assert "RDF_FINGERPRINTER_REPORTS_DB=/app/reports" in base
