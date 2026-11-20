@@ -14,6 +14,7 @@
   --link: #2F5BEA;
   --danger: #B91C1C;
   --heart: #DC2626;
+  --brand-mark: #212C4A;
   --queued-bg: #F3F4F6;    --queued-fg: #374151;
   --running-bg: #DBEAFE;   --running-fg: #1D4ED8;
   --done-bg: #DCFCE7;      --done-fg: #166534;
@@ -37,6 +38,7 @@
     --accent: #2F5BEA;
     --link: #9DB7FF;
     --heart: #F87171;
+    --brand-mark: #FFFFFF;
     --queued-bg: #2A2F3A;    --queued-fg: #D1D5DB;
     --running-bg: #1E2A4A;   --running-fg: #9DB7FF;
     --done-bg: #13301F;      --done-fg: #86EFAC;
@@ -85,7 +87,7 @@ img, svg { max-width: 100%; }
   max-width: 72rem; margin: 0 auto; padding: .5rem 1rem;
 }
 .brand { display: inline-flex; align-items: center; gap: .5rem; min-height: var(--target); color: var(--text); font-weight: 600; text-decoration: none; }
-.brand .icon { color: var(--accent); }
+.brand .logo-mark { color: var(--brand-mark); }
 .nav { display: flex; flex-wrap: wrap; align-items: center; gap: .25rem; margin-left: auto; }
 .nav a:not(.btn) {
   display: inline-flex; align-items: center; min-height: var(--target); padding: 0 .75rem;

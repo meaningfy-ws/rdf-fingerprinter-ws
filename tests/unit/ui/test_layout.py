@@ -103,6 +103,34 @@ def test_the_icons_are_inline_decorative_svg_macros():
     assert "aria-hidden" in macros
 
 
+def test_the_header_shows_the_fingerprint_mark_in_the_brand_colour(client):
+    mark = soup(client.get("/")).find("a", class_="brand").find("svg")
+
+    assert "logo-mark" in mark["class"]
+    assert mark["viewbox"] == "0 0 100 100"
+    assert mark["aria-hidden"] == "true"
+    css = (UI / "static" / "app.css").read_text()
+    assert ".brand .logo-mark { color: var(--brand-mark); }" in css
+
+
+@pytest.mark.parametrize(
+    ("rel", "filename", "mimetype"),
+    [
+        ("icon", "favicon.ico", "image/vnd.microsoft.icon"),
+        ("icon", "rdf-fingerprinter-icon.svg", "image/svg+xml"),
+        ("apple-touch-icon", "rdf-fingerprinter-icon-180.png", "image/png"),
+    ],
+)
+def test_every_page_links_the_icons_and_they_are_served(client, rel, filename, mimetype):
+    href = f"/static/brand/{filename}"
+    links = soup(client.get("/")).find_all("link", rel=rel)
+
+    assert href in [link["href"] for link in links]
+    response = client.get(href)
+    assert response.status_code == 200
+    assert response.mimetype == mimetype
+
+
 # --- the stylesheet -----------------------------------------------------------------------------
 
 
