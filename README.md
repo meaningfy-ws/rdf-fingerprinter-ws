@@ -1,3 +1,8 @@
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/modules/ROOT/images/rdf-fingerprinter-logo-horizontal-white.svg">
+  <img src="docs/modules/ROOT/images/rdf-fingerprinter-logo-horizontal-on-light.svg" alt="RDF Fingerprinter" height="64">
+</picture>
+
 # RDF Fingerprinter WS
 
 A web service and UI that fingerprint an RDF file or a SPARQL endpoint with the

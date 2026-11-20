@@ -1,6 +1,8 @@
 = RDF Fingerprinter WS
 :description: A web service and UI that fingerprint an RDF file or a SPARQL endpoint with the rdf-fingerprinter library.
 
+image::rdf-fingerprinter-logo-horizontal-on-light.svg[RDF Fingerprinter,320]
+
 _What is this service, and what does it run on?_
 
 RDF Fingerprinter WS fingerprints an RDF dataset: it guesses the application profile (the data
