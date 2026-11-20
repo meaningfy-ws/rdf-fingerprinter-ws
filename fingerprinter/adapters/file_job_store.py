@@ -104,14 +104,16 @@ class FileJobStore:
             if len(paths) > 1:
                 _zip(folder / report_format.value, _format_zip(folder, report_format), ["."])
         _zip(folder, folder / REPORT_ZIP, folder_names=[f.value for f in outcome.formats])
-        self._write(dataclasses.replace(record, files=outcome.file_names))
+        self._write(
+            dataclasses.replace(record, files=outcome.file_names, diagrams=outcome.diagrams)
+        )
 
     def discard_outputs(self, job_id: str) -> None:
         record = self.get(job_id)
         for entry in self._folder(job_id).iterdir():
             if entry.name != META_FILE:
                 shutil.rmtree(entry) if entry.is_dir() else entry.unlink()
-        self._write(dataclasses.replace(record, files={}))
+        self._write(dataclasses.replace(record, files={}, diagrams=()))
 
     def file_for(self, job_id: str, report_format: ReportFormat, name: str | None = None) -> Path:
         self.get(job_id)

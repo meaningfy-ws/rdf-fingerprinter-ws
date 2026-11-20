@@ -169,6 +169,7 @@ JOB_TAB_NAMES = {
 TAB_QUERY = "tab"
 DIAGRAM_QUERY = "diagram"
 WHOLE_MODEL = "Whole model"
+DEFAULT_GRAPH = "default graph"
 DIAGRAM_PICKER = "Diagram"
 SHOW = "Show"
 NO_DIAGRAM = "No diagram is available."
@@ -192,12 +193,12 @@ def warnings_title(failures: int) -> str:
     return f"Some parts could not be produced ({failures})"
 
 
-def diagram_label(slug: str, vocabulary: str | None, part: str | None, *, several: bool) -> str:
+def diagram_label(graph: str | None, module: str | None, part: int | None, *, several: bool) -> str:
     """The picker's name for a diagram; the graph is named only when the job has several."""
-    text = f"Vocabulary: {vocabulary}" if vocabulary else WHOLE_MODEL
-    if part:
+    text = f"Vocabulary: {module}" if module else WHOLE_MODEL
+    if part is not None:
         text += f" (part {part})"
-    return f"{text} — {slug}" if several else text
+    return f"{text} — {graph or DEFAULT_GRAPH}" if several else text
 
 
 def diagram_alt(source: str, label: str) -> str:

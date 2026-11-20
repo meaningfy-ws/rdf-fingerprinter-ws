@@ -13,7 +13,7 @@ from fingerprinter.entrypoints.ui.api_client import (
     REQUEST_TIMEOUT_SECONDS,
     ApiClient,
 )
-from fingerprinter.entrypoints.ui.api_model import ApiJob, ApiState
+from fingerprinter.entrypoints.ui.api_model import ApiDiagram, ApiJob, ApiState
 from fingerprinter.entrypoints.ui.exceptions import ApiError
 from tests.unit.ui.fake_api import record
 
@@ -218,6 +218,21 @@ def test_the_files_of_a_job_are_listed_per_format(client, requests_double):
     assert job.files == {"html": ("main.html",), "svg": ("diagram-a.svg", "diagram-b.svg")}
 
 
+def test_the_diagram_descriptions_of_a_job_are_typed_values(client, requests_double):
+    diagrams = [
+        {"file": "a.svg", "graph": None, "module": None, "part": None},
+        {"file": "a--skos~2.svg", "graph": "http://g", "module": "skos", "part": 2},
+    ]
+    requests_double.answer = Answer(200, [record("j1", "completed", diagrams=diagrams)])
+
+    (job,) = client.list_jobs()
+
+    assert job.diagrams == (
+        ApiDiagram("a.svg", None, None, None),
+        ApiDiagram("a--skos~2.svg", "http://g", "skos", 2),
+    )
+
+
 def test_a_record_with_missing_fields_takes_defaults_and_an_unknown_state_stays_raw(
     client, requests_double
 ):
@@ -230,6 +245,7 @@ def test_a_record_with_missing_fields_takes_defaults_and_an_unknown_state_stays_
     assert (job.state, job.graphs, job.failures, job.finished_at, job.source_name, job.files) == (
         "on-hold", (), (), None, "", {},
     )  # fmt: skip
+    assert job.diagrams == ()
     assert job.state not in set(ApiState)
 
 

@@ -170,7 +170,7 @@ def _tab_context(job: JobView, tab: labels.JobTab) -> dict[str, Any]:
         return {"downloads": downloads(job.files)}
     if tab != labels.JobTab.DIAGRAM:
         return {}
-    choices = diagram_choices(job.files.get(labels.FormatId.SVG, ()))
+    choices = diagram_choices(job.files.get(labels.FormatId.SVG, ()), job.diagrams)
     wanted = request.args.get(labels.DIAGRAM_QUERY)
     shown = next((d for d in choices if d.file == wanted), choices[0] if choices else None)
     if wanted and not (shown and shown.file == wanted):

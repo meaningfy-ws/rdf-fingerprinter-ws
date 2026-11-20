@@ -13,7 +13,14 @@ from fingerprinter.domain.exceptions import (
     QueueUnavailable,
     UnsupportedFileType,
 )
-from fingerprinter.domain.model import FingerprintOutcome, JobRecord, JobState, ReportFormat, Source
+from fingerprinter.domain.model import (
+    DiagramDescription,
+    FingerprintOutcome,
+    JobRecord,
+    JobState,
+    ReportFormat,
+    Source,
+)
 from fingerprinter.services import jobs
 from tests.fakes import (
     DEFAULT_OUTCOME,
@@ -483,8 +490,55 @@ def diagram_library(tmp_path):
         (tmp_path / name).write_text(f"@startuml\n' {name}\n@enduml\n")
         diagrams.append(tmp_path / name)
     return FakeFingerprinter(
-        FingerprintOutcome(files=DEFAULT_OUTCOME.files | {ReportFormat.PUML: tuple(diagrams)})
+        FingerprintOutcome(
+            files=DEFAULT_OUTCOME.files | {ReportFormat.PUML: tuple(diagrams)},
+            diagrams=PUML_DESCRIPTIONS,
+        )
     )
+
+
+# the library's description of each PlantUML file, keyed by the file's name
+PUML_DESCRIPTIONS = (
+    DiagramDescription("diagram-default.puml", None, None, None),
+    DiagramDescription("diagram-default--skos.puml", None, "skos", None),
+    DiagramDescription("diagram-default--dct.puml", None, "dct", 2),
+)
+
+
+def test_each_drawn_diagram_keeps_its_description_under_its_svg_name(store, queue, diagram_library):
+    job_id = jobs.submit_endpoint_job(URL, (), job_store=store, queue=queue)
+
+    run_endpoint(store, diagram_library, job_id)
+
+    assert store.get(job_id).diagrams == (
+        DiagramDescription("diagram-default.svg", None, None, None),
+        DiagramDescription("diagram-default--skos.svg", None, "skos", None),
+        DiagramDescription("diagram-default--dct.svg", None, "dct", 2),
+    )
+
+
+def test_a_diagram_that_could_not_be_drawn_has_no_description(store, queue, diagram_library):
+    refused = diagram_library.outcome.files[ReportFormat.PUML][1]
+    renderer = FakeDiagramRenderer()
+    renderer.fail_for = {refused.read_text()}
+    job_id = jobs.submit_endpoint_job(URL, (), job_store=store, queue=queue)
+
+    run_endpoint(store, diagram_library, job_id, renderer=renderer)
+
+    assert [d.file for d in store.get(job_id).diagrams] == [
+        "diagram-default.svg",
+        "diagram-default--dct.svg",
+    ]
+
+
+def test_with_no_diagram_drawn_the_record_has_no_descriptions(store, queue, diagram_library):
+    renderer = FakeDiagramRenderer()
+    renderer.error = DiagramServerUnavailable("the PlantUML server is not reachable")
+    job_id = jobs.submit_endpoint_job(URL, (), job_store=store, queue=queue)
+
+    run_endpoint(store, diagram_library, job_id, renderer=renderer)
+
+    assert store.get(job_id).diagrams == ()
 
 
 def test_a_diagram_is_rendered(store, queue, diagram_library):

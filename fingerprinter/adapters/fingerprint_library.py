@@ -6,18 +6,19 @@ here: the job service turns them into a failed job (design D-15). Those of a gra
 """
 
 import shutil
-from collections.abc import Mapping
+from collections.abc import Iterable, Mapping
 from pathlib import Path
 from typing import Any
 
 from fingerprint import config as library_config
 from fingerprint.adapters.exceptions import EndpointUnreachable, PermanentError, QueryTimeout
+from fingerprint.domain.views import DiagramFile
 from fingerprint.service_layer.handlers import fingerprint_report, list_named_graphs
-from fingerprint.service_layer.representations import generate_representations
+from fingerprint.service_layer.representations import describe_diagrams, generate_representations
 from fingerprint.service_layer.settings import resolve_settings
 
 from fingerprinter.domain.exceptions import GraphListingFailed
-from fingerprinter.domain.model import FingerprintOutcome, ReportFormat
+from fingerprinter.domain.model import DiagramDescription, FingerprintOutcome, ReportFormat
 
 
 def describe_failure(failure: Any) -> str:
@@ -69,6 +70,14 @@ def _generate(run: Any, work_folder: Path) -> dict[ReportFormat, tuple[Path, ...
     }
 
 
+def diagram_descriptions(described: Iterable[DiagramFile]) -> tuple[DiagramDescription, ...]:
+    """The library's description of each diagram file, keyed by the file's name."""
+    return tuple(
+        DiagramDescription(Path(item.path).name, item.graph, item.module, item.part)
+        for item in described
+    )
+
+
 class LibraryFingerprinter:
     def named_graphs(self, url: str) -> tuple[str, ...]:
         settings = resolve_settings(env={}, config={"timeout_seconds": LISTING_TIMEOUT_SECONDS})
@@ -94,7 +103,9 @@ class LibraryFingerprinter:
             ReportFormat.JSON: (_move_into(ReportFormat.JSON, profile, work_folder),),
             **_generate(run, work_folder),
         }
+        diagrams = describe_diagrams(run, work_folder / ReportFormat.PUML.value)
         return FingerprintOutcome(
             files=files,
             failures=tuple(describe_failure(failure) for failure in run.failures or ()),
+            diagrams=diagram_descriptions(diagrams),
         )

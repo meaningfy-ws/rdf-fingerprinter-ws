@@ -1,3 +1,4 @@
+import dataclasses
 import json
 import zipfile
 from datetime import UTC, datetime
@@ -8,6 +9,7 @@ import pytest
 from fingerprinter.adapters.file_job_store import FileJobStore
 from fingerprinter.domain.exceptions import FormatNotAvailable, JobNotFound
 from fingerprinter.domain.model import (
+    DiagramDescription,
     FingerprintOutcome,
     JobRecord,
     JobState,
@@ -69,6 +71,7 @@ def test_meta_json_is_the_record_in_the_api_shape(store, tmp_path):
         "formats": [],
         "finished_at": None,
         "files": {},
+        "diagrams": [],
     }
 
 
@@ -195,6 +198,52 @@ def test_save_outputs_lists_the_files_per_format_without_the_zip(store, tmp_path
     }
     meta = json.loads((tmp_path / "reports" / "job-1" / "meta.json").read_text())
     assert meta["files"] == {"html": ["main.html"], "puml": ["a.puml", "b.puml"]}
+
+
+DESCRIBED = (
+    DiagramDescription("diagram-g.svg", "http://g", None, None),
+    DiagramDescription("diagram-g--skos~1.svg", "http://g", "skos", 1),
+)
+
+
+def test_save_outputs_records_the_diagram_descriptions(store, tmp_path):
+    store.create(record())
+    with_diagrams = dataclasses.replace(
+        outcome(tmp_path, svg=("diagram-g.svg", "diagram-g--skos~1.svg")), diagrams=DESCRIBED
+    )
+
+    store.save_outputs("job-1", with_diagrams)
+
+    assert store.get("job-1").diagrams == DESCRIBED
+    meta = json.loads((tmp_path / "reports" / "job-1" / "meta.json").read_text())
+    assert meta["diagrams"][1] == {
+        "file": "diagram-g--skos~1.svg", "graph": "http://g", "module": "skos", "part": 1,
+    }  # fmt: skip
+
+
+def test_discard_outputs_clears_the_diagram_descriptions(store, tmp_path):
+    store.create(record())
+    store.save_outputs(
+        "job-1", dataclasses.replace(outcome(tmp_path, svg=("diagram-g.svg",)), diagrams=DESCRIBED)
+    )
+
+    store.discard_outputs("job-1")
+
+    assert store.get("job-1").diagrams == ()
+
+
+def test_a_record_stored_without_diagrams_reads_as_no_descriptions(store, tmp_path):
+    store.create(record())
+    store.save_outputs("job-1", outcome(tmp_path, svg=("diagram-g.svg",)))
+    meta_file = tmp_path / "reports" / "job-1" / "meta.json"
+    meta = json.loads(meta_file.read_text())
+    del meta["diagrams"]  # as written by the release before descriptions existed
+    meta_file.write_text(json.dumps(meta))
+
+    stored = store.get("job-1")
+
+    assert stored.diagrams == ()
+    assert stored.files[ReportFormat.SVG] == ("diagram-g.svg",)
 
 
 def test_everything_is_zipped(store, tmp_path):

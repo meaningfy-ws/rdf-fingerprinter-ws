@@ -8,6 +8,9 @@
     {# htmx must not inject its own <style> or evaluate code #}
     <meta name="htmx-config" content='{"includeIndicatorStyles": false, "allowEval": false}'>
     <title>{% block title %}Jobs{% endblock %} · RDF Fingerprinter</title>
+    <link rel="icon" href="{{ url_for('static', filename='brand/favicon.ico') }}" sizes="any">
+    <link rel="icon" href="{{ url_for('static', filename='brand/rdf-fingerprinter-icon.svg') }}" type="image/svg+xml">
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='brand/rdf-fingerprinter-icon-180.png') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}">
     <script src="{{ url_for('static', filename='vendor/htmx.min.js') }}" defer></script>
 </head>

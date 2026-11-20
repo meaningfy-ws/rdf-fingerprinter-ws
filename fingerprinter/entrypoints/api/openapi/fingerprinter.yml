@@ -115,6 +115,32 @@ components:
             type: array
             items:
               type: string
+        diagrams:
+          type: array
+          description: What each class diagram (SVG) shows; empty for a job without diagrams.
+          items:
+            $ref: '#/components/schemas/DiagramDescription'
+
+    DiagramDescription:
+      type: object
+      description: What one class diagram shows, as the fingerprinting library describes it.
+      required: [file]
+      properties:
+        file:
+          type: string
+          description: The name of the SVG file, as listed under `files.svg`.
+        graph:
+          type: string
+          nullable: true
+          description: The IRI of the graph it shows; null for the default graph.
+        module:
+          type: string
+          nullable: true
+          description: The namespace prefix of the vocabulary it shows; null for a graph's overview.
+        part:
+          type: integer
+          nullable: true
+          description: The number of the part of a vocabulary split in parts; null otherwise.
 
     TaskStatus:
       type: object
