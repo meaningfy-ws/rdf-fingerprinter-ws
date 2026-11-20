@@ -3,11 +3,10 @@
 from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import datetime
-from operator import attrgetter
 from typing import NamedTuple
 
 from fingerprinter.entrypoints.ui import labels
-from fingerprinter.entrypoints.ui.api_model import ApiJob
+from fingerprinter.entrypoints.ui.api_model import ApiDiagram, ApiJob
 from fingerprinter.entrypoints.ui.times import Shown, took, when
 
 
@@ -29,6 +28,7 @@ class JobView:
     reason: str | None
     failures: tuple[str, ...]
     files: Mapping[str, tuple[str, ...]]
+    diagrams: tuple[ApiDiagram, ...]
 
 
 SHORT_ID_LENGTH = 8
@@ -60,13 +60,8 @@ def present(job: ApiJob, now: datetime) -> JobView:
         reason=job.reason,
         failures=job.failures,
         files=job.files,
+        diagrams=job.diagrams,
     )
-
-
-SVG_SUFFIX = f".{labels.FormatId.SVG}"
-DIAGRAM_PREFIX = "diagram-"
-VOCABULARY_SEPARATOR = "--"
-PART_SEPARATOR = "~"
 
 
 class Diagram(NamedTuple):
@@ -74,38 +69,33 @@ class Diagram(NamedTuple):
     label: str
 
 
-class _Parsed(NamedTuple):
-    file: str
-    slug: str
-    vocabulary: str | None
-    part: str | None
-
-    @property
-    def sort_key(self) -> tuple[bool, str]:
-        """Each graph's whole model before the vocabularies, then by file name."""
-        return self.vocabulary is not None, self.file
-
-
-def _parsed(file: str) -> _Parsed:
-    stem = file.removesuffix(SVG_SUFFIX).removeprefix(DIAGRAM_PREFIX)
-    slug, separator, module = stem.partition(VOCABULARY_SEPARATOR)
-    vocabulary, _, part = module.partition(PART_SEPARATOR)
-    return _Parsed(file, slug, vocabulary if separator else None, part or None)
+def _reading_order(diagram: ApiDiagram) -> tuple[bool, str, bool, str, int, str]:
+    """Graph by graph (the default one first); each one's whole model, then its modules and parts."""
+    return (
+        diagram.graph is not None,
+        diagram.graph or "",
+        diagram.module is not None,
+        diagram.module or "",
+        diagram.part or 0,
+        diagram.file,
+    )
 
 
-def diagram_choices(files: tuple[str, ...]) -> tuple[Diagram, ...]:
-    """The picker's diagrams: each graph's whole model first, then the vocabularies (design U-8).
+def diagram_choices(
+    files: tuple[str, ...], diagrams: tuple[ApiDiagram, ...]
+) -> tuple[Diagram, ...]:
+    """The picker's diagrams: each graph's whole model first, then its vocabularies (design U-8).
 
-    The library names them ``diagram-<slug>.svg``, ``diagram-<slug>--<vocabulary>.svg`` and, for a
-    vocabulary split in parts, ``diagram-<slug>--<vocabulary>~<n>.svg`` (design L-1).
+    ``diagrams`` is what the library says each SVG in ``files`` shows. A job without descriptions
+    (one stored by an earlier release) lists its files as they are, each named by its file name.
     """
-    parsed = sorted((_parsed(file) for file in files), key=attrgetter("sort_key"))
-    several = len({item.slug for item in parsed}) > 1
+    described = sorted((d for d in diagrams if d.file in files), key=_reading_order)
+    if not described:
+        return tuple(Diagram(file, file) for file in files)
+    several = len({d.graph for d in described}) > 1
     return tuple(
-        Diagram(
-            item.file, labels.diagram_label(item.slug, item.vocabulary, item.part, several=several)
-        )
-        for item in parsed
+        Diagram(d.file, labels.diagram_label(d.graph, d.module, d.part, several=several))
+        for d in described
     )
 
 

@@ -6,10 +6,12 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
+import yaml
 
 from fingerprinter.config import OUTPUT_MIME_TYPES
 from fingerprinter.domain.exceptions import GraphListingFailed, QueueUnavailable, UploadTooLarge
 from fingerprinter.domain.model import (
+    DiagramDescription,
     JobRecord,
     JobState,
     ReportFormat,
@@ -26,6 +28,7 @@ from tests.fakes import (
     InMemoryJobStore,
 )
 
+OPENAPI = Path(__file__).parents[3] / "fingerprinter/entrypoints/api/openapi/fingerprinter.yml"
 ENDPOINT = "http://example.org/sparql"
 J1 = "11111111-1111-4111-8111-111111111111"
 J2 = "22222222-2222-4222-8222-222222222222"
@@ -278,6 +281,39 @@ def test_a_job_record_carries_finished_at_and_its_files(client, services):
 
     assert record["finished_at"] == "2026-11-08T00:00:09+00:00"
     assert record["files"] == {"puml": ["a.puml", "b.puml"]}
+
+
+def test_a_job_record_describes_its_diagrams(client, services):
+    seed(
+        services,
+        J1,
+        files={ReportFormat.SVG: ("diagram-g.svg", "diagram-g--skos~1.svg")},
+        diagrams=(
+            DiagramDescription("diagram-g.svg", None, None, None),
+            DiagramDescription("diagram-g--skos~1.svg", "http://g", "skos", 1),
+        ),
+    )
+
+    record = client.get(f"/reports/{J1}").json()
+
+    assert record["diagrams"] == [
+        {"file": "diagram-g.svg", "graph": None, "module": None, "part": None},
+        {"file": "diagram-g--skos~1.svg", "graph": "http://g", "module": "skos", "part": 1},
+    ]
+
+
+def test_the_openapi_job_record_declares_the_diagrams_as_nullable_fields():
+    schemas = yaml.safe_load(OPENAPI.read_text())["components"]["schemas"]
+    diagrams = schemas["JobRecord"]["properties"]["diagrams"]
+
+    assert diagrams["type"] == "array"
+    description = schemas[diagrams["items"]["$ref"].rsplit("/", 1)[-1]]
+    fields = description["properties"]
+    assert set(fields) == {"file", "graph", "module", "part"}
+    assert [name for name, spec in fields.items() if spec.get("nullable")] == [
+        "graph", "module", "part",
+    ]  # fmt: skip
+    assert description["required"] == ["file"]
 
 
 def test_one_listed_file_of_a_format_is_served(client, services, tmp_path):

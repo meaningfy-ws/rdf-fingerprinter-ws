@@ -183,8 +183,9 @@ parallel epic files under `.claude/`.
 - **In-flight changes:** `data-profiling-tool` (parked; DEC-4 points 4-5 and DEC-6 resolved by the
   upgrade; points 1-3 and 6 to check against the library when it resumes). Archived:
   `upgrade-fingerprinter-library`, `modernise-user-interface`, `harden-deployment`,
-  `improve-ui-footer`. Library 3.7 (#78) is pinned; adopting its `describe_diagrams` in place
-  of the picker's file-name parsing is still to do (see `develop/rdf-fingerprinter.adoc#pending`).
+  `improve-ui-footer`. Library 3.7 (#78) is pinned; its `describe_diagrams` is adopted: the
+  picker labels diagrams from the job record's `diagrams`, not from file names (see
+  `develop/rdf-fingerprinter.adoc#pending`).
 - **Library quirks (3.7.1):** typed (`py.typed`); `list_named_graphs` lists an endpoint's named
   graphs (for the UI's graph picker); it configures no logging on import; `resolve_settings` lives in
   `fingerprint.service_layer.settings`.

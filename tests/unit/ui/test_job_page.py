@@ -20,6 +20,17 @@ FILES = {
     "shex": ["shapes.shex"],
     "pitfalls": ["pitfalls.tsv"],
 }
+
+
+def described(file, graph=None, module=None, part=None):
+    """A diagram description as the API lists it under ``diagrams``."""
+    return {"file": file, "graph": graph, "module": module, "part": part}
+
+
+DIAGRAMS = [
+    described("diagram-default--skos.svg", module="skos"),
+    described("diagram-default.svg"),
+]
 DIAGRAM_HEADERS = "default-src 'none'; style-src 'unsafe-inline'; sandbox; frame-ancestors 'self'"
 
 
@@ -34,7 +45,11 @@ def fixed_clock(monkeypatch):
 
 
 def done(state="completed", **fields):
-    fields = {"files": FILES, "created_at": "2026-11-08T14:21:00+00:00"} | fields
+    fields = {
+        "files": FILES,
+        "diagrams": DIAGRAMS,
+        "created_at": "2026-11-08T14:21:00+00:00",
+    } | fields
     return record("j1234567-aaaa", state, **fields)
 
 
@@ -130,25 +145,53 @@ def test_an_unknown_diagram_shows_the_first_and_says_so(client, api):
 
 
 def test_with_several_graphs_each_diagram_names_its_graph(client, api):
-    files = FILES | {"svg": ["diagram-a.svg", "diagram-b.svg", "diagram-a--foaf.svg"]}
-    api.jobs = [done(files=files)]
+    a, b = "http://example.org/a", "http://example.org/b"
+    diagrams = [
+        described("x3.svg", b),
+        described("x2.svg", a, "foaf"),
+        described("x1.svg", None),
+        described("x0.svg", a),
+    ]
+    api.jobs = [done(files=FILES | {"svg": [d["file"] for d in diagrams]}, diagrams=diagrams)]
     soup = page(client.get("/jobs/j1234567-aaaa?tab=diagram"))
 
-    labels = [o.get_text(strip=True) for o in soup.find_all("option")]
-    assert labels == ["Whole model — a", "Whole model — b", "Vocabulary: foaf — a"]
+    options = [(o["value"], o.get_text(strip=True)) for o in soup.find_all("option")]
+    assert options == [
+        ("x1.svg", "Whole model — default graph"),
+        ("x0.svg", f"Whole model — {a}"),
+        ("x2.svg", f"Vocabulary: foaf — {a}"),
+        ("x3.svg", f"Whole model — {b}"),
+    ]  # each graph's overview, then its modules; the default graph first
 
 
 def test_a_vocabulary_split_in_parts_names_each_part(client, api):
-    parts = ["diagram-default--skos~1.svg", "diagram-default--skos~2.svg"]
-    api.jobs = [
-        done(files=FILES | {"svg": ["diagram-default.svg", "diagram-default--dct.svg", *parts]})
+    diagrams = [
+        described("p2.svg", module="skos", part=2),
+        described("whole.svg"),
+        described("p1.svg", module="skos", part=1),
+        described("dct.svg", module="dct"),
     ]
+    api.jobs = [done(files=FILES | {"svg": [d["file"] for d in diagrams]}, diagrams=diagrams)]
     soup = page(client.get("/jobs/j1234567-aaaa?tab=diagram"))
 
     labels = [o.get_text(strip=True) for o in soup.find_all("option")]
     assert labels == [
         "Whole model", "Vocabulary: dct", "Vocabulary: skos (part 1)", "Vocabulary: skos (part 2)",
     ]  # fmt: skip
+
+
+def test_a_job_with_diagrams_but_no_descriptions_lists_each_by_its_file_name(client, api):
+    files = FILES | {"svg": ["diagram-default--skos~1.svg", "diagram-default.svg"]}  # as stored
+    api.jobs = [done(files=files)]
+    del api.jobs[0]["diagrams"]  # a record written before the descriptions existed
+    soup = page(client.get("/jobs/j1234567-aaaa?tab=diagram"))
+
+    options = [(o["value"], o.get_text(strip=True)) for o in soup.find_all("option")]
+    assert options == [
+        ("diagram-default--skos~1.svg", "diagram-default--skos~1.svg"),
+        ("diagram-default.svg", "diagram-default.svg"),
+    ]  # no parsing of the names: the files in order, labelled as they are
+    assert soup.find("img")["src"].endswith("/diagrams/diagram-default--skos~1.svg")
 
 
 # --- The diagram failed to render -------------------------------------------------------------------

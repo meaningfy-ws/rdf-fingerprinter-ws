@@ -60,6 +60,7 @@ class FakeFingerprinter:
                 for report_format, paths in self.outcome.files.items()
             },
             failures=self.outcome.failures,
+            diagrams=self.outcome.diagrams,
         )
 
     @staticmethod
@@ -150,12 +151,14 @@ class InMemoryJobStore:
         if job_id in self.outputs:
             raise FileExistsError(f'Job "{job_id}" already has outputs.')
         self.outputs[job_id] = dict(outcome.files)
-        self.records[job_id] = dataclasses.replace(record, files=outcome.file_names)
+        self.records[job_id] = dataclasses.replace(
+            record, files=outcome.file_names, diagrams=outcome.diagrams
+        )
 
     def discard_outputs(self, job_id: str) -> None:
         record = self.get(job_id)
         self.outputs.pop(job_id, None)
-        self.records[job_id] = dataclasses.replace(record, files={})
+        self.records[job_id] = dataclasses.replace(record, files={}, diagrams=())
 
     def file_for(self, job_id: str, report_format: ReportFormat, name: str | None = None) -> Path:
         self.get(job_id)

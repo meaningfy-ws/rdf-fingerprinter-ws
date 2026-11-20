@@ -128,10 +128,10 @@ environment (D-15).
 answers `502`. A full run records a Q0 failure and profiles the default graph.
 
 |`describe_diagrams(...)`
-|Describes each PlantUML file (graph, overview or module, module prefix, part). *Not yet adopted:*
-the UI sees only file names over the API, so adopting it means the worker records the descriptions
-and the API serves them. Until that change, the diagram picker keeps its file-name parsing
-(`modernise-user-interface` L-1).
+|Describes each PlantUML file (graph, overview or module, module prefix, part). *Adopted:* the
+adapter calls it with the output folder and options of the PlantUML generation, the worker keeps
+the description of each diagram it drew (under its SVG name), the job record and the API serve them
+as `diagrams`, and the diagram picker labels from them. The service parses no diagram file name.
 |===
 
 == Two repositories, kept apart

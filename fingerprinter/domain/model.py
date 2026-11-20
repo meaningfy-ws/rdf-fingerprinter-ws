@@ -52,6 +52,27 @@ class Source:
 
 
 @dataclass(frozen=True)
+class DiagramDescription:
+    """What a class diagram shows, as the library describes it: its file, graph, module and part.
+
+    ``graph`` is the graph's IRI (``None``: the default graph); ``module`` is a namespace prefix
+    (``None``: the graph's overview); ``part`` numbers a module split in parts.
+    """
+
+    file: str
+    graph: str | None
+    module: str | None
+    part: int | None
+
+    def to_dict(self) -> dict[str, Any]:
+        return {"file": self.file, "graph": self.graph, "module": self.module, "part": self.part}
+
+    @classmethod
+    def from_dict(cls, data: Mapping[str, Any]) -> "DiagramDescription":
+        return cls(data["file"], data.get("graph"), data.get("module"), data.get("part"))
+
+
+@dataclass(frozen=True)
 class JobRecord:
     id: str
     source: Source
@@ -61,6 +82,7 @@ class JobRecord:
     failures: tuple[str, ...] = ()
     finished_at: datetime | None = None
     files: Mapping[ReportFormat, tuple[str, ...]] = field(default_factory=dict)
+    diagrams: tuple[DiagramDescription, ...] = ()
 
     @property
     def formats(self) -> tuple[ReportFormat, ...]:
@@ -98,6 +120,7 @@ class JobRecord:
             "formats": [report_format.value for report_format in self.formats],
             "finished_at": self.finished_at.isoformat() if self.finished_at else None,
             "files": {fmt.value: list(names) for fmt, names in self.files.items()},
+            "diagrams": [diagram.to_dict() for diagram in self.diagrams],
         }
 
     def to_status_dict(self) -> dict[str, Any]:
@@ -127,15 +150,21 @@ class JobRecord:
             if data.get("finished_at")
             else None,
             files={ReportFormat(fmt): tuple(names) for fmt, names in data.get("files", {}).items()},
+            diagrams=tuple(DiagramDescription.from_dict(d) for d in data.get("diagrams") or ()),
         )
 
 
 @dataclass(frozen=True)
 class FingerprintOutcome:
-    """The files a fingerprinting run wrote, per format, and the measurements that failed."""
+    """The files a fingerprinting run wrote, per format, and the measurements that failed.
+
+    ``diagrams`` describes the class diagrams, each keyed by the name of its file in the run's
+    diagram files (PlantUML, then SVG once drawn).
+    """
 
     files: Mapping[ReportFormat, tuple[Path, ...]] = field(default_factory=dict)
     failures: tuple[str, ...] = ()
+    diagrams: tuple[DiagramDescription, ...] = ()
 
     @property
     def formats(self) -> tuple[ReportFormat, ...]:

@@ -1,14 +1,16 @@
 import pytest
 from fingerprint.adapters.exceptions import EndpointUnreachable, PermanentError, QueryTimeout
 from fingerprint.domain.profile import Failure
+from fingerprint.domain.views import DiagramFile
 
 from fingerprinter.adapters.fingerprint_library import (
     GENERATOR_IDS,
     LibraryFingerprinter,
     describe_failure,
+    diagram_descriptions,
 )
 from fingerprinter.domain.exceptions import GraphListingFailed
-from fingerprinter.domain.model import ReportFormat
+from fingerprinter.domain.model import DiagramDescription, ReportFormat
 
 SECRET_URL = "http://user:secret@example.org/sparql"
 
@@ -23,6 +25,25 @@ def test_every_format_the_library_generates_has_its_generator_id():
 
     assert set(GENERATOR_IDS) == set(ReportFormat) - written_by_the_report
     assert list(GENERATOR_IDS.values()) == ["shacl", "puml", "pattern", "shex", "pitfalls"]
+
+
+def test_a_library_diagram_description_becomes_a_domain_value_under_its_file_name():
+    described = [
+        DiagramFile(path="/work/puml/a.puml", format="puml", graph=None, kind="overview"),
+        DiagramFile(
+            path="/work/puml/a--skos~2.puml",
+            format="puml",
+            graph="http://example.org/g",
+            kind="module",
+            module="skos",
+            part=2,
+        ),
+    ]
+
+    assert diagram_descriptions(described) == (
+        DiagramDescription("a.puml", None, None, None),
+        DiagramDescription("a--skos~2.puml", "http://example.org/g", "skos", 2),
+    )
 
 
 def test_a_failure_is_described_by_its_query_kind_context_and_message():
