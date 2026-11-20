@@ -1,24 +1,16 @@
 # Changelog
 
 All notable changes to this project are documented here. The format follows
-[Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
+[Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to
+[Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-### Security
+## [3.0.0] - 2026-11-20
 
-- `infra/compose.yaml` isolates the stack: the `app`, `work` and `monitor` networks are internal; an
-  nginx edge proxy publishes the UI and the API on `127.0.0.1`; a Squid egress proxy is the only way out
-  for the API and the worker and refuses loopback, private, link-local and shared addresses, so a job
-  against `169.254.169.254`, a service of the stack or `127.0.0.1` fails.
-- Each container holds only its secrets (no `env_file`); the API and the UI each require only their own
-  Flask secret key, the worker needs neither.
-- Redis, Fuseki and PlantUML are no longer published by `make up`; `make up-dev` and `make up-deps` add
-  `infra/compose.dev.yaml`, which publishes them on `127.0.0.1`.
-- `make init-env` writes `infra/.env` with random secrets; `make down` needs no `infra/.env`.
-
-Two EPICs land together: the library upgrade (`upgrade-fingerprinter-library`) and the user-interface
-revamp (`modernise-user-interface`).
+The first release since 2.0.2 (2022): a rewrite on `rdf-fingerprinter` 3.7, with a new user
+interface and a hardened container stack. OpenSpec changes `upgrade-fingerprinter-library`,
+`modernise-user-interface`, `harden-deployment` and `improve-ui-footer`.
 
 ### Changed (BREAKING)
 
@@ -35,21 +27,23 @@ revamp (`modernise-user-interface`).
 - Errors are `application/problem+json`.
 - Both Flask secret keys (`RDF_FINGERPRINTER_API_SECRET_KEY`, `RDF_FINGERPRINTER_UI_SECRET_KEY`)
   have no default; the service does not start without them.
-- Reports written by 0.3.x are not migrated.
+- Reports and jobs written by 2.x are not migrated.
 
 ### Added
 
 - API: `GET /endpoint-graphs?url=` lists an endpoint's named graphs (`502` when it cannot).
-- `rdf-fingerprinter` 3.6.0: every report format and the pitfall scan; the named graphs of an endpoint
-  are profiled when none is selected.
+- `rdf-fingerprinter` 3.7.1: every report format and the pitfall scan; the named graphs of an endpoint
+  are profiled when none is selected; a query has a deadline per attempt and an answer is capped at
+  `RDF_FINGERPRINTER_MAX_ANSWER_BYTES` (default 256 MiB).
 - Limits: an endpoint URL carrying a user name or password is refused (`400`); uploads are capped by
   `RDF_FINGERPRINTER_MAX_UPLOAD_MB` (default 512; `413`); an unavailable broker answers `503`.
 - UI: a console with live job state, a job page with the report, class diagrams and downloads,
   delete and cancel with confirmation, a graph picker for endpoints, and
-  `RDF_FINGERPRINTER_UI_SECURE_COOKIES`. The UI refuses forms without a CSRF token.
+  `RDF_FINGERPRINTER_UI_SECURE_COOKIES`; a footer with Meaningfy, the licence and the version.
 - A PlantUML server (`SANDBOX` profile) that renders the class diagrams.
 - `infra/`: multistage non-root images (API, UI, worker) on Python 3.13, `infra/compose.yaml`,
-  `infra/.env.example`; `make up`, `down`, `rebuild`, `logs`, `run-api`, `run-ui`, `run-worker`.
+  `infra/.env.example`; `make init-env`, `up`, `up-dev`, `up-deps`, `down`, `rebuild`, `logs`,
+  `run-api`, `run-ui`, `run-worker`.
 - Images are published to `ghcr.io/meaningfy-ws/rdf-fingerprinter-ws-{api,ui,worker}` on each release.
 - `SECURITY.md`, this changelog, container tests (integration and e2e) in CI.
 
@@ -70,8 +64,14 @@ revamp (`modernise-user-interface`).
 
 ### Security
 
-- Secrets are read from the environment only and are not logged; `.env` files are git-ignored and
-  kept out of the images. Every service, the API and UI included, is published on `127.0.0.1` only;
-  `make check-env` refuses placeholder secrets.
-- The worker's and the API's egress must be restricted at the network level (SSRF), see `SECURITY.md`.
+- `infra/compose.yaml` isolates the stack: the `app`, `work` and `monitor` networks are internal; an
+  nginx edge proxy publishes the UI and the API on `127.0.0.1`; a Squid egress proxy is the only way out
+  for the API and the worker and refuses loopback, private, link-local and shared addresses, so a job
+  against `169.254.169.254`, a service of the stack or `127.0.0.1` fails (SSRF).
+- Redis, Fuseki and PlantUML are not published by `make up`; `make up-dev` and `make up-deps` add
+  `infra/compose.dev.yaml`, which publishes them on `127.0.0.1`.
+- Secrets are read from the environment only and are not logged; each container holds only its
+  secrets (no `env_file`), the worker needs no Flask key; `.env` files are git-ignored and kept out of
+  the images. `make init-env` writes `infra/.env` with random secrets; `make check-env` refuses
+  placeholder secrets; `make down` needs no `infra/.env`.
 - The UI's forms carry CSRF tokens; its pages refuse framing by other sites.

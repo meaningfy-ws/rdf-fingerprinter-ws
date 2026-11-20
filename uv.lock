@@ -1,5 +1,5 @@
 version = 1
-revision = 5
+revision = 3
 requires-python = ">=3.12, <3.15"
 resolution-markers = [
     "python_full_version >= '3.14' and sys_platform == 'win32'",
@@ -1726,7 +1726,7 @@ wheels = [
 
 [[package]]
 name = "rdf-fingerprinter"
-version = "3.6.0"
+version = "3.7.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "click" },
@@ -1734,16 +1734,15 @@ dependencies = [
     { name = "pydantic" },
     { name = "rdflib" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/56/2a/3be709a859f03724ca99f7a0fd78f4c0b41e57c0442bab57f00c6f5b11a4/rdf_fingerprinter-3.6.0.tar.gz", hash = "sha256:87f485ba08ebc25e174a2e95b0a13cc75002b94a5f91ad791f6f4827ebf3af21", size = 165810, upload-time = "2026-11-08T10:26:40.554Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/f8/a2/a9e0b5fcd182fef1aebe602845ded3434a21c84c5cb4976ed1f9d8768e47/rdf_fingerprinter-3.7.1.tar.gz", hash = "sha256:144a53740629795fe3a0205e70f8899741c33342dd4a9ef195c23931b3ed30a6", size = 170527, upload-time = "2026-11-08T20:17:52.228Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/bc/f2/b41a169bee468bc9f82fe5f14ea85d2b908b44be47d498edfdab04a3f8cf/rdf_fingerprinter-3.6.0-py3-none-any.whl", hash = "sha256:287c7fe96ccdb9f10aed03514757de9342317c46e01619242c1d8bacf8adf215", size = 222860, upload-time = "2026-11-08T10:26:39.105Z" },
+    { url = "https://files.pythonhosted.org/packages/d0/b1/2ccb13951f29ba50828caa04aee7096ce9a110612a887be19ca3ec9698e7/rdf_fingerprinter-3.7.1-py3-none-any.whl", hash = "sha256:c6dafe63265fd53cb55b49000718ee4e6cd1079c242ada62ee931f449d49de76", size = 226301, upload-time = "2026-11-08T20:17:50.678Z" },
 ]
 
 [[package]]
 name = "rdf-fingerprinter-ws"
-version = "0.1.0"
+version = "3.0.0"
 source = { editable = "." }
-default-groups = ["dev", "lint", "test"]
 dependencies = [
     { name = "celery", extra = ["redis"] },
     { name = "connexion", extra = ["flask", "swagger-ui", "uvicorn"] },
@@ -1784,7 +1783,7 @@ requires-dist = [
     { name = "flask-wtf", specifier = "==1.3.0" },
     { name = "flower", specifier = "==2.2.0" },
     { name = "gunicorn", specifier = "==26.2.0" },
-    { name = "rdf-fingerprinter", specifier = "==3.6.0" },
+    { name = "rdf-fingerprinter", specifier = "==3.7.1" },
     { name = "requests", specifier = "==2.34.2" },
     { name = "uvicorn-worker", specifier = "==0.4.0" },
 ]
