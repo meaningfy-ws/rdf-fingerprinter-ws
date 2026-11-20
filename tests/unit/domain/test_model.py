@@ -5,6 +5,7 @@ from pathlib import Path
 import pytest
 
 from fingerprinter.domain.model import (
+    DiagramDescription,
     FingerprintOutcome,
     JobRecord,
     JobState,
@@ -107,6 +108,7 @@ def test_a_job_record_round_trips_through_its_json_shape():
         "formats": ["html", "json"],
         "finished_at": "2026-01-01T10:00:09+00:00",
         "files": {"html": ["main.html"], "json": ["profile.json"]},
+        "diagrams": [],
     }
     assert JobRecord.from_dict(record.to_dict()) == record
 
@@ -217,3 +219,62 @@ def test_the_file_names_of_an_outcome_are_sorted_per_format():
         ReportFormat.PUML: ("a.puml", "b.puml"),
         ReportFormat.HTML: ("main.html",),
     }
+
+
+def test_a_diagram_description_is_a_frozen_value_of_graph_module_and_part():
+    overview = DiagramDescription(file="a.svg", graph=None, module=None, part=None)
+    module = DiagramDescription("b.svg", "http://g", "skos", 2)
+
+    assert (overview.graph, overview.module, overview.part) == (None, None, None)
+    assert (module.file, module.graph, module.module, module.part) == (
+        "b.svg", "http://g", "skos", 2,
+    )  # fmt: skip
+    with pytest.raises(FrozenInstanceError):
+        module.part = 3  # type: ignore[misc]
+
+
+def test_a_record_and_an_outcome_start_without_diagrams():
+    record = JobRecord(
+        id="j1",
+        source=Source(file="d.ttl"),
+        created_at=datetime(2026, 1, 1, tzinfo=UTC),
+        state=JobState.QUEUED,
+    )
+
+    assert record.diagrams == ()
+    assert FingerprintOutcome().diagrams == ()
+
+
+def test_the_diagrams_of_a_record_round_trip_through_its_json_shape():
+    diagrams = (
+        DiagramDescription("diagram-a.svg", None, None, None),
+        DiagramDescription("diagram-a--skos~1.svg", "http://g", "skos", 1),
+    )
+    record = JobRecord(
+        id="j1",
+        source=Source(file="d.ttl"),
+        created_at=datetime(2026, 1, 1, tzinfo=UTC),
+        state=JobState.COMPLETED,
+        diagrams=diagrams,
+    )
+
+    assert record.to_dict()["diagrams"] == [
+        {"file": "diagram-a.svg", "graph": None, "module": None, "part": None},
+        {"file": "diagram-a--skos~1.svg", "graph": "http://g", "module": "skos", "part": 1},
+    ]
+    assert JobRecord.from_dict(record.to_dict()).diagrams == diagrams
+
+
+def test_a_record_without_the_diagrams_key_reads_as_no_descriptions():
+    stored = {
+        "id": "j1",
+        "source": {"file": "d.ttl", "graphs": []},
+        "created_at": "2026-01-01T10:00:00+00:00",
+        "state": "completed",
+        "reason": None,
+        "failures": [],
+        "formats": ["html"],
+        "files": {"svg": ["diagram-a.svg"]},
+    }
+
+    assert JobRecord.from_dict(stored).diagrams == ()

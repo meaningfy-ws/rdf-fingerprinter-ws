@@ -27,6 +27,20 @@ def _state(raw: Any) -> ApiState | str:
 
 
 @dataclass(frozen=True)
+class ApiDiagram:
+    """What one class diagram (SVG) shows, as the job record describes it."""
+
+    file: str
+    graph: str | None
+    module: str | None
+    part: int | None
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> "ApiDiagram":
+        return cls(data["file"], data.get("graph"), data.get("module"), data.get("part"))
+
+
+@dataclass(frozen=True)
 class ApiJob:
     """A job record as ``GET /reports`` lists it."""
 
@@ -40,6 +54,7 @@ class ApiJob:
     failures: tuple[str, ...] = ()
     finished_at: datetime | None = None
     files: Mapping[str, tuple[str, ...]] = field(default_factory=dict)
+    diagrams: tuple[ApiDiagram, ...] = ()
 
     @property
     def source_name(self) -> str:
@@ -62,6 +77,7 @@ class ApiJob:
             failures=tuple(data.get("failures") or ()),
             finished_at=datetime.fromisoformat(finished) if finished else None,
             files={fmt: tuple(names) for fmt, names in (data.get("files") or {}).items()},
+            diagrams=tuple(ApiDiagram.from_dict(d) for d in data.get("diagrams") or ()),
         )
 
 

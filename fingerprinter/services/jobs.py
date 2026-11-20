@@ -4,6 +4,7 @@ import logging
 import tempfile
 import uuid
 from collections.abc import Callable, Collection
+from dataclasses import replace
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import IO
@@ -18,6 +19,7 @@ from fingerprinter.domain.exceptions import (
     UnsupportedFileType,
 )
 from fingerprinter.domain.model import (
+    DiagramDescription,
     FingerprintOutcome,
     JobRecord,
     JobState,
@@ -163,7 +165,21 @@ def _with_diagrams(
         drawn.append(folder / f"{source.stem}.svg")
         drawn[-1].write_bytes(svg)
     files = {**outcome.files, ReportFormat.SVG: tuple(drawn)} if drawn else outcome.files
-    return FingerprintOutcome(files=files, failures=tuple(failures))
+    return FingerprintOutcome(
+        files=files, failures=tuple(failures), diagrams=_described(outcome.diagrams, drawn)
+    )
+
+
+def _described(
+    described: tuple[DiagramDescription, ...], drawn: list[Path]
+) -> tuple[DiagramDescription, ...]:
+    """The descriptions of the diagrams that were drawn, each under the name of its SVG."""
+    names = {path.stem: path.name for path in drawn}
+    return tuple(
+        replace(description, file=names[stem])
+        for description in described
+        if (stem := Path(description.file).stem) in names
+    )
 
 
 def _run(
