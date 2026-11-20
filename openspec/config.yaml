@@ -1,0 +1,37 @@
+schema: meaningfy
+
+# Project context — injected (wrapped in <context>) into every artifact's instructions.
+# This is OpenSpec's native project-context sink. The durable truth is openspec/specs/;
+# this string is the orientation index. If a generated index is ever wanted, regenerate it
+# deterministically into this field (like codegen, with a CI sync-check) — do NOT hand-curate
+# a parallel MEMORY.md.
+context: |
+  Repo: RDF Fingerprinter WS (rdf-fingerprinter-ws).
+  Purpose: structural fingerprinting (profiling) of RDF files and SPARQL endpoints; a Flask API/UI
+  with Celery workers wrapping the rdf-fingerprinter library (import name `fingerprint`).
+  Architecture: cosmic-python layers domain, services, adapters, entrypoints (api, ui, worker) under
+  a bootstrap composition root, enforced by import-linter (.importlinter).
+  Top-level package: fingerprinter (no /src). uv, Python 3.13, pyproject.toml + uv.lock.
+  Library: rdf-fingerprinter 3.7.1 pinned; gates: make check-all (Ruff, mypy, import-linter,
+  openspec, docs, coverage >= 80) and make test-containers (integration and e2e on Docker).
+  Infra: infra/ (compose.yaml, .env.example, api/ui/worker Dockerfiles); images to
+  ghcr.io/meaningfy-ws/rdf-fingerprinter-ws-{api,ui,worker} on a release (release.yml).
+  The upgrade EPIC and the UI EPIC (modernise-user-interface) are archived (2026-11-08); data-profiling-tool is parked.
+  No workarounds of the library: gaps become issues in meaningfy-ws/rdf-fingerprinter
+  (docs/modules/ROOT/pages/develop/rdf-fingerprinter.adoc).
+  Branches: off develop, PRs into develop; main receives releases. No AI attribution in commits.
+  Method: developer runbook in docs/modules/ROOT/pages/develop/ (Antora); AGENTS.md is its short form.
+  Commits: Conventional Commits (imperative, no trailing punctuation).
+  Artifact vocabulary: EPIC ≡ proposal.md (Shape-Up work shape);
+  PLAN ≡ design.md + tasks.md (clarity gate scores the pair ≥9/10);
+  normative requirements ≡ specs/ deltas (RFC-2119 SHALL + Given/When/Then, no EARS).
+
+# Per-artifact rules — THIN by design. Only the 3 hard rules; rich per-artifact rules are
+# deferred. Additive to the schema's built-in instructions.
+rules:
+  proposal:
+    - The EPIC MUST state an Appetite and a No-gos section (an EPIC without no-gos is unshaped).
+  specs:
+    - Use RFC-2119 SHALL/MUST; every requirement MUST have at least one #### Scenario (WHEN/THEN). No EARS.
+  tasks:
+    - The PLAN MUST cite its parent EPIC id on the first line (golden thread — cite your parent).

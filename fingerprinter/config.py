@@ -1,251 +1,99 @@
-#!/usr/bin/python3
+"""The service's settings, read once from the environment by ``bootstrap`` (design D-7).
 
-# config.py
-# Date:  14/10/2020
-# Author: Mihai Coșleț
-# Email: coslet.mihai@gmail.com 
-
-"""
-Project wide configuration file.
+Nothing else imports this module: entrypoints, services and adapters receive the values they need.
 """
 
-import logging
 import os
-from distutils.util import strtobool
+from collections.abc import Mapping
+from dataclasses import dataclass, field
 from pathlib import Path
 
+INPUT_MIME_TYPES: Mapping[str, str] = {
+    "rdf": "application/rdf+xml",
+    "trix": "application/trix+xml",
+    "nq": "application/n-quads",
+    "nt": "application/n-triples",
+    "jsonld": "application/ld+json",
+    "n3": "text/n3",
+    "ttl": "text/turtle",
+}
 
-class FingerprinterConfig:
-    """
-    Class to hold the configuration for the fingerprinter project.
-    """
-    logger_name = 'gunicorn.error'
-    logger = logging
+# The media type of each file extension the downloads carry: the library's outputs, so that the type
+# does not depend on the Python version's own table.
+OUTPUT_MIME_TYPES: Mapping[str, str] = {
+    "html": "text/html",
+    "json": "application/json",
+    "ttl": "text/turtle",
+    "shex": "text/shex",
+    "tsv": "text/tab-separated-values",
+    "md": "text/markdown",
+    "csv": "text/csv",
+    "puml": "text/plain",
+    "svg": "image/svg+xml",
+    "zip": "application/zip",
+}
 
-    @property
-    def RDF_FINGERPRINTER_LOGGER(self) -> str:
-        value = self.logger_name
-        self.logger.debug(value)
-        return value
-
-    @property
-    def RDF_FINGERPRINTER_DEBUG(self) -> bool:
-        value = strtobool(os.environ.get('RDF_FINGERPRINTER_DEBUG', 'true'))
-        self.logger.debug(value)
-        return value
-
-    @property
-    def RDF_FINGERPRINTER_HTML_TEMPLATE_LOCATION(self) -> str:
-        value = os.environ.get('RDF_FINGERPRINTER_HTML_TEMPLATE_LOCATION',
-                               Path(__file__).parents[1] / 'resources/templates/html')
-        self.logger.debug(value)
-        return value
-
-    @property
-    def RDF_FINGERPRINTER_JSON_TEMPLATE_LOCATION(self) -> str:
-        value = os.environ.get('RDF_FINGERPRINTER_JSON_TEMPLATE_LOCATION',
-                               Path(__file__).parents[1] / 'resources/templates/json')
-        self.logger.debug(value)
-        return value
-
-    @property
-    def RDF_FINGERPRINTER_API_SERVICE(self) -> str:
-        location = os.environ.get('RDF_FINGERPRINTER_API_LOCATION', 'http://fingerprinter-api')
-        port = os.environ.get('RDF_FINGERPRINTER_API_PORT', 4020)
-        value = f'{location}:{port}'
-        self.logger.debug(value)
-        return value
-
-    @property
-    def RDF_FINGERPRINTER_UI_SERVICE(self) -> str:
-        location = os.environ.get('RDF_FINGERPRINTER_UI_LOCATION', 'http://fingerprinter-ui')
-        port = os.environ.get('RDF_FINGERPRINTER_UI_PORT', 8020)
-        value = f'{location}:{port}'
-        self.logger.debug(value)
-        return value
-
-    @property
-    def RDF_FINGERPRINTER_FUSEKI_SERVICE(self) -> str:
-        location = os.environ.get('RDF_FINGERPRINTER_FUSEKI_LOCATION', 'http://fuseki')
-        port = os.environ.get('RDF_FINGERPRINTER_FUSEKI_PORT', 3030)
-        value = f'{location}:{port}'
-        self.logger.debug(value)
-        return value
-
-    @property
-    def RDF_FINGERPRINTER_REDIS_SERVICE(self) -> str:
-        location = os.environ.get('RDF_FINGERPRINTER_REDIS_LOCATION', 'redis://redis')
-        port = os.environ.get('RDF_FINGERPRINTER_REDIS_PORT', 6379)
-        value = f'{location}:{port}'
-        self.logger.debug(value)
-        return value
-
-    @property
-    def RDF_FINGERPRINTER_FUSEKI_USERNAME(self) -> str:
-        value = os.environ.get('RDF_FINGERPRINTER_FUSEKI_USERNAME', '')
-        self.logger.debug(value)
-        return value
-
-    @property
-    def RDF_FINGERPRINTER_FUSEKI_PASSWORD(self) -> str:
-        value = os.environ.get('RDF_FINGERPRINTER_FUSEKI_PASSWORD', '')
-        self.logger.debug(value)
-        return value
-
-    @property
-    def RDF_FINGERPRINTER_API_SECRET_KEY(self) -> str:
-        value = os.environ.get('RDF_FINGERPRINTER_API_SECRET_KEY', 'secret key api')
-        self.logger.debug(value)
-        return value
-
-    @property
-    def RDF_FINGERPRINTER_UI_SECRET_KEY(self) -> str:
-        value = os.environ.get('RDF_FINGERPRINTER_UI_SECRET_KEY', 'secret key ui')
-        self.logger.debug(value)
-        return value
-
-    @property
-    def RDF_FINGERPRINTER_TIME_FORMAT(self) -> str:
-        value = os.environ.get('RDF_FINGERPRINTER_TIME_FORMAT', '%d-%b-%YT%H:%M:%S')
-        self.logger.debug(value)
-        return value
-
-    @property
-    def RDF_FINGERPRINTER_TIMEZONE(self) -> str:
-        value = os.environ.get('RDF_FINGERPRINTER_TIMEZONE', 'Europe/Paris')
-        self.logger.debug(value)
-        return value
-
-    @property
-    def RDF_FINGERPRINTER_REPORT_META_NAME(self) -> str:
-        value = os.environ.get('RDF_FINGERPRINTER_REPORT_META_NAME', 'meta.json')
-        self.logger.debug(value)
-        return value
-
-    @property
-    def RDF_FINGERPRINTER_HTML_REPORT_NAME(self) -> str:
-        value = os.environ.get('RDF_FINGERPRINTER_HTML_REPORT_NAME', 'report.html')
-        self.logger.debug(value)
-        return value
-
-    @property
-    def RDF_FINGERPRINTER_JSON_REPORT_NAME(self) -> str:
-        value = os.environ.get('RDF_FINGERPRINTER_JSON_REPORT_NAME', 'report.json')
-        self.logger.debug(value)
-        return value
-
-    @property
-    def RDF_FINGERPRINTER_ZIP_REPORT_NAME(self) -> str:
-        value = os.environ.get('RDF_FINGERPRINTER_ZIP_REPORT_NAME', 'report.zip')
-        self.logger.debug(value)
-        return value
-
-    @property
-    def RDF_FINGERPRINTER_FILE_DB(self) -> str:
-        value = os.environ.get('RDF_FINGERPRINTER_FILE_DB', str(Path(__file__).parents[1] / 'db'))
-        self.logger.debug(value)
-        return value
-
-    @property
-    def RDF_FINGERPRINTER_REPORTS_DB(self) -> str:
-        value = os.environ.get('RDF_FINGERPRINTER_REPORTS_DB', str(Path(__file__).parents[1] / 'reports'))
-        self.logger.debug(value)
-        return value
-
-    @property
-    def RDF_FINGERPRINTER_REPORT_TITLE(self) -> str:
-        value = os.environ.get('RDF_FINGERPRINTER_REPORT_TITLE', 'RDF Fingerprinting Report')
-        self.logger.debug(value)
-        return value
-
-    @property
-    def SHOW_SWAGGER_UI(self) -> bool:
-        value = strtobool(os.environ.get('SHOW_SWAGGER_UI', 'true'))
-        self.logger.debug(value)
-        return value
-
-    @property
-    def INPUT_MIME_TYPES(self) -> dict:
-        value = {
-            'rdf': 'application/rdf+xml',
-            'trix': 'application/xml',
-            'nq': 'application/n-quads',
-            'nt': 'application/n-triples',
-            'jsonld': 'application/ld+json',
-            'n3': 'text/n3',
-            'ttl': 'text/turtle',
-        }
-        self.logger.debug(value)
-        return value
-
-    @property
-    def HTML_REPORT_TYPE(self) -> str:
-        value = 'html'
-        self.logger.debug(value)
-        return value
-
-    @property
-    def JSON_REPORT_TYPE(self) -> str:
-        value = 'json'
-        self.logger.debug(value)
-        return value
-
-    @property
-    def ZIP_REPORT_TYPE(self) -> str:
-        value = 'zip'
-        self.logger.debug(value)
-        return value
-
-    @property
-    def REPORT_TYPES(self) -> list:
-        value = [self.HTML_REPORT_TYPE, self.JSON_REPORT_TYPE, self.ZIP_REPORT_TYPE]
-        self.logger.debug(value)
-        return value
-
-    @property
-    def DEFAULT_REPORT_TYPE(self) -> str:
-        value = self.REPORT_TYPES[0]
-        self.logger.debug(value)
-        return value
-
-    @property
-    def EXTENSION_TO_FILETYPE(self) -> dict:
-        value = {
-            self.HTML_REPORT_TYPE: 'html_report',
-            self.JSON_REPORT_TYPE: 'json_report',
-            self.ZIP_REPORT_TYPE: 'zip_report',
-        }
-        self.logger.debug(value)
-        return value
+BYTES_PER_MB = 1024 * 1024
 
 
-config = FingerprinterConfig()
+def strtobool(value: str) -> bool:
+    """The truth value of a setting, as distutils.util.strtobool (removed in Python 3.12) gave it."""
+    normalised = value.strip().lower()
+    if normalised in ("1", "true", "yes", "on", "y", "t"):
+        return True
+    if normalised in ("0", "false", "no", "off", "n", "f"):
+        return False
+    raise ValueError(f"invalid truth value {value!r}")
 
 
-class FlaskConfig:
-    """
-    Base Flask config
-    """
-    DEBUG = False
-    TESTING = False
+def _service_url(name: str, default_location: str, default_port: int) -> str:
+    location = os.environ.get(f"RDF_FINGERPRINTER_{name}_LOCATION", default_location)
+    return f"{location}:{os.environ.get(f'RDF_FINGERPRINTER_{name}_PORT', default_port)}"
 
 
-class ProductionConfig(FlaskConfig):
-    """
-    Production Flask config
-    """
+def require_secret(name: str, value: str) -> str:
+    """The value of a secret an app cannot start without; each app checks its own (design H-5)."""
+    if not value:
+        raise ValueError(f"{name} must be set: it has no default.")
+    return value
 
 
-class DevelopmentConfig(FlaskConfig):
-    """
-    Development Flask config
-    """
-    DEBUG = True
+@dataclass(frozen=True)
+class Settings:
+    api_url: str
+    fuseki_url: str
+    redis_url: str = field(repr=False)
+    plantuml_url: str
+    api_secret_key: str = field(repr=False)
+    ui_secret_key: str = field(repr=False)
+    fuseki_user: str
+    fuseki_password: str = field(repr=False)
+    file_db: Path
+    reports_db: Path
+    max_upload_bytes: int
+    show_swagger_ui: bool
+    log_level: str
+    ui_secure_cookies: bool
+    input_mime_types: Mapping[str, str] = field(default_factory=lambda: INPUT_MIME_TYPES)
+    output_mime_types: Mapping[str, str] = field(default_factory=lambda: OUTPUT_MIME_TYPES)
 
-
-class TestingConfig(FlaskConfig):
-    """
-    Testing Flask config
-    """
-    TESTING = True
-    WTF_CSRF_ENABLED = False
+    @classmethod
+    def from_env(cls) -> "Settings":
+        root = Path(__file__).parents[1]
+        env = os.environ
+        return cls(
+            api_url=_service_url("API", "http://fingerprinter-api", 4020),
+            fuseki_url=_service_url("FUSEKI", "http://fuseki", 3030),
+            redis_url=_service_url("REDIS", "redis://redis", 6379),
+            plantuml_url=_service_url("PLANTUML", "http://plantuml", 8080),
+            api_secret_key=env.get("RDF_FINGERPRINTER_API_SECRET_KEY", ""),
+            ui_secret_key=env.get("RDF_FINGERPRINTER_UI_SECRET_KEY", ""),
+            fuseki_user=env.get("RDF_FINGERPRINTER_FUSEKI_USERNAME", ""),
+            fuseki_password=env.get("RDF_FINGERPRINTER_FUSEKI_PASSWORD", ""),
+            file_db=Path(env.get("RDF_FINGERPRINTER_FILE_DB", root / "db")).resolve(),
+            reports_db=Path(env.get("RDF_FINGERPRINTER_REPORTS_DB", root / "reports")).resolve(),
+            max_upload_bytes=int(env.get("RDF_FINGERPRINTER_MAX_UPLOAD_MB", 512)) * BYTES_PER_MB,
+            show_swagger_ui=strtobool(env.get("SHOW_SWAGGER_UI", "true")),
+            log_level=env.get("RDF_FINGERPRINTER_LOG_LEVEL", "info"),
+            ui_secure_cookies=strtobool(env.get("RDF_FINGERPRINTER_UI_SECURE_COOKIES", "false")),
+        )

@@ -1,0 +1,23 @@
+# Development override: publishes Redis, Fuseki and PlantUML on 127.0.0.1 (for `make up-deps`, the
+# `run-*` targets and loading demo data). Never part of `make up`; use `make up-dev` or `make up-deps`.
+# They sit on `work`, which is internal, so a `dev` bridge network carries the published ports (and
+# gives these three a route out: development only).
+
+services:
+  redis:
+    ports:
+      - 127.0.0.1:${RDF_FINGERPRINTER_REDIS_PORT}:6379
+    networks: [dev]
+
+  fuseki:
+    ports:
+      - 127.0.0.1:${RDF_FINGERPRINTER_FUSEKI_PORT}:3030
+    networks: [dev]
+
+  plantuml:
+    ports:
+      - 127.0.0.1:${RDF_FINGERPRINTER_PLANTUML_PORT}:8080
+    networks: [dev]
+
+networks:
+  dev: {}

@@ -1,0 +1,87 @@
+= Working with agents
+:description: What is specific to RDF Fingerprinter WS when agents deliver its work: where the work lands, the rules every brief carries, the gates, the merge, and the habits. The method itself is skillery's.
+
+The method agents follow here (the shaping and epic sessions, the team and its briefs, the loop of
+a stage scaled by appetite, the lead's authority, how questions are put to the developer,
+verification and validation, and what to do when one of our own or an external library falls
+short) is owned by skillery's `epic-delivery` skill, installed with the `meaningfy-building` bundle
+(3.9.0 or later); shaping is `epic-planning`, and subagent dispatch and session hygiene are
+`guardrails` (`meaningfy-core`). The explanation for people is skillery's
+https://github.com/meaningfy-ws/skillery/blob/develop/docs/practice/ai-coding/working-with-agents.md[Working with agents].
+`AGENTS.md` at the repository root is the short form that agents load. This page keeps only what
+is specific to this service.
+
+== Common questions
+
+*Who decides?*::
+The developer. Agents draft, recommend and carry out; the lead is the only one who asks the
+developer, in the format the `epic-delivery` skill sets.
+
+*What happens when the library gets in the way?*::
+The task stops, the lead files an issue in `rdf-fingerprinter` and tells the developer. Nobody
+works around it here. See xref:develop/rdf-fingerprinter.adoc#strict[Building on rdf-fingerprinter].
+
+*Can an agent commit and merge on its own?*::
+Only when the developer grants it for a named epic, within the limits the `epic-delivery` skill
+sets. Commits and PRs carry no AI attribution.
+
+*What does a member's report prove?*::
+Nothing on its own. The lead re-runs the <<gates>> and reads the diff.
+
+*What must every brief here say?*::
+The standing rules and the report in <<brief>>.
+
+== Where the work lands
+
+* *Shaping session:* one OpenSpec change per EPIC in `openspec/changes/<id>/` (`proposal.md`, spec
+  deltas, `inputs/seed.md` with the developer's answers, `evidence/` with the spikes). Each need is
+  sorted into this service or the library (xref:develop/rdf-fingerprinter.adoc#split[who does
+  what]); library needs become issues or a library change, named by the EPIC.
+* *Epic session:* merged PRs into `develop`; the change archived into `openspec/specs/`
+  (`openspec archive <id> --yes`) with its acceptance evidence; updated docs and the
+  xref:develop/index.adoc#durations[durations table]; the library issues it filed, each linked from
+  `design.md`.
+* Library work happens in a worktree of `rdf-fingerprinter`, under that repository's own
+  `AGENTS.md`; each commit touches one repository.
+
+[#brief]
+== What every brief carries here
+
+On top of the brief the `epic-delivery` skill sets, every brief names:
+
+* the standing rules: *no workaround of the library*; the xref:develop/testing.adoc[testing
+  checklist] (the adversarial tester follows it too);
+* the report expected: files changed, tests added, each make target run with its time and test
+  count, and a *Library findings* section: every bug, gap or awkwardness met in
+  `rdf-fingerprinter`, with a reproduction, or "none". Members report findings; only the lead files
+  issues.
+
+Each task is committed by the lead with why, what and `Refs: <change-id> <task>`.
+
+[#gates]
+== The gates
+
+Before a stage the lead checks that every library release it needs is on PyPI and pinned. Before
+handing out a task the lead checks the blast radius with GitNexus (re-indexing it if stale); a HIGH
+or CRITICAL risk goes to the developer.
+
+[cols="2,3",options="header"]
+|===
+|Gate |When
+|`make check-all` |After every task and before every PR
+|`make check-docs`, `make build-docs` |When docs change, and before a stage's PR
+|`make test-containers` |When adapters, `infra/` or the workflows change, and before a stage's PR
+|The clarity gate (≥ 9/10) |Before a PLAN's first task
+|===
+
+== Merge and release
+
+Each stage ends in one PR into `develop`, merged only on green CI. `main` receives releases only.
+
+== Habits that keep sessions consistent
+
+* Re-index GitNexus regularly: `gitnexus analyze --embeddings --skip-agents-md --skip-skills`.
+* Keep the xref:develop/index.adoc#durations[durations table] current from ordinary runs; no
+  profiling.
+* Open each page with the questions it answers.
+* Temporary files go in `temp/`; commits and PRs carry no AI attribution.

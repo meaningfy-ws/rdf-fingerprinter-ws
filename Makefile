@@ -1,118 +1,208 @@
-include docker/.env
+SHELL = /bin/bash -o pipefail
 
-BUILD_PRINT = \e[1;34mSTEP: \e[0m
+BUILD_PRINT     = \e[1;34m
+END_BUILD_PRINT = \e[0m
 
+ICON_DONE     = [done]
+ICON_ERROR    = [x]
+ICON_PROGRESS = [-]
 
-install-os-dependencies-redhat:
-	@ ./bash/install_os_dependencies.sh
+# No-src layout: the top-level package lives at the repo root.
+REPO_ROOT    = $(shell pwd)
+PACKAGE_NAME = fingerprinter
+TEST_PATH    = $(REPO_ROOT)/tests
 
-install-python-dependencies-redhat:
-	@ ./bash/setup_python.sh
+# Coverage flags — appended only in coverage-aware targets, never in pytest.ini.
+COV_FLAGS = --cov=$(PACKAGE_NAME) \
+            --cov-report=term-missing \
+            --cov-report=xml:$(REPO_ROOT)/coverage.xml \
+            --cov-fail-under=80
 
-run-local-api:
-	@ ./bash/run_api.sh
+# The unit lane never collects the container tests.
+UNIT_LANE = --ignore=$(TEST_PATH)/integration --ignore=$(TEST_PATH)/e2e
 
-run-local-ui:
-	@ ./bash/run_ui.sh
+COMPOSE_FILE     = $(REPO_ROOT)/infra/compose.yaml
+COMPOSE_DEV_FILE = $(REPO_ROOT)/infra/compose.dev.yaml
+ENV_FILE         = $(REPO_ROOT)/infra/.env
+COMPOSE          = docker compose -f $(COMPOSE_FILE) --env-file $(ENV_FILE)
+# The development override also publishes Redis, Fuseki and PlantUML on 127.0.0.1.
+COMPOSE_DEV      = docker compose -f $(COMPOSE_FILE) -f $(COMPOSE_DEV_FILE) --env-file $(ENV_FILE)
+PROJECT_NAME     = rdf-fingerprinter-ws
 
-run-local-redis-redhat:
-	@ sudo systemctl enable redis --now
-
-stop-local-gunicorn:
-	@ ./bash/stop_gunicorn.sh
-#------------------------------------------------------------------------------
-# Ubuntu related commands
-#------------------------------------------------------------------------------
-
-install-os-dependencies-ubuntu:
-	@ sudo apt install git python3-pip redis-server python3.8-venv curl
-
-run-local-redis-ubuntu:
-	@ sudo cp docker/redis.conf /etc/redis/redis.conf
-	@ sudo systemctl restart redis.service
-
-install-python-dependencies-ubuntu:
-	@ echo "$(BUILD_PRINT)Installing the production requirements"
-	@ python3 -m venv env
-	@ pip install --upgrade pip
-	@ pip install -r requirements/dev.txt
+.DEFAULT_GOAL := help
+.PHONY: help install-uv install lock format lint lint-fix typecheck check-architecture check-spec \
+        test test-unit test-feature test-containers check-quality check-all \
+        init-env check-env up up-dev up-deps down rebuild build-images logs run-api run-ui run-worker
 
 #-----------------------------------------------------------------------------
-# Basic commands
+# Setup
 #-----------------------------------------------------------------------------
-install-dev:
-	@ echo "$(BUILD_PRINT)Installing the local requirements"
-	@ pip install --upgrade pip
-	@ pip install -r requirements/dev.txt
+help: ## Display available targets
+	@ echo -e "$(BUILD_PRINT)Available targets:$(END_BUILD_PRINT)"
+	@ grep -hE '^[a-zA-Z0-9_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
+		| sort \
+		| awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-22s\033[0m %s\n", $$1, $$2}'
 
-install-prod:
-	@ echo "$(BUILD_PRINT)Installing the production requirements"
-	@ pip install --upgrade pip
-	@ pip install -r requirements.txt
+install-uv: ## Install uv if not present
+	@ command -v uv >/dev/null || curl -LsSf https://astral.sh/uv/0.13.5/install.sh | sh
 
-test:
-	@ echo "$(BUILD_PRINT)Running the tests"
-	@ pytest
+install: install-uv ## Install the project dependencies (all groups; does NOT lock)
+	@ echo -e "$(BUILD_PRINT)$(ICON_PROGRESS) Installing dependencies$(END_BUILD_PRINT)"
+	@ uv sync
+	@ echo -e "$(BUILD_PRINT)$(ICON_DONE) Dependencies installed$(END_BUILD_PRINT)"
 
-#-----------------------------------------------------------------------------
-# Service commands
-#-----------------------------------------------------------------------------
-build-volumes:
-	@ docker volume create rdf-fingerprinter-template
-
-build-services:
-	@ echo -e '$(BUILD_PRINT)Building the containers'
-	@ docker-compose --file docker/docker-compose.yml --env-file docker/.env build
-
-start-services:
-	@ echo -e '$(BUILD_PRINT)(dev) Starting the containers'
-	@ docker-compose --file docker/docker-compose.yml --env-file docker/.env up -d
-
-stop-services:
-	@ echo -e '$(BUILD_PRINT)(dev) Stopping the containers'
-	@ docker-compose --file docker/docker-compose.yml --env-file docker/.env stop
+lock: ## Update uv.lock
+	@ uv lock
 
 #-----------------------------------------------------------------------------
-# Fuseki helpers
+# Code quality
 #-----------------------------------------------------------------------------
+format: ## Format code with Ruff
+	@ uv run ruff format $(PACKAGE_NAME) $(TEST_PATH)
 
-fuseki-create-test-dbs: | build-volumes
-	@ echo "$(BUILD_PRINT)Building "test-dataset" at http://localhost:$(if $(RDF_FINGERPRINTER_FUSEKI_ADMIN_PASSWORD),$(RDF_DIFFER_FUSEKI_PORT),unknown port)/$$/datasets"
-	@ sleep 7
-	@ curl -v --anyauth --user 'admin:$(RDF_FINGERPRINTER_FUSEKI_ADMIN_PASSWORD)' -d 'dbType=mem&dbName=test-dataset'  'http://localhost:$(RDF_FINGERPRINTER_FUSEKI_PORT)/$$/datasets'
-	@ curl -v -X POST -H content-type:application/rdf+xml --anyauth --user 'admin:$(RDF_FINGERPRINTER_FUSEKI_ADMIN_PASSWORD)' -T ./tests/resources/treaties-source-ap.rdf -G http://localhost:$(RDF_FINGERPRINTER_FUSEKI_PORT)/test-dataset/data
+lint-fix: ## Run Ruff checks with auto-fix
+	@ uv run ruff check --fix $(PACKAGE_NAME) $(TEST_PATH)
+
+lint: ## Run Ruff lint and format checks
+	@ echo -e "$(BUILD_PRINT)$(ICON_PROGRESS) Running Ruff checks$(END_BUILD_PRINT)"
+	@ uv run ruff check $(PACKAGE_NAME) $(TEST_PATH)
+	@ uv run ruff format --check $(PACKAGE_NAME) $(TEST_PATH)
+	@ echo -e "$(BUILD_PRINT)$(ICON_DONE) Ruff checks passed$(END_BUILD_PRINT)"
+
+typecheck: ## Run mypy type checks
+	@ echo -e "$(BUILD_PRINT)$(ICON_PROGRESS) Running mypy$(END_BUILD_PRINT)"
+	@ uv run mypy $(PACKAGE_NAME)
+	@ echo -e "$(BUILD_PRINT)$(ICON_DONE) Type checks passed$(END_BUILD_PRINT)"
+
+check-architecture: ## Check architecture constraints with import-linter
+	@ echo -e "$(BUILD_PRINT)$(ICON_PROGRESS) Checking architecture constraints$(END_BUILD_PRINT)"
+	@ uv run lint-imports --config $(REPO_ROOT)/.importlinter
+	@ echo -e "$(BUILD_PRINT)$(ICON_DONE) Architecture checks passed$(END_BUILD_PRINT)"
+
+check-spec: ## Validate the OpenSpec specs and every change that carries spec deltas (pinned CLI, strict)
+	@ npx -y --prefer-offline @fission-ai/openspec@1.4.1 validate --specs --strict --no-interactive
+	@ for change in $$(ls -d openspec/changes/*/specs 2>/dev/null | cut -d/ -f3); do \
+		npx -y --prefer-offline @fission-ai/openspec@1.4.1 validate "$$change" --type change --strict --no-interactive || exit 1; \
+	done
+
+check-quality: lint typecheck check-architecture check-spec check-docs ## Static checks: lint + typecheck + architecture + spec + docs
+	@ echo -e "$(BUILD_PRINT)$(ICON_DONE) All quality checks passed$(END_BUILD_PRINT)"
+
+check-all: check-quality test ## Full suite: quality + unit and feature tests
+	@ echo -e "$(BUILD_PRINT)$(ICON_DONE) Full verification suite passed$(END_BUILD_PRINT)"
 
 #-----------------------------------------------------------------------------
-# Template commands
+# Tests
 #-----------------------------------------------------------------------------
+test: ## Run the unit and feature tests, with the coverage floor
+	@ echo -e "$(BUILD_PRINT)$(ICON_PROGRESS) Running unit and feature tests$(END_BUILD_PRINT)"
+	@ uv run pytest $(TEST_PATH) $(UNIT_LANE) -m "unit or feature" $(COV_FLAGS) --junitxml=$(REPO_ROOT)/test-results.xml
+	@ echo -e "$(BUILD_PRINT)$(ICON_DONE) Unit and feature tests passed$(END_BUILD_PRINT)"
 
-set-report-template:
-	@ echo "$(BUILD_PRINT)Copying custom template"
-	@ docker rm temp | true
-	@ docker volume rm rdf-fingerprinter-template | true
-	@ docker volume create rdf-fingerprinter-template
-	@ docker container create --name temp -v rdf-fingerprinter-template:/data busybox
-	@ docker cp $(location). temp:/data
-	@ docker rm temp
+test-containers: ## Run the integration and e2e tests against Docker containers (no coverage floor)
+	@ echo -e "$(BUILD_PRINT)$(ICON_PROGRESS) Running container tests$(END_BUILD_PRINT)"
+	@ uv run pytest $(TEST_PATH) -m "integration or e2e" $(COV_FLAGS) --cov-report=xml:$(REPO_ROOT)/coverage-containers.xml --cov-fail-under=0 --junitxml=$(REPO_ROOT)/test-results-containers.xml
+	@ echo -e "$(BUILD_PRINT)$(ICON_DONE) Container tests passed$(END_BUILD_PRINT)"
+
+test-unit: ## Run unit tests only
+	@ uv run pytest $(TEST_PATH) $(UNIT_LANE) -m "unit"
+
+test-feature: ## Run BDD feature tests only
+	@ uv run pytest $(TEST_PATH) $(UNIT_LANE) -m "feature"
 
 #-----------------------------------------------------------------------------
-# Gherkin feature and acceptance test generation commands
+# Stack (docker compose) and local runs; settings in infra/.env (cp infra/.env.example infra/.env)
 #-----------------------------------------------------------------------------
+init-env: ## Write infra/.env from the example with random secrets (refuses to overwrite one)
+	@ test ! -e $(ENV_FILE) || (echo -e "$(ICON_ERROR) $(ENV_FILE) exists: not overwritten" && exit 1)
+	@ umask 077; while IFS= read -r line; do \
+		case "$$line" in \
+			*=change-me) printf '%s=%s\n' "$${line%%=*}" "$$(openssl rand -hex 32)";; \
+			*) printf '%s\n' "$$line";; \
+		esac; \
+	done < $(REPO_ROOT)/infra/.env.example > $(ENV_FILE)
+	@ echo -e "$(BUILD_PRINT)$(ICON_DONE) Wrote $(ENV_FILE) with random secrets$(END_BUILD_PRINT)"
 
-FEATURES_FOLDER = tests/features
-STEPS_FOLDER = tests/steps
-FEATURE_FILES := $(wildcard $(FEATURES_FOLDER)/*.feature)
-EXISTENT_TEST_FILES = $(wildcard $(STEPS_FOLDER)/*.py)
-HYPOTHETICAL_TEST_FILES :=  $(addprefix $(STEPS_FOLDER)/test_, $(notdir $(FEATURE_FILES:.feature=.py)))
-TEST_FILES := $(filter-out $(EXISTENT_TEST_FILES),$(HYPOTHETICAL_TEST_FILES))
+check-env:
+	@ test -f $(ENV_FILE) || (echo -e "$(ICON_ERROR) Missing $(ENV_FILE). Run: make init-env" && exit 1)
+	@ ! grep -q '^[^#]*=change-me' $(ENV_FILE) || (echo -e "$(ICON_ERROR) $(ENV_FILE) still holds change-me: replace every one, or delete it and run: make init-env" && exit 1)
 
-generate-tests-from-features: $(TEST_FILES)
-	@ echo "$(BUILD_PRINT)The following test files should be generated: $(TEST_FILES)"
-	@ echo "$(BUILD_PRINT)Done generating missing feature files"
-	@ echo "$(BUILD_PRINT)Verifying if there are any missing step implementations"
-	@ py.test --generate-missing --feature $(FEATURES_FOLDER)
+up: check-env ## Start the stack (docker compose up -d)
+	@ $(COMPOSE) up -d
 
-$(addprefix $(STEPS_FOLDER)/test_, $(notdir $(STEPS_FOLDER)/%.py)): $(FEATURES_FOLDER)/%.feature
-	@ echo "$(BUILD_PRINT)Generating the testfile "$@"  from "$<" feature file"
-	@ pytest-bdd generate $< > $@
-	@ sed -i  's|features|../features|' $@
+up-dev: check-env ## Start the stack with Redis, Fuseki and PlantUML also published on 127.0.0.1
+	@ $(COMPOSE_DEV) up -d
+
+up-deps: check-env ## Start only Redis, Fuseki and PlantUML (on 127.0.0.1), for run-api, run-ui and run-worker
+	@ $(COMPOSE_DEV) up -d redis fuseki plantuml
+
+down: ## Stop and remove the stack's containers (volumes stay; needs no infra/.env)
+	@ docker compose -p $(PROJECT_NAME) down
+
+rebuild: check-env ## Rebuild the images and start the stack (docker compose up -d --build)
+	@ $(COMPOSE) up -d --build
+
+# Run in the built UI image: the installed version is pyproject's and the packaged data files are there.
+define IMAGE_CHECK
+import importlib.metadata as m, importlib.resources as r, os
+v = m.version("rdf-fingerprinter-ws")
+assert v == os.environ["EXPECTED_VERSION"], (v, os.environ["EXPECTED_VERSION"])
+for package, name in (("ui", "templates/base.html"), ("ui", "static/app.css"), ("api", "openapi/fingerprinter.yml")):
+    assert r.files("fingerprinter.entrypoints." + package).joinpath(name).is_file(), name
+endef
+export IMAGE_CHECK
+
+# What CI runs: the compose file is valid, the three images build (nothing is pushed) and the UI image is complete.
+build-images: ## Check the compose file and build the api, ui and worker images
+	@ set -e; created=; \
+	if [ ! -f $(ENV_FILE) ]; then cp infra/.env.example $(ENV_FILE); created=1; fi; \
+	trap '[ -z "$$created" ] || rm -f $(ENV_FILE)' EXIT; \
+	docker compose -f $(COMPOSE_FILE) --env-file $(ENV_FILE) config -q; \
+	docker compose -f $(COMPOSE_FILE) -f $(COMPOSE_DEV_FILE) --env-file $(ENV_FILE) config -q; \
+	for target in api ui worker; do \
+		docker build --target $$target -f infra/docker/Dockerfile -t rdf-fingerprinter-ws-$$target:check .; \
+	done; \
+	expected=$$(sed -n 's/^version = "\(.*\)"/\1/p' pyproject.toml | head -n 1); \
+	docker run --rm --entrypoint python -e EXPECTED_VERSION="$$expected" rdf-fingerprinter-ws-ui:check -c "$$IMAGE_CHECK"
+
+logs: check-env ## Follow the stack's logs
+	@ $(COMPOSE) logs -f
+
+# Run one service on the host against the stack's Fuseki, Redis and PlantUML (make up-deps; published on 127.0.0.1 by the development override).
+# Do not run them next to the full stack: both would take jobs from the same queue and split the job files.
+LOCAL_RUN = set -a && . $(ENV_FILE) && set +a && \
+	RDF_FINGERPRINTER_FUSEKI_LOCATION=http://localhost RDF_FINGERPRINTER_REDIS_LOCATION=redis://localhost \
+	RDF_FINGERPRINTER_PLANTUML_LOCATION=http://localhost RDF_FINGERPRINTER_API_LOCATION=http://localhost
+
+run-api: check-env ## Run the API on the host (needs `make up-deps`)
+	@ $(LOCAL_RUN) uv run gunicorn --worker-class uvicorn_worker.UvicornWorker --bind 127.0.0.1:$$RDF_FINGERPRINTER_API_PORT 'fingerprinter.bootstrap:api_app()'
+
+run-ui: check-env ## Run the UI on the host (needs the API)
+	@ $(LOCAL_RUN) uv run gunicorn --worker-class gthread --threads $${RDF_FINGERPRINTER_GUNICORN_UI_THREADS:-8} --bind 127.0.0.1:$$RDF_FINGERPRINTER_UI_PORT 'fingerprinter.bootstrap:ui_app()'
+
+run-worker: check-env ## Run the Celery worker on the host (needs `make up-deps`)
+	@ $(LOCAL_RUN) uv run celery -A fingerprinter.bootstrap:celery_app worker --loglevel $$RDF_FINGERPRINTER_LOG_LEVEL
+
+#-----------------------------------------------------------------------------
+# Docs (Antora)
+#-----------------------------------------------------------------------------
+.PHONY: install-antora build-docs preview-docs check-docs clean-docs
+
+DOCS_DIR  = docs
+DOCS_SITE = $(DOCS_DIR)/build/site
+DOCS_PORT ?= 8082
+
+install-antora: ## Install the Antora doc toolchain (npm) in docs/
+	@ cd $(DOCS_DIR) && npm install
+
+build-docs: ## Build the documentation site from the working tree to docs/build/site/
+	@ cd $(DOCS_DIR) && npx antora --fetch antora-playbook.local.yml
+
+preview-docs: build-docs ## Build then serve the docs at http://localhost:$(DOCS_PORT)
+	@ python3 -m http.server --directory $(DOCS_SITE) $(DOCS_PORT)
+
+check-docs: ## Every docs page is in the navigation
+	@ python3 -I $(DOCS_DIR)/tools/check_docs.py
+
+clean-docs: ## Remove the built docs and node_modules
+	@ rm -rf $(DOCS_DIR)/build $(DOCS_DIR)/node_modules

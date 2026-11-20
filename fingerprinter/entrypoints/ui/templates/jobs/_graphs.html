@@ -1,0 +1,20 @@
+{# The named graphs of the endpoint as checkboxes; POST /jobs/new/graphs answers it (design U-10).
+   ``graphs_url`` is the endpoint they were listed for; a submission for another one is refused. #}
+<fieldset id="graphs-picker" class="field graphs" aria-describedby="graphs-hint graphs-error">
+    <legend>{{ labels.GRAPHS_LABEL }}</legend>
+    <p class="help" id="graphs-hint">{{ labels.GRAPHS_HELP }}</p>
+    <div id="graphs-error">{% if graphs_error %}<p class="field-error">{{ graphs_error }}</p>{% endif %}</div>
+    <input type="hidden" name="graphs_url" value="{{ graphs_url }}">
+    {% if graphs %}
+        {% for graph in graphs %}
+        <div class="graph">
+            <input type="checkbox" name="graphs" id="graph-{{ loop.index }}" value="{{ graph }}"{% if graph in chosen %} checked{% endif %}>
+            <label for="graph-{{ loop.index }}"><code>{{ graph }}</code></label>
+        </div>
+        {% endfor %}
+    {% elif graphs is none %}
+        {% if not graphs_error %}<p class="help">{{ labels.GRAPHS_NOT_LOADED }}</p>{% endif %}
+    {% else %}
+        <p class="help">{{ labels.NO_NAMED_GRAPHS }}</p>
+    {% endif %}
+</fieldset>

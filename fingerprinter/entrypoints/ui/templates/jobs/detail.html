@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% import "macros.html" as macros %}
+{% block title %}{{ job.source }}{% endblock %}
+
+{% block app_content %}
+    <div class="page-head">
+        <h1 class="source">{{ job.source }}</h1>
+        {% if job.active %}
+        <a class="btn" href="{{ url_for('confirm_cancel', job_id=job.id, next=url_for('job_page', job_id=job.id)) }}">{{ labels.CANCEL_JOB }}</a>
+        {% else %}
+        <a class="btn" href="{{ url_for('confirm_delete', job_id=job.id, next=url_for('job_page', job_id=job.id)) }}">{{ labels.DELETE }}</a>
+        {% endif %}
+    </div>
+    {% set job_id = job.id %}
+    {% include "jobs/_status.html" %}
+    <p class="meta muted small">{{ job.kind }} · {{ labels.STARTED }} <time datetime="{{ job.started.iso }}" title="{{ job.started.title }}">{{ job.started.text }}</time>{% if job.took %} · {{ labels.TOOK }} {{ job.took }}{% endif %} · {{ labels.JOB_ID }} <code>{{ job.short_id }}</code></p>
+
+    {% if job.state == labels.ApiState.FAILED and job.reason %}
+    <section class="card" aria-labelledby="why-failed">
+        <h2 id="why-failed">{{ labels.WHY_IT_FAILED }}</h2>
+        <p class="source">{{ job.reason }}</p>
+    </section>
+    {% endif %}
+
+    {% if job.has_outputs %}
+        {% if job.failures %}
+        <details class="warnings">
+            <summary>{{ labels.warnings_title(job.failures|length) }}</summary>
+            {{ macros.failures(job.failures) }}
+        </details>
+        {% endif %}
+        <nav aria-label="Job">
+            <ul class="tabs">
+                {% for option in labels.JobTab %}
+                <li><a href="{{ url_for('job_page', job_id=job.id, **{labels.TAB_QUERY: option.value}) }}"{% if option == tab %} aria-current="page"{% endif %}>{{ labels.JOB_TAB_NAMES[option] }}</a></li>
+                {% endfor %}
+            </ul>
+        </nav>
+        {% if tab == labels.JobTab.DIAGRAM %}
+            {% include "jobs/_diagram.html" %}
+        {% elif tab == labels.JobTab.DOWNLOADS %}
+            {% include "jobs/_downloads.html" %}
+        {% else %}
+            {% include "jobs/_report.html" %}
+        {% endif %}
+    {% endif %}
+{% endblock %}

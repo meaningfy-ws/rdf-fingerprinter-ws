@@ -1,0 +1,173 @@
+= Developer runbook
+:description: How RDF Fingerprinter WS is developed: the method, where code goes, the tools, how work is shaped, verified, committed and documented.
+
+This runbook describes how this repository is developed, for people and agents. `AGENTS.md` at the
+repository root is the short form that agents load. It has four pages:
+
+* this one: the method, the structure, the tools and the conventions;
+* xref:develop/rdf-fingerprinter.adoc[Building on rdf-fingerprinter]: what the library does for the
+  service, and what to do when it falls short;
+* xref:develop/agents.adoc[Working with agents]: what is specific here when agents deliver the
+  work (the method itself is skillery's `epic-delivery` skill);
+* xref:develop/testing.adoc[Testing checklist]: the rules every test follows.
+
+== Common questions
+
+*Where do I start a new feature?*::
+In a shaping session: an EPIC in `openspec/changes/<id>/`. Code comes after the PLAN passes the
+clarity gate. See <<work>>.
+
+*The library does not do what I need. What now?*::
+Report it in `rdf-fingerprinter` as a GitHub issue; never work around it here. See
+xref:develop/rdf-fingerprinter.adoc#strict[Building on rdf-fingerprinter].
+
+*Which checks must pass before a PR?*::
+See <<before-pr>>.
+
+*Who checks that we built the right thing?*::
+The developer, at fixed points of the lifecycle. Agents verify; people validate. See <<vv>>.
+
+== Who does the work
+
+One developer leads a team of AI agents. The developer sets direction, answers questions and
+decides; a *lead* agent runs each session, briefs *member* agents for bounded tasks, checks their
+work, commits and keeps the spine. In practice:
+
+* *A session replaces the sprint.* A shaping session produces EPICs; an epic session delivers one,
+  stage by stage, each stage one PR. The EPIC's appetite (Shape Up) replaces the sprint length.
+* *The spine replaces the tracker.* EPIC, PLAN and tasks live in `openspec/changes/<id>/`; a task's
+  checkbox in `tasks.md` is the ticket; the commit that closes it cites it.
+* *Questions replace meetings.* An agent that needs a decision asks the developer, with options and
+  a recommendation; the answer is recorded in the change.
+* *Reports are claims.* Nothing an agent reports counts until the lead has re-run the checks and
+  read the diff.
+
+== Where the code goes
+
+[cols="1,3",options="header"]
+|===
+|Path |What it holds
+|`fingerprinter/` |The service package: `domain/`, `services/`, `adapters/` (Fuseki, Celery, PlantUML, the library), `entrypoints/api/` (Flask and Connexion, the OpenAPI contract in `openapi/`), `entrypoints/ui/` (Flask and Jinja), `entrypoints/worker/`, `config.py`, `bootstrap.py`
+|`tests/` |The tests: `unit/`, `feature/`, `integration/`, `e2e/`
+|`infra/` |The Dockerfiles (`api`, `ui`, `worker`), `compose.yaml`, `compose.dev.yaml`, `proxy/squid.conf`, `edge/default.conf.template` and `.env.example`
+|`docs/` |This Antora component
+|`openspec/` |The spine: changes and living specs
+|===
+
+Layers import downward only (Cosmic Python): `bootstrap` over `entrypoints` and `adapters`, over
+`services`, over `domain`; import-linter enforces it (`make check-architecture`).
+
+== How we code
+
+* *Clean architecture* (Cosmic Python), *SOLID*, *KISS* and *YAGNI*: the smallest change that fully
+  solves the task.
+* *Test first.* A test precedes the code it tests (red, green, refactor).
+* *Hard fail.* A function never returns `None` to signal failure; it raises a specific error.
+* *Comments say why*, only where the code cannot.
+* *The library does the fingerprinting.* See
+  xref:develop/rdf-fingerprinter.adoc[Building on rdf-fingerprinter].
+
+== Tools
+
+[cols="1,3",options="header"]
+|===
+|Area |Tool
+|Runtime |Python 3.13, `rdf-fingerprinter` 3.6
+|Dependencies |uv, `pyproject.toml`, `uv.lock` (exact pins)
+|Quality |Ruff, mypy, import-linter, OpenSpec validation, docs check, coverage ≥ 80 % (`make check-all`; the docs check alone is `make check-docs`)
+|Tests |pytest, pytest-bdd, Playwright; tiers `unit`, `feature`, `integration`, `e2e` (`make test`, `make test-containers`)
+|Runtime services |Docker Compose in `infra/` (`make init-env`, `up`, `down`, `rebuild`, `logs`): edge proxy (nginx), egress proxy (Squid), API, UI, worker, Flower, Redis, Fuseki, PlantUML on four networks (`edge`, then `app`, `work`, `monitor`, which are internal); `make up-deps` starts only Redis, Fuseki and PlantUML, and `make up-dev` the whole stack, with `infra/compose.dev.yaml` publishing those three on `127.0.0.1` for `make run-api`, `run-ui`, `run-worker`
+|Delivery |GitHub Actions pinned by commit SHA: `ci.yml` (`check-all`, container tests, image build), `docs.yml`, `release.yml` (images to GHCR on a release)
+|Code intelligence |GitNexus (impact before every edit)
+|Docs |Antora (AsciiDoc)
+|===
+
+[#work]
+== How work is organised
+
+Work is planned before it is coded, in the OpenSpec spine:
+
+* the *EPIC* is `openspec/changes/<id>/proposal.md` (appetite, why, solution, rabbit holes, no-gos);
+* the *PLAN* is `design.md` + `tasks.md`, scored by the clarity gate (≥ 9/10) before the first task;
+* the *requirements* are spec deltas, `specs/<cap>/spec.md` (SHALL, with scenarios), merged into
+  `openspec/specs/` when the change is archived.
+
+Library work is planned in the library's own spine; an EPIC here that needs it names the library
+change or issue.
+
+[#vv]
+== Verification and validation
+
+_How do we know we built the right thing, and built it right?_
+
+* *Verification* asks "did we build it right?": code against its tests and spec scenarios, the
+  structure against the layering. It is mostly mechanical, and agents do most of it.
+* *Validation* asks "did we build the right thing?": the scenarios against what the developer
+  wants, the delivered feature against the EPIC's success measure. It always ends with the
+  developer; an agent prepares the evidence and can recommend.
+
+[cols="2,3,3",options="header"]
+|===
+|Artefact |Validated by |Verified by
+|EPIC |The developer agrees the why, the appetite and the success measure |The clarity gate (≥ 9/10) on EPIC and PLAN
+|Spec scenarios and Gherkin |The developer's *scenario sign-off*, before a stage's build |The *traceability check*: every scenario has a test, every feature test names its scenario
+|Code |The *acceptance demo*, before the PR of a stage that delivers or changes a use case |The tests and gates, the five-lens review, the verifier
+|Docs |The *cold reader*: a fresh agent carries out the page |The snippets run; every page is in the navigation (`make check-docs`)
+|===
+
+Evidence lives with the change, in `openspec/changes/<id>/evidence/` (`spike-<topic>.md`,
+`acceptance-<stage>.md`), and is archived with it.
+
+== Documentation
+
+* The docs are this Antora component, in `docs/modules/ROOT/`; every page is in the navigation
+  (`make check-docs`). Install the toolchain once with `make install-antora`; build with
+  `make build-docs`, preview with `make preview-docs`.
+* Each page opens with the questions it answers.
+* Each stage updates the pages it changed.
+
+== Source control
+
+* Branch off `develop` (`feature/<change-id>`, `fix/…`, `docs/…`); never commit to `develop` or
+  `main` directly. PRs target `develop` and merge only on green CI; `main` receives releases.
+* One task per commit, one repository per commit. Conventional Commits, imperative, no trailing
+  period; the body gives the *why*, the *what* and the *trace* (`Refs: <change-id> <task>`).
+* No AI attribution in commits or PRs.
+
+== Reporting a bug
+
+* *A bug in this service*: a GitHub issue in `meaningfy-ws/rdf-fingerprinter-ws`, labelled `bug`,
+  saying what happens and how to reproduce it.
+* *A bug or a missing capability in the library*: a GitHub issue there, in the shape on
+  xref:develop/rdf-fingerprinter.adoc#issue[Building on rdf-fingerprinter]. Never a workaround here.
+* A bug found while working on a task is fixed test-first: a failing test, then the fix.
+
+[#before-pr]
+== Before a PR
+
+* The gates pass: `make check-all`, `make check-docs` when `docs/` changed, and
+  `make test-containers` when adapters, `infra/` or the workflows changed (CI runs it on every PR).
+* A change to `infra/` also builds: `make build-images` builds the three images (CI runs it), and
+  `make init-env` then `make up` starts the stack with random secrets (pick non-default host ports in `infra/.env` if another stack is running).
+* No workaround of the library; every library issue met is filed and linked from `design.md`.
+* The stage's scenarios were signed off and the traceability check is clean; for a use-case stage,
+  the acceptance demo is recorded in `evidence/`.
+* Each commit cites its change and task; the PR targets `develop`.
+
+[#durations]
+== How long the checks take
+
+Rough wall-clock times from ordinary runs on a developer laptop, not from profiling. Add or update a
+row when a run differs a lot.
+
+[cols="2,1,1,1,3"]
+|===
+|Target |Tests |Time |Measured |Notes
+|`make check-docs` |– |≈ 1 s |2026-11-08 |
+|`make check-all` |570 |≈ 67 s |2026-11-08 |most of it is `check-spec` (npx)
+|`make test-containers` |68 |≈ 220 s |2026-11-08 |integration and e2e (incl. the UI journeys); most of it is starting the Fuseki, Redis and PlantUML containers and Chromium
+|e2e: endpoint job, all seven formats |1 |≈ 1.5 s |2026-11-08 |continents table; job wall time, queued to `completed`
+|e2e: file job (upload, dataset, run, removal) |1 |≈ 4 s |2026-11-08 |treaties table
+|e2e: unreachable endpoint |1 |≈ 5 s |2026-11-08 |the library retries twice before the job fails
+|e2e: cancel a running file job |1 |≈ 7 s |2026-11-08 |whole test, run alone, so it includes starting the worker
+|===

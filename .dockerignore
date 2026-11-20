@@ -1,5 +1,21 @@
-fuseki-fingerprinter-volume/
-.venv*
+# Only the code and the lock reach the images: no secrets, data, caches or local tooling.
+**/.env
 .git*
+.venv*
 venv*
 env*
+db/
+reports/
+logs/
+temp/
+site/
+docs/
+openspec/
+tests/
+.idea/
+.claude/
+**/__pycache__
+.*_cache
+coverage.xml
+test-results.xml
+fuseki-fingerprinter-volume/

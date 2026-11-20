@@ -47,6 +47,8 @@ htmlcov/
 .cache
 nosetests.xml
 coverage.xml
+coverage-containers.xml
+test-results-containers.xml
 *.cover
 *.py,cover
 .hypothesis/
@@ -71,8 +73,9 @@ instance/
 # Scrapy stuff:
 .scrapy
 
-# Sphinx documentation
-docs/_build/
+# Antora documentation
+docs/build/
+docs/node_modules/
 
 # PyBuilder
 target/
@@ -138,3 +141,11 @@ dmypy.json
 
 # fuseki
 /fuseki-fingerprinter-volume
+# Temporary files (agents and people)
+temp/
+test-results.xml
+
+# Local stack settings (secrets); the committed template is infra/.env.example
+**/.env
+**/.env.*
+!infra/.env.example

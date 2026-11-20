@@ -1,0 +1,62 @@
+= RDF Fingerprinter WS
+:description: A web service and UI that fingerprint an RDF file or a SPARQL endpoint with the rdf-fingerprinter library.
+
+_What is this service, and what does it run on?_
+
+RDF Fingerprinter WS fingerprints an RDF dataset: it guesses the application profile (the data
+shapes) that the dataset instantiates and writes a report. The fingerprinting itself is done by the
+https://github.com/meaningfy-ws/rdf-fingerprinter[`rdf-fingerprinter`] library; this service puts an
+API, a UI and asynchronous jobs around it.
+
+== What it does
+
+* *Fingerprint a SPARQL endpoint*: give the endpoint URL, choose among its named graphs (or none,
+  for every graph), and start the job.
+* *Fingerprint a file*: upload an RDF file; the service loads it into a temporary Fuseki dataset,
+  fingerprints that, and removes the dataset.
+* *Follow the jobs*: jobs run in the background; the *Jobs* page lists every job with its state,
+  updates by itself while one is queued or running, and filters by state. Cancel and delete ask
+  first.
+* *Read the result*: a job's page shows the report, the class diagrams (drawn by a PlantUML server
+  in the stack, one for the whole model and one per vocabulary) and every download, with the parts
+  that could not be produced.
+
+.The Jobs page
+image::ui-jobs.png[The Jobs page: each job with its source, start time, status and outputs]
+
+.A new job, with two named graphs listed and one chosen
+image::ui-new-job.png[The New job page with the endpoint URL, Load graphs and the named graphs]
+
+.A job's report, read in the page
+image::ui-report.png[The Job page on its Report tab]
+
+.A job's class diagram
+image::ui-class-diagram.png[The Job page on its Class diagram tab, with the diagram picker]
+
+.A job's downloads
+image::ui-downloads.png[The Job page on its Downloads tab, each format with its description]
+
+== What it runs on
+
+The stack is `infra/compose.yaml` (`make init-env` writes `infra/.env` with random secrets, `make up` starts it; the API and UI are published on localhost only, through an nginx edge proxy). The API and the worker reach user-given URLs only through a Squid egress proxy that refuses loopback, private, link-local and shared addresses; Redis, Fuseki and PlantUML have no route out and each container holds only its own secrets (see `SECURITY.md`).
+
+[cols="1,3",options="header"]
+|===
+|Container |Role
+|`fingerprinter-api` |The REST API (Flask and Connexion on gunicorn; Swagger UI at `/ui`)
+|`fingerprinter-ui` |The web UI (Flask and Jinja), a client of the API
+|`fingerprinter-worker` |Runs the fingerprinting jobs (Celery)
+|`redis` |The Celery broker
+|`fuseki` |Holds the temporary datasets of uploaded files
+|`plantuml` |Renders the class diagrams (sandbox profile)
+|`fingerprinter-flower` |Flower, a view of the Celery jobs
+|===
+
+The API, UI and worker images are built from the targets of `infra/docker/Dockerfile` (Python 3.13, uv,
+non-root) and published to `ghcr.io/meaningfy-ws/rdf-fingerprinter-ws-{api,ui,worker}` on each GitHub
+release. Read `SECURITY.md` before exposing the stack.
+
+image::fingerprinter-api.png[The API's Swagger UI]
+
+Installation and usage are in the repository's `README.md`; how the service is developed is in the
+xref:develop/index.adoc[developer runbook].
