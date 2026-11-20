@@ -299,3 +299,10 @@ def test_the_image_keeps_its_data_folders_under_app_whatever_the_package_locatio
     base = dockerfile_stages()["base"]
     assert "RDF_FINGERPRINTER_FILE_DB=/app/db" in base
     assert "RDF_FINGERPRINTER_REPORTS_DB=/app/reports" in base
+
+
+def test_a_release_tags_its_images_with_no_latest():
+    """Stacks pin a version; metadata-action adds ``latest`` to a semver tag unless told not to."""
+    steps = load(WORKFLOWS / "release.yml")["jobs"]["images"]["steps"]
+    meta = next(step for step in steps if step.get("id") == "meta")["with"]
+    assert "latest=false" in meta.get("flavor", "")
