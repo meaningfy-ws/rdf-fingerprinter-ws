@@ -4,7 +4,7 @@
 
 [project]
 name = "rdf-fingerprinter-ws"
-version = "3.0.0"
+version = "3.1.0"
 description = "Web service and UI that fingerprint RDF datasets with the rdf-fingerprinter library"
 authors = [{ name = "Meaningfy", email = "hi@meaningfy.ws" }]
 license = { text = "Apache-2.0" }

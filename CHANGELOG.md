@@ -6,6 +6,23 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [3.1.0] - 2026-11-21
+
+### Added
+
+- The RDF Fingerprinter logo: in the UI header (navy in light mode, white in dark mode, per the
+  Meaningfy brand guidelines), as the favicon, SVG icon and Apple touch icon, and in the README and
+  the docs.
+- API: a job record lists `diagrams`, what each class diagram shows (its graph, and its vocabulary
+  and part when it is one), as the library describes them.
+
+### Changed
+
+- UI: the class-diagram picker labels the diagrams from the library's description instead of
+  their file names. Jobs stored by 3.0.0 list their diagrams by file name.
+- CI: the GitHub Actions run on their Node 24 releases; release images are no longer tagged
+  `latest`.
+
 ## [3.0.0] - 2026-11-20
 
 The first release since 2.0.2 (2022): a rewrite on `rdf-fingerprinter` 3.7, with a new user

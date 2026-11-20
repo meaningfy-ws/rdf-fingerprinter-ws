@@ -1741,7 +1741,7 @@ wheels = [
 
 [[package]]
 name = "rdf-fingerprinter-ws"
-version = "3.0.0"
+version = "3.1.0"
 source = { editable = "." }
 dependencies = [
     { name = "celery", extra = ["redis"] },
