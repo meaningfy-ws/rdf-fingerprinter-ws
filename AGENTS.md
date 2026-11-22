@@ -186,7 +186,7 @@ parallel epic files under `.claude/`.
   `improve-ui-footer`. Library 3.7 (#78) is pinned; its `describe_diagrams` is adopted: the
   picker labels diagrams from the job record's `diagrams`, not from file names (see
   `develop/rdf-fingerprinter.adoc#pending`).
-- **Library quirks (3.7.1):** typed (`py.typed`); `list_named_graphs` lists an endpoint's named
+- **Library quirks (3.8.0):** typed (`py.typed`); `list_named_graphs` lists an endpoint's named
   graphs (for the UI's graph picker); it configures no logging on import; `resolve_settings` lives in
   `fingerprint.service_layer.settings`.
 - **Scratch:** `temp/` for throwaway files; `site/` for the prototype (both git-ignored).

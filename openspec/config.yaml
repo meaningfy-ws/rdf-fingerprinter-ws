@@ -12,7 +12,7 @@ context: |
   Architecture: cosmic-python layers domain, services, adapters, entrypoints (api, ui, worker) under
   a bootstrap composition root, enforced by import-linter (.importlinter).
   Top-level package: fingerprinter (no /src). uv, Python 3.13, pyproject.toml + uv.lock.
-  Library: rdf-fingerprinter 3.7.1 pinned; gates: make check-all (Ruff, mypy, import-linter,
+  Library: rdf-fingerprinter 3.8.0 pinned; gates: make check-all (Ruff, mypy, import-linter,
   openspec, docs, coverage >= 80) and make test-containers (integration and e2e on Docker).
   Infra: infra/ (compose.yaml, .env.example, api/ui/worker Dockerfiles); images to
   ghcr.io/meaningfy-ws/rdf-fingerprinter-ws-{api,ui,worker} on a release (release.yml).
