@@ -99,11 +99,11 @@ Given/When/Then scenarios that would close the issue.
 ----
 
 [#pending]
-== Library 3.7 (pinned at 3.7.1)
+== Library 3.7 and later (pinned at 3.8.0)
 
 `meaningfy-ws/rdf-fingerprinter#78` (change `consumer-api-gaps`, released in 3.7.0) closed #69, #75,
-#76 and #77. The pin is 3.7.1 since service 3.0.0. What it brought, and what this service does with
-it:
+#76 and #77. The pin is 3.8.0 since service 3.1.1; 3.8.0 adds only the RDF Fingerprinter mark in the
+report's header. What 3.7 brought, and what this service does with it:
 
 [cols="1,3"]
 |===

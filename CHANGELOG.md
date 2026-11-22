@@ -6,6 +6,12 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [3.1.1] - 2026-11-22
+
+### Changed
+
+- `rdf-fingerprinter` 3.8.0: the HTML report carries the RDF Fingerprinter mark in its header.
+
 ## [3.1.0] - 2026-11-21
 
 ### Added
